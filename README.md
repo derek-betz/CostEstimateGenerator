@@ -26,7 +26,8 @@ The following packages are installed via `requirements.txt` or `pyproject.toml`:
 
 ### Optional Features
 - **OpenAI API**: To enable AI-assisted item mapping, you need:
-  - An OpenAI API key (set via `OPENAI_API_KEY` environment variable or in `API_KEY/API_KEY.txt`)
+- An OpenAI API key (set via `OPENAI_API_KEY`, or stored in `API_KEY/API_KEY.txt`;
+  alternatively point to a specific file with `OPENAI_API_KEY_FILE`)
   - Can be disabled with `DISABLE_OPENAI=1` environment variable or `--disable-ai` flag
 
 ## Features
@@ -52,8 +53,10 @@ Place the project-level spreadsheets exported from the front end in
 `--project-attributes`):
 
 - `*_project_quantities.xlsx` lists the pay items included in the job.
-- `project_attributes.xlsx` contains the anticipated contract cost and district
-  location used to enrich the debug output.
+- `project_attributes.xlsx` *(optional)* previously stored the expected contract
+  cost and project district. The graphical launcher now collects these values
+  via dedicated input fields, but the workbook remains supported for CLI-driven
+  workflows.
 - `BidTabsData/` holds historical bid tab exports (legacy `.xls` files) that
   supply the price history used when computing statistics.
 
@@ -69,6 +72,26 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
+### Graphical drag-and-drop interface
+
+For a lightweight desktop launcher run:
+
+```bash
+python -m costest.gui
+```
+
+An application window opens where you can drag and drop the
+``*_project_quantities.xlsx`` workbook.  The estimator pipeline executes using
+that workbook and writes the results to the standard output locations.  For
+native drag-and-drop support install the optional ``tkinterdnd2`` package
+(``pip install tkinterdnd2``); without it the window still offers a "Browse"
+button for manual file selection.
+
+The launcher prompts for the Expected Total Contract Cost (currency field with a
+leading ``$``) and the Project District (drop-down listing the six INDOT
+districts). These entries replace the previous requirement to populate
+``project_attributes.xlsx`` when starting a run from the GUI.
+
 Generate fresh sample output files from the text templates:
 
 ```bash
@@ -79,7 +102,9 @@ The script copies the CSV audit sample and materialises Excel workbooks from
 `data_sample/Estimate_Draft_template.csv` and
 `data_sample/payitems_workbook.json` into the `outputs/` directory. The sample
 project spreadsheets `data_sample/2300946_project_quantities.xlsx` and
-`data_sample/project_attributes.xlsx` mirror the front-end payload.
+`data_sample/project_attributes.xlsx` mirror the front-end payload and remain
+available for CLI examples, though the GUI now captures the same metadata
+interactively.
 With those files in place, run the pipeline against the samples:
 
 ```bash

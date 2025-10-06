@@ -37,6 +37,7 @@ Thumbs.db
 .env
 .env.*
 *.pem
+API_KEY/
 
 # Logs
 *.log

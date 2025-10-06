@@ -22,6 +22,7 @@ from .ai_reporter import generate_alternate_seek_report
 from .reporting import make_summary_text
 from . import reference_data
 from .ai_process_report import generate_process_improvement_report
+from .project_meta import DISTRICT_CHOICES, DISTRICT_REGION_MAP, normalize_district
 if TYPE_CHECKING:
     from .config import CLIConfig
 
@@ -38,8 +39,16 @@ DEFAULT_REGION_MAP = BASE_DIR / "references" / "region_map.xlsx"
 
 def _iter_api_key_paths():
     seen = set()
-    for base in [BASE_DIR, *BASE_DIR.parents]:
-        candidate = (base / "API_KEY" / "API_KEY.txt").resolve()
+    explicit = os.getenv("OPENAI_API_KEY_FILE", "").strip()
+    if explicit:
+        candidate = Path(explicit).expanduser().resolve()
+        if candidate not in seen:
+            seen.add(candidate)
+            if candidate.exists():
+                yield candidate
+    search_roots = [BASE_DIR, *BASE_DIR.parents, Path.cwd()]
+    for base in search_roots:
+        candidate = (Path(base) / "API_KEY" / "API_KEY.txt").resolve()
         if candidate in seen:
             continue
         seen.add(candidate)
@@ -59,7 +68,9 @@ def _load_api_key_from_file() -> None:
                     value = line
                 value = value.strip()
                 if value:
-                    os.environ.setdefault("OPENAI_API_KEY", value)
+                    existing = os.environ.get("OPENAI_API_KEY", "")
+                    if not existing.strip():
+                        os.environ["OPENAI_API_KEY"] = value
                 return
     except Exception as exc:  # pragma: no cover - defensive
         print(f"Warning: unable to load API key: {exc}")
@@ -154,6 +165,51 @@ def _extract_project_region(df: pd.DataFrame) -> Optional[int]:
             if value is not None:
                 return int(value)
     return None
+
+
+def _parse_expected_cost_value(raw: str) -> Optional[float]:
+    if not raw:
+        return None
+    cleaned = raw.replace("$", "").replace(",", "").strip()
+    if not cleaned:
+        return None
+    try:
+        return float(cleaned)
+    except ValueError:
+        return None
+
+
+def _project_inputs_from_env() -> tuple[
+    Optional[float],
+    Optional[int],
+    Optional[pd.DataFrame],
+    Optional[str],
+    bool,
+]:
+    raw_cost = os.getenv("EXPECTED_TOTAL_CONTRACT_COST", "").strip()
+    raw_district = os.getenv("PROJECT_DISTRICT", "").strip()
+    raw_region = os.getenv("PROJECT_REGION", "").strip()
+
+    env_used = any((raw_cost, raw_district, raw_region))
+    if not env_used:
+        return None, None, None, None, False
+
+    expected_cost = _parse_expected_cost_value(raw_cost)
+    district_name = normalize_district(raw_district)
+
+    project_region = None
+    if district_name:
+        project_region = DISTRICT_REGION_MAP.get(district_name)
+    elif raw_region:
+        try:
+            project_region = int(float(raw_region))
+        except ValueError:
+            project_region = None
+
+    rows = [{"DISTRICT": name, "REGION": number} for number, name in DISTRICT_CHOICES]
+    region_map_df = pd.DataFrame(rows)
+
+    return expected_cost, project_region, region_map_df, district_name, True
 
 
 def _sanitize_bidtabs(df: pd.DataFrame) -> pd.DataFrame:
@@ -251,11 +307,30 @@ def run(config: Optional["CLIConfig"] = None) -> int:
         globals()["OUT_AUDIT"] = config.estimate_audit_csv
         globals()["OUT_XLSX"] = config.estimate_xlsx
         globals()["OUT_PAYITEM_AUDIT"] = config.payitems_workbook
-    expected_contract_cost, project_region, region_map = load_project_attributes(
-        PROJECT_ATTRS_XLSX,
-        legacy_expected_path=LEGACY_EXPECTED_COST_XLSX or None,
-        legacy_region_map_path=LEGACY_REGION_MAP_XLSX or None,
-    )
+    _load_api_key_from_file()
+    (
+        env_expected_cost,
+        env_project_region,
+        env_region_map,
+        env_district_name,
+        env_used,
+    ) = _project_inputs_from_env()
+
+    project_district_name = env_district_name
+    project_attrs_display = str(PROJECT_ATTRS_XLSX)
+
+    if env_used:
+        expected_contract_cost = env_expected_cost
+        project_region = env_project_region
+        region_map = env_region_map if env_region_map is not None else pd.DataFrame(columns=["DISTRICT", "REGION"])
+        project_attrs_display = "(GUI inputs)"
+    else:
+        expected_contract_cost, project_region, region_map = load_project_attributes(
+            PROJECT_ATTRS_XLSX,
+            legacy_expected_path=LEGACY_EXPECTED_COST_XLSX or None,
+            legacy_region_map_path=LEGACY_REGION_MAP_XLSX or None,
+        )
+        project_district_name = None
     reference_data.load_payitem_catalog()
     reference_data.load_unit_price_summary()
     reference_data.load_spec_sections()
@@ -675,8 +750,14 @@ def run(config: Optional["CLIConfig"] = None) -> int:
     print("\nInputs used:")
     print(" - BidTabs folder:", BIDFOLDER)
     print(" - Quantities file:", Path(qty_path).resolve())
-    print(" - Project attributes:", PROJECT_ATTRS_XLSX)
-    if project_region is not None:
+    print(" - Project attributes:", project_attrs_display)
+    if project_district_name:
+        district_label = next((name for _, name in DISTRICT_CHOICES if name == project_district_name), project_district_name)
+        if project_region is not None:
+            print(f"   Project district: {district_label} (region {project_region})")
+        else:
+            print(f"   Project district: {district_label}")
+    elif project_region is not None:
         print(f"   Project region: {project_region}")
     else:
         print("   Project region: (not provided)")
