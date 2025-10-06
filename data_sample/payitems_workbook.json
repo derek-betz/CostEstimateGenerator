@@ -1,0 +1,26 @@
+{
+  "Item 001 - Concrete": {
+    "columns": ["DATE", "Unit Price", "Vendor"],
+    "rows": [
+      ["2023-01-01", 100.0, "Vendor A"],
+      ["2023-02-01", 110.0, "Vendor B"],
+      ["2023-03-01", 105.0, "Vendor C"]
+    ]
+  },
+  "ITEM002": {
+    "columns": ["PRICE", "Notes"],
+    "rows": [
+      [50.0, "Bid 1"],
+      [55.0, "Bid 2"],
+      [60.0, "Bid 3"]
+    ]
+  },
+  "Item004 History": {
+    "columns": ["DIST_AVG", "STATE_VALUE"],
+    "rows": [
+      [75.0, 80.0],
+      [74.0, null],
+      [82.0, null]
+    ]
+  }
+}

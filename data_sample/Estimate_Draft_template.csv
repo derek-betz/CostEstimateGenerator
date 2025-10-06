@@ -1,0 +1,5 @@
+ITEM_CODE,DESCRIPTION,DATA_POINTS_USED,MEAN_UNIT_PRICE,OTHER_COLUMN
+ITEM-001,Concrete placement,0,0,A
+ITEM 002,Asphalt paving,0,0,B
+Item004,Guardrail installation,0,0,C
+ITEM005,Unknown item,0,0,D

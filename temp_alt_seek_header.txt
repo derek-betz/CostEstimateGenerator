@@ -1,0 +1,71 @@
+"""Helpers for finding alternate pay items when direct BidTabs data is missing."""
+
+from __future__ import annotations
+
+import json
+import math
+from dataclasses import dataclass
+from typing import Dict, Iterable, List, Mapping, Optional
+
+import pandas as pd
+
+from . import reference_data
+from .geometry import GeometryInfo
+from .price_logic import category_breakdown
+from .ai_selector import choose_alternates_via_ai, AISelection
+
+CATEGORY_LABELS = [
+    "DIST_12M",
+    "DIST_24M",
+    "DIST_36M",
+    "STATE_12M",
+    "STATE_24M",
+    "STATE_36M",
+]
+
+
+@dataclass
+class AlternateCandidate:
+    item_code: str
+    description: str
+    area_sqft: float
+    base_price: float
+    adjusted_price: float
+    ratio: float
+    data_points: int
+    cat_data: Mapping[str, float]
+
+
+@dataclass
+class SelectedAlternate:
+    item_code: str
+    description: str
+    area_sqft: float
+    base_price: float
+    adjusted_price: float
+    ratio: float
+    data_points: int
+    weight: float
+    reason: Optional[str] = None
+
+
+@dataclass
+class AlternateResult:
+    target_code: str
+    target_area: float
+    candidates: List[AlternateCandidate]
+    selections: List[SelectedAlternate]
+    final_price: float
+    detail_map: Dict[str, pd.DataFrame]
+    used_categories: List[str]
+    combined_detail: pd.DataFrame
+    cat_data: Dict[str, float]
+    total_data_points: int
+    ai_notes: Optional[str]
+    reference_bundle: Mapping[str, object] | None = None
+    ai_system: Optional[Mapping[str, object]] = None
+    show_work_method: Optional[str] = None
+    process_improvements: Optional[str] = None
+
+
+# ... rest of file remains unchanged beyond dataclass definition

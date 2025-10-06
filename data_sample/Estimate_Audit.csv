@@ -1,0 +1,5 @@
+ITEM_CODE,DESCRIPTION,UNIT,QUANTITY,DATA_POINTS_USED,MEAN_UNIT_PRICE
+ITEM-001,Concrete placement,CY,100,0,0
+ITEM 002,Asphalt paving,TON,50,0,0
+Item004,Guardrail installation,LF,200,0,0
+ITEM005,Unknown item,EA,10,0,0
