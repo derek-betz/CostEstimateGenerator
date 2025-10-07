@@ -99,6 +99,7 @@ class EstimatorApp:
         self._queue: "queue.Queue[PipelineResult]" = queue.Queue()
         self._worker: Optional[threading.Thread] = None
         self._current_path: Optional[Path] = None
+        self._selected_path: Optional[Path] = None
 
         self.etcc_var = tk.StringVar(value="$")
         self.district_var = tk.StringVar()
@@ -164,6 +165,11 @@ class EstimatorApp:
         )
         self.district_combo.grid(row=1, column=1, sticky=tk.EW)
 
+        self.browse_button = ttk.Button(container, text="Browse for workbook…", command=self._browse_file)
+        self.browse_button.pack(pady=(16, 4))
+
+        self.run_button = ttk.Button(container, text="Run Estimate", command=self._start_pipeline, state=tk.DISABLED)
+        self.run_button.pack(pady=(4, 8))
         button_row = ttk.Frame(container)
         button_row.pack(fill=tk.X, pady=(16, 8))
 
@@ -183,6 +189,13 @@ class EstimatorApp:
         self.log_widget.pack(fill=tk.BOTH, expand=True)
 
     # --------------------------------------------------------------- Helpers --
+    def _update_run_button_state(self) -> None:
+        running = self._worker is not None and self._worker.is_alive()
+        if running or self._selected_path is None:
+            self.run_button.configure(state=tk.DISABLED)
+        else:
+            self.run_button.configure(state=tk.NORMAL)
+
     def _handle_etcc_focus_in(self, event: tk.Event) -> None:
         widget = event.widget
         value = self.etcc_var.get().strip()
@@ -244,8 +257,10 @@ class EstimatorApp:
         if running:
             self.progress.start(10)
             self.status_var.set("Running estimator…")
+            self.browse_button.configure(state=tk.DISABLED)
         else:
             self.progress.stop()
+            self.browse_button.configure(state=tk.NORMAL)
             if self._current_path is not None:
                 self.status_var.set(f"Last run completed for {self._current_path.name}.")
 
@@ -273,7 +288,7 @@ class EstimatorApp:
         paths = _split_dropped_paths(getattr(event, "data", ""))
         for path in paths:
             if path.is_file() and path.name.endswith("_project_quantities.xlsx"):
-                self._start_pipeline(path)
+                self._select_workbook(path)
                 return
         messagebox.showerror("Invalid file", "Please drop a *_project_quantities.xlsx workbook.")
 
@@ -286,16 +301,26 @@ class EstimatorApp:
             filetypes=[["Project quantities", "*_project_quantities.xlsx"], ["All files", "*.*"]],
         )
         if path:
-            self._start_pipeline(Path(path))
+            self._select_workbook(Path(path))
 
     # -------------------------------------------------------------- Worker --
-    def _start_pipeline(self, path: Path) -> None:
+    def _select_workbook(self, path: Path) -> None:
+        if not path.name.endswith("_project_quantities.xlsx"):
+            messagebox.showerror("Invalid file", "Select a *_project_quantities.xlsx workbook.")
+            return
+
+        self._selected_path = path
+        self.status_var.set(f"Selected {path.name}. Fill in the inputs and click Run Estimate.")
+        self._update_run_button_state()
+
+    def _start_pipeline(self) -> None:
         if self._worker and self._worker.is_alive():
             messagebox.showinfo("Estimator busy", "Please wait for the current run to finish.")
             return
 
-        if not path.name.endswith("_project_quantities.xlsx"):
-            messagebox.showerror("Invalid file", "Select a *_project_quantities.xlsx workbook.")
+        path = self._selected_path
+        if path is None:
+            messagebox.showerror("No workbook selected", "Choose a *_project_quantities.xlsx workbook before running the estimator.")
             return
 
         try:
