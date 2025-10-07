@@ -165,24 +165,19 @@ class EstimatorApp:
         )
         self.district_combo.grid(row=1, column=1, sticky=tk.EW)
 
-<<<<<<< ours
-        self.browse_button = ttk.Button(container, text="Browse for workbook…", command=self._browse_file)
-        self.browse_button.pack(pady=(16, 4))
+        # Browse button in the input frame
+        self.browse_button = ttk.Button(input_frame, text="Browse for workbook…", command=self._browse_file)
+        self.browse_button.grid(row=2, column=0, columnspan=2, sticky=tk.EW, pady=(12, 0))
 
-        self.run_button = ttk.Button(container, text="Run Estimate", command=self._start_pipeline, state=tk.DISABLED)
-        self.run_button.pack(pady=(4, 8))
+        # Button row for run and clear buttons
         button_row = ttk.Frame(container)
         button_row.pack(fill=tk.X, pady=(16, 8))
 
-        browse = ttk.Button(button_row, text="Browse for workbook…", command=self._browse_file)
-        browse.pack(side=tk.LEFT)
+        self.run_button = ttk.Button(button_row, text="Run Estimate", command=self._start_pipeline, state=tk.DISABLED)
+        self.run_button.pack(side=tk.LEFT)
 
         clear = ttk.Button(button_row, text="Clear last results", command=self._clear_last_results)
         clear.pack(side=tk.LEFT, padx=(12, 0))
-=======
-        browse = ttk.Button(input_frame, text="Browse for workbook…", command=self._browse_file)
-        browse.grid(row=2, column=0, columnspan=2, sticky=tk.EW, pady=(12, 0))
->>>>>>> theirs
 
         self.progress = ttk.Progressbar(container, mode="indeterminate")
         self.progress.pack(fill=tk.X, pady=(16, 12))
