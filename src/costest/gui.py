@@ -109,7 +109,8 @@ class EstimatorApp:
             self._district_display_strings.append(display)
             self._district_display_to_name[display] = name
 
-        self.status_var = tk.StringVar(value="Drop a *_project_quantities.xlsx workbook to begin.")
+        self._initial_status = "Drop a *_project_quantities.xlsx workbook to begin."
+        self.status_var = tk.StringVar(value=self._initial_status)
         self._build_ui()
         self.root.after(100, self._poll_queue)
 
@@ -163,8 +164,14 @@ class EstimatorApp:
         )
         self.district_combo.grid(row=1, column=1, sticky=tk.EW)
 
-        browse = ttk.Button(container, text="Browse for workbook…", command=self._browse_file)
-        browse.pack(pady=(16, 8))
+        button_row = ttk.Frame(container)
+        button_row.pack(fill=tk.X, pady=(16, 8))
+
+        browse = ttk.Button(button_row, text="Browse for workbook…", command=self._browse_file)
+        browse.pack(side=tk.LEFT)
+
+        clear = ttk.Button(button_row, text="Clear last results", command=self._clear_last_results)
+        clear.pack(side=tk.LEFT, padx=(12, 0))
 
         self.progress = ttk.Progressbar(container, mode="indeterminate")
         self.progress.pack(fill=tk.X, pady=(0, 12))
@@ -241,6 +248,20 @@ class EstimatorApp:
             self.progress.stop()
             if self._current_path is not None:
                 self.status_var.set(f"Last run completed for {self._current_path.name}.")
+
+    def _clear_last_results(self) -> None:
+        if self._worker and self._worker.is_alive():
+            messagebox.showinfo("Estimator busy", "Please wait for the current run to finish.")
+            return
+
+        self._current_path = None
+        self.status_var.set(self._initial_status)
+        self.etcc_var.set("$")
+        self.district_var.set("")
+        self.district_combo.set("")
+        self.log_widget.configure(state=tk.NORMAL)
+        self.log_widget.delete("1.0", tk.END)
+        self.log_widget.configure(state=tk.DISABLED)
 
     def _append_log(self, text: str) -> None:
         self.log_widget.configure(state=tk.NORMAL)
