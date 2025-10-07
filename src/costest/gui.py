@@ -165,6 +165,7 @@ class EstimatorApp:
         )
         self.district_combo.grid(row=1, column=1, sticky=tk.EW)
 
+<<<<<<< ours
         self.browse_button = ttk.Button(container, text="Browse for workbook…", command=self._browse_file)
         self.browse_button.pack(pady=(16, 4))
 
@@ -178,9 +179,13 @@ class EstimatorApp:
 
         clear = ttk.Button(button_row, text="Clear last results", command=self._clear_last_results)
         clear.pack(side=tk.LEFT, padx=(12, 0))
+=======
+        browse = ttk.Button(input_frame, text="Browse for workbook…", command=self._browse_file)
+        browse.grid(row=2, column=0, columnspan=2, sticky=tk.EW, pady=(12, 0))
+>>>>>>> theirs
 
         self.progress = ttk.Progressbar(container, mode="indeterminate")
-        self.progress.pack(fill=tk.X, pady=(0, 12))
+        self.progress.pack(fill=tk.X, pady=(16, 12))
 
         log_label = ttk.Label(container, text="Run log:")
         log_label.pack(anchor=tk.W)

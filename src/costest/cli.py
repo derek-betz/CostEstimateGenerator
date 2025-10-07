@@ -2,7 +2,7 @@ import os
 import math
 import argparse
 from pathlib import Path
-from typing import Dict, Optional, Sequence, List, TYPE_CHECKING
+from typing import Dict, Optional, Sequence, TYPE_CHECKING
 
 import pandas as pd
 from dotenv import load_dotenv
@@ -21,7 +21,6 @@ from .geometry import parse_geometry
 from .ai_reporter import generate_alternate_seek_report
 from .reporting import make_summary_text
 from . import reference_data
-from .ai_process_report import generate_process_improvement_report
 from .project_meta import DISTRICT_CHOICES, DISTRICT_REGION_MAP, normalize_district
 if TYPE_CHECKING:
     from .config import CLIConfig
@@ -388,7 +387,6 @@ def run(config: Optional["CLIConfig"] = None) -> int:
     rows = []
     payitem_details: Dict[str, pd.DataFrame] = {}
     alternate_reports: Dict[str, Dict[str, object]] = {}
-    process_improvement_notes: List[Dict[str, object]] = []
 
     for _, r in qty.iterrows():
         code = str(r["ITEM_CODE"]).strip()
@@ -538,21 +536,6 @@ def run(config: Optional["CLIConfig"] = None) -> int:
                     row["ALT_SHOW_WORK_METHOD"] = alt_result.show_work_method
                 if alt_result.process_improvements:
                     alt_entry["process_improvements"] = alt_result.process_improvements
-                notes_payload = {
-                    "item_code": code,
-                    "description": desc,
-                    "unit": unit,
-                    "process_improvements": alt_result.process_improvements,
-                    "ai_system": alt_result.ai_system,
-                    "show_work_method": alt_result.show_work_method,
-                    "references": ref_snapshot,
-                    "similarity_summary": similarity_summary,
-                    "candidate_notes": alt_result.candidate_notes,
-                    "ai_notes": alt_result.ai_notes,
-                    "alternate_method": method_label,
-                }
-                if any(notes_payload.get(key) for key in ("process_improvements", "ai_system", "show_work_method", "similarity_summary")):
-                    process_improvement_notes.append(notes_payload)
                 alternate_reports[code] = alt_entry
                 if alt_result.ai_notes:
                     alt_entry["chosen"]["notes"] = alt_result.ai_notes
@@ -677,7 +660,6 @@ def run(config: Optional["CLIConfig"] = None) -> int:
     df = pd.DataFrame(rows)
 
     ai_report_path = None
-    process_report_path = None
     ai_enabled = os.getenv("DISABLE_OPENAI", "0").strip().lower() not in ("1", "true", "yes")
     if alternate_reports and ai_enabled:
         try:
@@ -691,43 +673,6 @@ def run(config: Optional["CLIConfig"] = None) -> int:
             )
         except Exception as exc:  # pragma: no cover - defensive
             print(f"Warning: unable to generate alternate-seek AI report: {exc}")
-        try:
-            process_overview = {
-                "inputs": {
-                    "bidtabs_dir": str(BIDFOLDER),
-                    "quantities_file": str(Path(qty_path).resolve()),
-                    "project_attributes": str(PROJECT_ATTRS_XLSX),
-                    "expected_contract_cost": float(expected_contract_cost or 0),
-                    "project_region": project_region,
-                    "min_sample_target": MIN_SAMPLE_TARGET,
-                },
-                "statistics": {
-                    "bidtabs_rows": int(len(bid)),
-                    "quantities_items": int(len(qty)),
-                    "alternate_items": len(alternate_reports),
-                },
-                "filters": {
-                    "contract_size_bounds": filtered_bounds,
-                },
-                "pipeline_steps": [
-                    "Load BidTabs history, normalize item codes, dates, and geometry.",
-                    "Ensure region column via mapping and optional contract-size filtering.",
-                    "Compute category-based pricing hierarchy with geometry-aware adjustments.",
-                    "Apply IDM percentage overrides for contract-level items.",
-                    "Perform alternate-seek with AI assistance when BidTabs coverage is zero.",
-                    "Write Estimate_Draft.xlsx, Estimate_Audit.csv, and PayItems_Audit.xlsx outputs.",
-                ],
-                "ai_enabled": ai_enabled,
-            }
-            reference_snapshot = reference_data.snapshot_reference_summary()
-            process_report_path = generate_process_improvement_report(
-                process_overview=process_overview,
-                process_notes=process_improvement_notes,
-                reference_snapshot=reference_snapshot,
-                output_dir=OUTPUT_DIR,
-            )
-        except Exception as exc:  # pragma: no cover - defensive
-            print(f"Warning: unable to generate process improvement report: {exc}")
     elif alternate_reports and not ai_enabled:
         print("AI reporting disabled; skipping alternate-seek narrative generation.")
 
@@ -776,8 +721,6 @@ def run(config: Optional["CLIConfig"] = None) -> int:
     print(" -", OUT_PAYITEM_AUDIT)
     if ai_report_path:
         print(" -", ai_report_path)
-    if process_report_path:
-        print(" -", process_report_path)
 
     # Restore globals if we overrode them
     if config is not None:
