@@ -13,12 +13,13 @@ from __future__ import annotations
 import io
 import os
 import queue
+import re
 import threading
 import traceback
 from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -165,16 +166,19 @@ class EstimatorApp:
         self._palette: dict[str, str] = {}
         self._configure_theme()
         self.root.title("Cost Estimate Generator")
-        self.root.geometry("720x560")
-        self.root.minsize(560, 420)
+        self.root.geometry("880x680")
+        self.root.minsize(720, 600)
 
         self._queue: "queue.Queue[PipelineResult]" = queue.Queue()
         self._worker: Optional[threading.Thread] = None
         self._current_path: Optional[Path] = None
         self._selected_path: Optional[Path] = None
 
-        self.etcc_var = tk.StringVar(value="$")
+        self.etcc_var = tk.StringVar()
         self.district_var = tk.StringVar()
+        self.contract_filter_var = tk.StringVar(value="50")
+        self._last_valid_contract_filter = 50.0
+        self._drop_label_default = "Drag and drop the project quantities workbook here"
         self._district_display_strings = []
         self._district_display_to_name: dict[str, str] = {}
         for number, name in DISTRICT_CHOICES:
@@ -185,6 +189,7 @@ class EstimatorApp:
         self._initial_status = "Drop a *_project_quantities.xlsx workbook to begin."
         self.status_var = tk.StringVar(value=self._initial_status)
         self._build_ui()
+        self._ensure_initial_window_size()
         self.root.after(100, self._poll_queue)
 
     # ------------------------------------------------------------------ UI --
@@ -239,6 +244,13 @@ class EstimatorApp:
             background=palette["surface"],
             foreground=palette["muted"],
             font=("Segoe UI", 11),
+        )
+
+        style.configure(
+            "Adornment.TLabel",
+            background=palette["surface"],
+            foreground=palette["muted"],
+            font=("Segoe UI Semibold", 12),
         )
 
         style.configure(
@@ -372,9 +384,11 @@ class EstimatorApp:
         drop_frame.pack(fill=tk.X, expand=False)
         drop_frame.pack_propagate(False)
 
+        self._drop_frame = drop_frame
+
         drop_label = tk.Label(
             drop_frame,
-            text="Drag and drop the project quantities workbook here",
+            text=self._drop_label_default,
             anchor=tk.CENTER,
             justify=tk.CENTER,
             font=("Segoe UI", 12),
@@ -383,22 +397,31 @@ class EstimatorApp:
             wraplength=520,
         )
         drop_label.pack(fill=tk.BOTH, expand=True, padx=18, pady=18)
+        self._drop_label = drop_label
 
         if _DND_AVAILABLE:
             drop_frame.drop_target_register(DND_FILES)  # type: ignore[attr-defined]
             drop_frame.dnd_bind("<<Drop>>", self._handle_drop)  # type: ignore[attr-defined]
         else:  # pragma: no cover - UI only
-            drop_label.configure(text="tkinterdnd2 not available. Use the Browse button below.")
+            self._drop_label_default = "tkinterdnd2 not available. Use the Browse button below."
+            drop_label.configure(text=self._drop_label_default, wraplength=520)
+
+        self._update_drop_target(None)
 
         input_frame = ttk.Frame(card, style="Card.TFrame")
         input_frame.pack(fill=tk.X, pady=(24, 16))
         input_frame.columnconfigure(0, weight=1)
         input_frame.columnconfigure(1, weight=1)
+        input_frame.columnconfigure(2, weight=1)
 
         etcc_label = ttk.Label(input_frame, text="Expected Total Contract Cost", style="Subheading.TLabel")
         etcc_label.grid(row=0, column=0, sticky=tk.W)
-        self.etcc_entry = ttk.Entry(input_frame, textvariable=self.etcc_var, style="Filled.TEntry")
-        self.etcc_entry.grid(row=1, column=0, sticky=tk.EW, padx=(0, 12))
+        etcc_field = ttk.Frame(input_frame, style="Card.TFrame")
+        etcc_field.grid(row=1, column=0, sticky=tk.EW, padx=(0, 12))
+        etcc_field.columnconfigure(1, weight=1)
+        ttk.Label(etcc_field, text="$", style="Adornment.TLabel").grid(row=0, column=0, sticky=tk.W, padx=(0, 6))
+        self.etcc_entry = ttk.Entry(etcc_field, textvariable=self.etcc_var, style="Filled.TEntry", justify=tk.RIGHT)
+        self.etcc_entry.grid(row=0, column=1, sticky=tk.EW)
         self.etcc_entry.bind("<FocusIn>", self._handle_etcc_focus_in)
         self.etcc_entry.bind("<FocusOut>", self._handle_etcc_focus_out)
 
@@ -411,44 +434,83 @@ class EstimatorApp:
             values=self._district_display_strings,
             style="Filled.TCombobox",
         )
-        self.district_combo.grid(row=1, column=1, sticky=tk.EW)
+        self.district_combo.grid(row=1, column=1, sticky=tk.EW, padx=(0, 12))
+
+        contract_filter_label = ttk.Label(input_frame, text="BidTabs Total Contract Cost Filter", style="Subheading.TLabel")
+        contract_filter_label.grid(row=0, column=2, sticky=tk.W)
+        contract_field = ttk.Frame(input_frame, style="Card.TFrame")
+        contract_field.grid(row=1, column=2, sticky=tk.EW)
+        contract_field.columnconfigure(1, weight=1)
+        ttk.Label(contract_field, text="+/-", style="Adornment.TLabel").grid(row=0, column=0, sticky=tk.W, padx=(0, 6))
+        self.contract_filter_entry = ttk.Entry(
+            contract_field,
+            textvariable=self.contract_filter_var,
+            style="Filled.TEntry",
+            justify=tk.RIGHT,
+        )
+        self.contract_filter_entry.grid(row=0, column=1, sticky=tk.EW)
+        ttk.Label(contract_field, text="%", style="Adornment.TLabel").grid(row=0, column=2, sticky=tk.W, padx=(6, 0))
+        self.contract_filter_entry.bind("<FocusIn>", self._handle_contract_filter_focus_in)
+        self.contract_filter_entry.bind("<FocusOut>", self._handle_contract_filter_focus_out)
 
         # Browse button in the input frame
         self.browse_button = ttk.Button(
             input_frame,
-            text="Browse for workbook…",
+            text="Browse for Workbook…",
             command=self._browse_file,
             style="Secondary.TButton",
         )
-        self.browse_button.grid(row=2, column=0, columnspan=2, sticky=tk.EW, pady=(12, 0))
+        self.browse_button.grid(row=2, column=0, columnspan=3, sticky=tk.EW, pady=(12, 0))
 
         # Button row for run and clear buttons
         button_row = ttk.Frame(card, style="Card.TFrame")
         button_row.pack(fill=tk.X, pady=(12, 12))
 
-        self.run_button = ttk.Button(
+        self.run_button = tk.Button(
             button_row,
             text="Run Estimate",
             command=self._start_pipeline,
             state=tk.DISABLED,
-            style="Accent.TButton",
+            font=("Segoe UI Semibold", 12),
+            bg=self._palette["accent"],
+            fg=self._palette["text"],
+            activebackground=self._palette["accent_active"],
+            activeforeground=self._palette["text"],
+            disabledforeground=self._palette["muted"],
+            relief=tk.FLAT,
+            bd=0,
+            highlightthickness=0,
+            padx=28,
+            pady=18,
+            cursor="hand2",
         )
-        self.run_button.pack(side=tk.LEFT)
+        self.run_button.pack(side=tk.LEFT, fill=tk.Y)
 
-        clear = ttk.Button(
+        clear = tk.Button(
             button_row,
-            text="Clear last results",
+            text="Clear Last Result",
             command=self._clear_last_results,
-            style="Secondary.TButton",
+            font=("Segoe UI", 12),
+            bg=self._palette["field"],
+            fg=self._palette["text"],
+            activebackground=self._palette["field_hover"],
+            activeforeground=self._palette["text"],
+            disabledforeground=self._palette["muted"],
+            relief=tk.FLAT,
+            bd=0,
+            highlightthickness=0,
+            padx=24,
+            pady=16,
+            cursor="hand2",
         )
-        clear.pack(side=tk.LEFT, padx=(12, 0))
+        clear.pack(side=tk.LEFT, padx=(12, 0), fill=tk.Y)
 
         self.progress = ttk.Progressbar(card, mode="indeterminate", style="Accent.Horizontal.TProgressbar")
         self.progress.pack(fill=tk.X, pady=(6, 18))
 
         ttk.Separator(card, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=(0, 16))
 
-        log_label = ttk.Label(card, text="Run log", style="Subheading.TLabel")
+        log_label = ttk.Label(card, text="Run Log", style="Subheading.TLabel")
         log_label.pack(anchor=tk.W)
 
         log_container = ttk.Frame(card, style="Card.TFrame")
@@ -476,8 +538,305 @@ class EstimatorApp:
         scrollbar = ttk.Scrollbar(log_container, orient=tk.VERTICAL, command=self.log_widget.yview)
         scrollbar.grid(row=0, column=1, sticky="ns")
         self.log_widget.configure(yscrollcommand=scrollbar.set)
+        self._format_contract_filter_display(self._last_valid_contract_filter)
+
+    def _ensure_initial_window_size(self) -> None:
+        """Guarantee the window opens large enough to show the entire layout."""
+
+        self.root.update_idletasks()
+        padding = 32
+        required_width = self.root.winfo_reqwidth() + padding
+        required_height = self.root.winfo_reqheight() + padding
+        current_width = self.root.winfo_width()
+        current_height = self.root.winfo_height()
+
+        width = max(current_width, required_width, 880)
+        height = max(current_height, required_height, 680)
+
+        self.root.minsize(width, height)
+        self.root.geometry(f"{width}x{height}")
+
+    def _show_completion_dialog(self, message: str) -> None:
+        parsed = self._parse_completion_message(message)
+        if parsed is None:
+            messagebox.showinfo("Estimator complete", message)
+            return
+
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Estimator Complete")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        dialog.configure(bg=self._palette["base"])
+
+        container = ttk.Frame(dialog, style="Background.TFrame", padding=(24, 20))
+        container.pack(fill=tk.BOTH, expand=True)
+
+        header_label = ttk.Label(container, text="Estimator Complete", style="Heading.TLabel")
+        header_label.pack(anchor=tk.W, pady=(0, 12))
+
+        body = ttk.Frame(container, style="Card.TFrame", padding=20)
+        body.pack(fill=tk.BOTH, expand=True)
+        body.columnconfigure(0, weight=1)
+
+        summary = parsed["summary"]
+        if summary:
+            for line in summary:
+                ttk.Label(body, text=line, style="TLabel", wraplength=620, justify=tk.LEFT).pack(
+                    anchor=tk.W, fill=tk.X, pady=(0, 6)
+                )
+
+        headers = parsed["table_headers"]
+        rows = parsed["table_rows"]
+        if headers and rows:
+            ttk.Label(body, text="Top Cost Drivers", style="Subheading.TLabel").pack(
+                anchor=tk.W, pady=(10, 6)
+            )
+            table_outer = tk.Frame(body, bg=self._palette["border"], bd=1, relief=tk.SOLID)
+            table_outer.pack(fill=tk.X, expand=False)
+            table_frame = tk.Frame(table_outer, bg=self._palette["surface"])
+            table_frame.pack(fill=tk.BOTH, expand=True)
+            for column, header in enumerate(headers):
+                label = tk.Label(
+                    table_frame,
+                    text=header,
+                    font=("Segoe UI Semibold", 11),
+                    bg=self._palette["accent"],
+                    fg=self._palette["text"],
+                    bd=1,
+                    relief=tk.SOLID,
+                    padx=10,
+                    pady=8,
+                    anchor="w",
+                )
+                label.grid(row=0, column=column, sticky="nsew")
+                table_frame.grid_columnconfigure(column, weight=1)
+
+            numeric_columns = {
+                idx
+                for idx, name in enumerate(headers)
+                if name.lower() in {"quantity", "unit price est", "total cost"}
+            }
+            for row_index, row_values in enumerate(rows, start=1):
+                for column, value in enumerate(row_values):
+                    anchor = "e" if column in numeric_columns else "w"
+                    label = tk.Label(
+                        table_frame,
+                        text=value,
+                        font=("Segoe UI", 11),
+                        bg=self._palette["field"] if row_index % 2 else self._palette["surface"],
+                        fg=self._palette["text"],
+                        bd=1,
+                        relief=tk.SOLID,
+                        padx=10,
+                        pady=6,
+                        anchor=anchor,
+                        justify=tk.RIGHT if anchor == "e" else tk.LEFT,
+                    )
+                    label.grid(row=row_index, column=column, sticky="nsew")
+
+        footer = parsed["footer"]
+        if footer:
+            ttk.Label(body, text="", style="TLabel").pack()
+            for line in footer:
+                ttk.Label(
+                    body,
+                    text=line,
+                    style="TLabel",
+                    wraplength=620,
+                    justify=tk.LEFT,
+                    foreground=self._palette["muted"],
+                ).pack(anchor=tk.W, fill=tk.X, pady=(0, 4))
+
+        other = parsed["other"]
+        if other:
+            ttk.Label(body, text="Additional Notes", style="Subheading.TLabel").pack(
+                anchor=tk.W, pady=(12, 4)
+            )
+            note_box = tk.Text(
+                body,
+                height=min(6, len(other)),
+                wrap=tk.WORD,
+                bg=self._palette["code_bg"],
+                fg=self._palette["text"],
+                insertbackground=self._palette["text"],
+                relief=tk.FLAT,
+                bd=1,
+                highlightthickness=1,
+                highlightbackground=self._palette["border"],
+                highlightcolor=self._palette["accent"],
+                font=("Consolas", 11),
+            )
+            note_box.pack(fill=tk.BOTH, expand=False, pady=(0, 8))
+            note_box.insert("1.0", "\n".join(other))
+            note_box.configure(state=tk.DISABLED)
+
+        ttk.Separator(container, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=(16, 12))
+        button_row = ttk.Frame(container, style="Background.TFrame")
+        button_row.pack(fill=tk.X)
+        button_row.columnconfigure(0, weight=1)
+        ttk.Button(
+            button_row,
+            text="Close",
+            style="Accent.TButton",
+            command=dialog.destroy,
+        ).grid(row=0, column=0, sticky=tk.E, padx=(0, 4))
+
+        self._center_dialog(dialog)
+
+    def _parse_completion_message(self, message: str) -> Optional[Dict[str, Any]]:
+        if not message.strip():
+            return None
+
+        intro_lines: List[str] = []
+        table_lines: List[str] = []
+        footer_lines: List[str] = []
+        other_lines: List[str] = []
+        section = "intro"
+
+        for raw_line in message.splitlines():
+            line = raw_line.rstrip("\n")
+            stripped = line.strip()
+            if not stripped:
+                continue
+
+            if stripped.startswith("Top cost drivers"):
+                section = "table"
+                continue
+
+            if section == "table":
+                if stripped.lower().startswith("pricing"):
+                    section = "footer"
+                    footer_lines.append(stripped)
+                else:
+                    table_lines.append(stripped)
+                continue
+
+            if section == "footer":
+                footer_lines.append(stripped)
+                continue
+
+            if stripped.lower().startswith("pricing"):
+                footer_lines.append(stripped)
+                section = "footer"
+                continue
+
+            if section == "intro":
+                intro_lines.append(stripped)
+            else:
+                other_lines.append(stripped)
+
+        headers, rows = self._parse_table_lines(table_lines)
+        if not intro_lines and not headers and not footer_lines:
+            return None
+
+        return {
+            "summary": intro_lines,
+            "table_headers": headers,
+            "table_rows": rows,
+            "footer": footer_lines,
+            "other": other_lines,
+        }
+
+    def _parse_table_lines(self, lines: List[str]) -> tuple[List[str], List[List[str]]]:
+        if not lines:
+            return ([], [])
+
+        header_raw = re.split(r"\s{2,}", lines[0].strip())
+        parsed_headers = [self._prettify_header(cell) for cell in header_raw if cell]
+        default_headers = ["Item Code", "Description", "Quantity", "Unit Price Est", "Total Cost"]
+        headers = parsed_headers if len(parsed_headers) == len(default_headers) else default_headers
+
+        rows: List[List[str]] = []
+        for raw_line in lines[1:]:
+            stripped = raw_line.strip()
+            if not stripped:
+                continue
+
+            parts = stripped.split(None, 1)
+            if len(parts) < 2:
+                continue
+            code, remainder = parts
+
+            match = re.search(r"([()\-0-9,\.]+)\s+([()\-0-9,\.]+)\s+([()\-0-9,\.]+)\s*$", remainder)
+            if not match:
+                fallback = [cell for cell in re.split(r"\s{2,}", stripped) if cell]
+                if len(fallback) == len(headers):
+                    rows.append(fallback)
+                continue
+
+            qty_str, unit_str, total_str = match.groups()
+            description = remainder[: match.start()].rstrip()
+            row = [
+                code,
+                description,
+                self._format_quantity(qty_str),
+                self._format_currency(unit_str),
+                self._format_currency(total_str),
+            ]
+            rows.append(row)
+
+        return headers, rows
+
+    @staticmethod
+    def _prettify_header(text: str) -> str:
+        tokens = text.replace("_", " ").split()
+        return " ".join(token.capitalize() for token in tokens)
+
+    @staticmethod
+    def _format_quantity(value: str) -> str:
+        sanitized = value.replace(",", "").strip()
+        try:
+            numeric = float(sanitized)
+        except ValueError:
+            return value.strip()
+
+        decimals = 0
+        if "." in sanitized:
+            decimals = min(4, len(sanitized.split(".")[1]))
+        fmt = f"{{:,.{decimals}f}}" if decimals > 0 else "{:,}"
+        formatted = fmt.format(numeric)
+        return formatted.rstrip("0").rstrip(".") if decimals > 0 else formatted
+
+    @staticmethod
+    def _format_currency(value: str) -> str:
+        sanitized = value.replace(",", "").strip()
+        if sanitized.startswith("$"):
+            sanitized = sanitized[1:]
+        try:
+            numeric = float(sanitized)
+        except ValueError:
+            return value.strip()
+        return f"${numeric:,.2f}"
+
+    def _center_dialog(self, window: tk.Toplevel) -> None:
+        window.update_idletasks()
+        root_x = self.root.winfo_rootx()
+        root_y = self.root.winfo_rooty()
+        width = window.winfo_width()
+        height = window.winfo_height()
+        x = root_x + (self.root.winfo_width() - width) // 2
+        y = root_y + (self.root.winfo_height() - height) // 2
+        window.geometry(f"+{max(x, 0)}+{max(y, 0)}")
 
     # --------------------------------------------------------------- Helpers --
+    def _update_drop_target(self, selected: Optional[Path]) -> None:
+        if not hasattr(self, "_drop_frame") or not hasattr(self, "_drop_label"):
+            return
+
+        if selected is None:
+            bg = self._palette["surface"]
+            highlight = self._palette["accent_dim"]
+            text = self._drop_label_default
+            fg = self._palette["muted"]
+        else:
+            bg = self._palette["accent_active"]
+            highlight = self._palette["accent"]
+            text = selected.name
+            fg = self._palette["text"]
+
+        self._drop_frame.configure(bg=bg, highlightbackground=highlight, highlightcolor=highlight)
+        self._drop_label.configure(text=text, fg=fg, bg=bg)
+
     def _update_run_button_state(self) -> None:
         running = self._worker is not None and self._worker.is_alive()
         if running or self._selected_path is None:
@@ -487,39 +846,74 @@ class EstimatorApp:
 
     def _handle_etcc_focus_in(self, event: tk.Event) -> None:
         widget = event.widget
-        value = self.etcc_var.get().strip()
-        if not value:
-            self.etcc_var.set("$")
-        self.root.after(0, lambda: widget.select_range(1, tk.END))
+        self.root.after(0, lambda: widget.select_range(0, tk.END))
 
     def _handle_etcc_focus_out(self, _event: tk.Event) -> None:
         self._format_etcc_display()
 
     def _format_etcc_display(self, value: Optional[float] = None) -> None:
         if value is not None:
-            self.etcc_var.set(f"${value:,.2f}")
-            return
+            numeric = float(value)
+        else:
+            raw = self.etcc_var.get().strip()
+            if not raw:
+                self.etcc_var.set("")
+                return
+            sanitized = raw.replace(",", "").strip()
+            try:
+                numeric = float(sanitized)
+            except ValueError:
+                return
 
-        raw = self.etcc_var.get().strip()
-        if not raw or raw == "$":
-            self.etcc_var.set("$")
-            return
+        formatted = f"{numeric:,.2f}".rstrip("0").rstrip(".")
+        self.etcc_var.set(formatted)
 
-        sanitized = raw.replace("$", "").replace(",", "").strip()
+    def _handle_contract_filter_focus_in(self, event: tk.Event) -> None:
+        widget = event.widget
+        self.root.after(0, lambda: widget.select_range(0, tk.END))
+
+    def _handle_contract_filter_focus_out(self, _event: tk.Event) -> None:
+        self._format_contract_filter_display()
+
+    def _format_contract_filter_display(self, value: Optional[float] = None) -> None:
+        if value is not None and value >= 0:
+            numeric = float(value)
+        else:
+            raw = self.contract_filter_var.get().strip()
+            sanitized = raw.replace(",", "").strip()
+            if not sanitized:
+                numeric = self._last_valid_contract_filter or 50.0
+            else:
+                try:
+                    numeric = abs(float(sanitized))
+                except ValueError:
+                    numeric = self._last_valid_contract_filter or 50.0
+        if numeric <= 0:
+            numeric = self._last_valid_contract_filter or 50.0
+        self._last_valid_contract_filter = numeric
+        formatted = f"{int(numeric)}" if numeric.is_integer() else f"{numeric:.2f}".rstrip("0").rstrip(".")
+        self.contract_filter_var.set(formatted)
+
+    def _parse_contract_filter_percent(self) -> float:
+        raw = self.contract_filter_var.get().strip()
+        sanitized = raw.replace(",", "").strip()
         if not sanitized:
-            self.etcc_var.set("$")
-            return
-
+            raise ValueError("BidTabs contract filter is required.")
         try:
-            numeric = float(sanitized)
-        except ValueError:
-            return
-
-        self.etcc_var.set(f"${numeric:,.2f}")
+            value = abs(float(sanitized))
+        except ValueError as exc:  # pragma: no cover - input validation
+            raise ValueError("BidTabs contract filter must be a number.") from exc
+        if value <= 0:
+            raise ValueError("BidTabs contract filter must be greater than zero.")
+        if value > 500:
+            raise ValueError("BidTabs contract filter must be less than or equal to 500%.")
+        self._last_valid_contract_filter = value
+        self._format_contract_filter_display(value)
+        return value
 
     def _parse_expected_cost(self) -> float:
         raw = self.etcc_var.get().strip()
-        sanitized = raw.replace("$", "").replace(",", "").strip()
+        sanitized = raw.replace(",", "").strip()
         if not sanitized:
             raise ValueError("Expected Total Contract Cost is required.")
         try:
@@ -560,9 +954,12 @@ class EstimatorApp:
 
         self._current_path = None
         self.status_var.set(self._initial_status)
-        self.etcc_var.set("$")
+        self.etcc_var.set("")
         self.district_var.set("")
         self.district_combo.set("")
+        self._last_valid_contract_filter = 50.0
+        self._format_contract_filter_display(50.0)
+        self._update_drop_target(None)
         self.log_widget.configure(state=tk.NORMAL)
         self.log_widget.delete("1.0", tk.END)
         self.log_widget.configure(state=tk.DISABLED)
@@ -600,6 +997,7 @@ class EstimatorApp:
 
         self._selected_path = path
         self.status_var.set(f"Selected {path.name}. Fill in the inputs and click Run Estimate.")
+        self._update_drop_target(path)
         self._update_run_button_state()
 
     def _start_pipeline(self) -> None:
@@ -615,28 +1013,38 @@ class EstimatorApp:
         try:
             expected_cost = self._parse_expected_cost()
             district_name, region_id = self._resolve_project_district()
+            contract_filter_pct = self._parse_contract_filter_percent()
         except ValueError as exc:
             messagebox.showerror("Missing input", str(exc))
             return
 
         self._format_etcc_display(expected_cost)
         district_display = self.district_var.get().strip() or f"{region_id} - {district_name}"
+        filter_value_display = self.contract_filter_var.get().strip()
+        filter_display = f"+/-{filter_value_display}%"
 
         self._current_path = path
         self._append_log(f"Starting estimator for {path}…")
         self._append_log(
-            f"Expected Total Contract Cost: ${expected_cost:,.2f} | Project District: {district_display}"
+            f"Expected Total Contract Cost: ${expected_cost:,.2f} | Project District: {district_display} | BidTabs Contract Filter: {filter_display}"
         )
         self._set_running(True)
 
         self._worker = threading.Thread(
             target=self._run_pipeline,
-            args=(path, expected_cost, district_name, region_id),
+            args=(path, expected_cost, district_name, region_id, contract_filter_pct),
             daemon=True,
         )
         self._worker.start()
 
-    def _run_pipeline(self, path: Path, expected_cost: float, district_name: str, region_id: int) -> None:
+    def _run_pipeline(
+        self,
+        path: Path,
+        expected_cost: float,
+        district_name: str,
+        region_id: int,
+        contract_filter_pct: float,
+    ) -> None:
         stdout_buffer = io.StringIO()
         stderr_buffer = io.StringIO()
         env_snapshot = {
@@ -644,6 +1052,7 @@ class EstimatorApp:
             "EXPECTED_TOTAL_CONTRACT_COST": os.environ.get("EXPECTED_TOTAL_CONTRACT_COST"),
             "PROJECT_DISTRICT": os.environ.get("PROJECT_DISTRICT"),
             "PROJECT_REGION": os.environ.get("PROJECT_REGION"),
+            "BIDTABS_CONTRACT_FILTER_PCT": os.environ.get("BIDTABS_CONTRACT_FILTER_PCT"),
         }
 
         try:
@@ -651,6 +1060,7 @@ class EstimatorApp:
             os.environ["EXPECTED_TOTAL_CONTRACT_COST"] = f"{expected_cost:.2f}"
             os.environ["PROJECT_DISTRICT"] = district_name
             os.environ["PROJECT_REGION"] = str(region_id)
+            os.environ["BIDTABS_CONTRACT_FILTER_PCT"] = f"{contract_filter_pct:.6f}"
             with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
                 exit_code = run_estimator()
 
@@ -693,7 +1103,7 @@ class EstimatorApp:
         self._set_running(False)
         if result.level == "info":
             self._append_log(result.message)
-            messagebox.showinfo("Estimator complete", result.message)
+            self._show_completion_dialog(result.message)
         else:
             self._append_log(result.message)
             if result.details:

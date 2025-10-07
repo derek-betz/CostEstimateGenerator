@@ -64,9 +64,13 @@ def choose_alternates_via_ai(
 
     instructions = (
         "You are ChatGPT-5 acting as a senior INDOT transportation cost estimator. "
-        "You may consult authoritative online sources if needed. "
-        "Design a repeatable system that blends BidTabs history, the statewide unit-price summary, "
-        "and the Standard Specifications excerpt provided. Return strict JSON in the form:\n"
+        "Produce repeatable, audit-grade alternate selections by using only the structured inputs provided. "
+        "For every candidate compute a stability score = overall_similarity * (0.85 + 0.15*spec_similarity) * "
+        "(0.85 + 0.15*recency_similarity) * (0.90 + 0.10*locality_similarity) * (1 + log10(data_points + 1)) * "
+        "(1 / (1 + abs(ratio - 1))). "
+        "Rank candidates by this score and select the top three (include UNIT_PRICE_SUMMARY only if it ranks in the top three). "
+        "Normalize those scores so the weights sum to 1.0, round each weight to four decimals, and explain in plain language how the score was derived. "
+        "Return strict JSON with the schema:\n"
         "{\n"
         "  \"selected\": [ {\"item_code\": str, \"weight\": float, \"reason\": str} ],\n"
         "  \"notes\": str,\n"
@@ -74,13 +78,12 @@ def choose_alternates_via_ai(
         "  \"show_work_method\": str,\n"
         "  \"process_improvements\": str\n"
         "}.\n"
-        "Each candidate record includes similarity_scores (geometry/spec/recency/locality/data_volume/overall), notes, and a source tag—use these signals alongside category_counts when assigning weights. "
-        "Weights must sum to 1.0. If you rely on a reference rather than a candidate, explain how to incorporate it."
+        "Use only the provided `similarity_scores`, `category_counts`, and candidate metadata—never invent alternates or extrapolate beyond the payload."
     )
 
     response = client.chat.completions.create(  # type: ignore[attr-defined]
         model=model,
-        temperature=0.15,
+        temperature=0.0,
         max_tokens=900,
         messages=[
             {

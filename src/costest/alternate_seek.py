@@ -31,6 +31,7 @@ SIMILARITY_WEIGHTS = {
 }
 
 _MIN_TARGET = max(10, MIN_SAMPLE_TARGET)
+_MAX_STABLE_ALTERNATES = 3
 
 
 @dataclass
@@ -410,6 +411,98 @@ def _normalize_weights(
     return selections
 
 
+def _deterministic_weight_score(candidate: AlternateCandidate) -> float:
+    overall = max(candidate.similarity.get("overall_score", 0.0), 0.0)
+    if overall <= 0:
+        return 0.0
+    spec = candidate.similarity.get("spec_score", overall)
+    recency = candidate.similarity.get("recency_score", overall)
+    locality = candidate.similarity.get("locality_score", overall)
+    data_points = max(candidate.data_points, 0)
+    data_factor = 1.0 + math.log10(data_points + 1)
+    ratio_penalty = 1.0 / (1.0 + abs(candidate.ratio - 1.0))
+    spec_boost = 0.85 + 0.15 * max(spec, 0.0)
+    recency_boost = 0.85 + 0.15 * max(recency, 0.0)
+    locality_boost = 0.9 + 0.1 * max(locality, 0.0)
+    reference_bias = 0.65 if candidate.item_code == "UNIT_PRICE_SUMMARY" else 1.0
+    return overall * spec_boost * recency_boost * locality_boost * data_factor * ratio_penalty * reference_bias
+
+
+def _stabilize_ai_selections(
+    selections: List[SelectedAlternate],
+    candidate_map: Mapping[str, AlternateCandidate],
+) -> List[SelectedAlternate]:
+    if not selections:
+        return selections
+
+    merged: Dict[str, SelectedAlternate] = {}
+    for sel in selections:
+        cand = candidate_map.get(sel.item_code)
+        if not cand:
+            continue
+        if sel.item_code not in merged:
+            merged[sel.item_code] = sel
+        else:
+            existing = merged[sel.item_code]
+            if sel.weight > existing.weight:
+                merged[sel.item_code] = sel
+
+    if not merged:
+        return []
+
+    scored_candidates = sorted(
+        candidate_map.values(),
+        key=lambda cand: (_deterministic_weight_score(cand), cand.data_points, -abs(cand.ratio - 1.0)),
+        reverse=True,
+    )
+
+    for cand in scored_candidates[: min(_MAX_STABLE_ALTERNATES, len(scored_candidates))]:
+        if cand.item_code not in merged:
+            merged[cand.item_code] = SelectedAlternate(
+                item_code=cand.item_code,
+                description=cand.description,
+                area_sqft=cand.area_sqft,
+                base_price=cand.base_price,
+                adjusted_price=cand.adjusted_price,
+                ratio=cand.ratio,
+                data_points=cand.data_points,
+                weight=0.0,
+                reason="Stabilized: deterministic alternate inserted",
+                similarity=cand.similarity,
+                source=cand.source,
+                notes=cand.notes,
+            )
+
+    scored_pairs: List[Tuple[SelectedAlternate, float]] = []
+    for sel in merged.values():
+        cand = candidate_map.get(sel.item_code)
+        if not cand:
+            continue
+        score = _deterministic_weight_score(cand)
+        scored_pairs.append((sel, score))
+
+    if not scored_pairs:
+        return list(merged.values())
+
+    scored_pairs.sort(key=lambda pair: pair[1], reverse=True)
+    if _MAX_STABLE_ALTERNATES > 0:
+        scored_pairs = scored_pairs[: min(_MAX_STABLE_ALTERNATES, len(scored_pairs))]
+
+    total_score = sum(score for _, score in scored_pairs if score > 0)
+    if total_score <= 0:
+        uniform = 1.0 / len(scored_pairs)
+        for sel, _ in scored_pairs:
+            sel.weight = uniform
+            sel.reason = f"{(sel.reason + ' | ' if sel.reason else '')}Stabilized uniform weight"
+    else:
+        for sel, score in scored_pairs:
+            weight = float(score / total_score) if score > 0 else 0.0
+            sel.weight = weight
+            sel.reason = f"{(sel.reason + ' | ' if sel.reason else '')}Stabilized deterministic weight {weight:.3f}"
+
+    return [pair[0] for pair in scored_pairs]
+
+
 def find_alternate_price(
     bidtabs: pd.DataFrame,
     target_code: str,
@@ -614,6 +707,9 @@ def find_alternate_price(
             )
     except Exception as exc:  # noqa: BLE001
         ai_notes = f"AI selection failed: {exc}"
+
+    if selections:
+        selections = _stabilize_ai_selections(selections, candidate_map)
 
     if not selections:
         selections = _fallback_selection(candidates, target_area)

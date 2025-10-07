@@ -369,17 +369,30 @@ def run(config: Optional["CLIConfig"] = None) -> int:
             amap = dict(zip(alias["PROJECT_CODE"], alias["HIST_CODE"]))
             qty["ITEM_CODE"] = qty["ITEM_CODE"].map(lambda c: amap.get(c, c))
 
+    filter_pct_raw = os.getenv("BIDTABS_CONTRACT_FILTER_PCT", "").strip()
+    try:
+        contract_filter_pct = abs(float(filter_pct_raw)) if filter_pct_raw else 50.0
+    except ValueError:
+        contract_filter_pct = 50.0
+    contract_filter_pct = max(0.0, min(contract_filter_pct, 500.0))
+
     filtered_bounds = None
     if expected_contract_cost and expected_contract_cost > 0 and "JOB_SIZE" in bid.columns:
-        lower_bound = 0.5 * expected_contract_cost
-        upper_bound = 1.5 * expected_contract_cost
+        tolerance = contract_filter_pct / 100.0
+        lower_bound = expected_contract_cost * (1.0 - tolerance)
+        upper_bound = expected_contract_cost * (1.0 + tolerance)
         before_rows = len(bid)
         mask = bid["JOB_SIZE"].between(lower_bound, upper_bound, inclusive="both")
         bid = bid.loc[mask].copy()
         after_rows = len(bid)
         filtered_bounds = (lower_bound, upper_bound)
+        pct_display = (
+            f"{int(contract_filter_pct)}"
+            if contract_filter_pct.is_integer()
+            else f"{contract_filter_pct:.2f}".rstrip("0").rstrip(".")
+        )
         print(
-            f"Filtered BidTabs to contracts between ${lower_bound:,.0f} and ${upper_bound:,.0f} (+/-50% of expected ${expected_contract_cost:,.0f}); kept {after_rows} of {before_rows} rows."
+            f"Filtered BidTabs to contracts between ${lower_bound:,.0f} and ${upper_bound:,.0f} (+/-{pct_display}% of expected ${expected_contract_cost:,.0f}); kept {after_rows} of {before_rows} rows."
         )
         if bid.empty:
             print("WARNING: No BidTabs rows remained after contract cost filtering.")
@@ -670,6 +683,7 @@ def run(config: Optional["CLIConfig"] = None) -> int:
                 project_region=project_region,
                 expected_contract_cost=expected_contract_cost,
                 filtered_bounds=filtered_bounds,
+                contract_filter_pct=contract_filter_pct,
             )
         except Exception as exc:  # pragma: no cover - defensive
             print(f"Warning: unable to generate alternate-seek AI report: {exc}")

@@ -165,6 +165,7 @@ def generate_alternate_seek_report(
     project_region: Optional[int],
     expected_contract_cost: Optional[float],
     filtered_bounds: Optional[tuple[float, float]],
+    contract_filter_pct: Optional[float] = None,
     model: Optional[str] = None,
 ) -> Optional[Path]:
     if not alternate_reports:
@@ -231,6 +232,7 @@ def generate_alternate_seek_report(
         "project_region": project_region,
         "expected_contract_cost": expected_contract_cost,
         "contract_filter_bounds": filtered_bounds,
+        "contract_filter_percent": contract_filter_pct,
         "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
     }
 
