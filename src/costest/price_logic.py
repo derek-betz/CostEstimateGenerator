@@ -1,4 +1,6 @@
 import os
+from typing import List, Optional, Sequence, Tuple
+
 import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
@@ -41,6 +43,142 @@ def _prepare_pool(bidtabs: pd.DataFrame, item_code: str) -> pd.DataFrame:
         pool['_LET_DT'] = pd.NaT
 
     return pool
+
+
+def get_pool_for_codes(bidtabs: pd.DataFrame, codes: Sequence[str]) -> pd.DataFrame:
+    """
+    Retrieve a combined BidTabs pool for a collection of item codes.
+
+    Parameters
+    ----------
+    bidtabs:
+        Source BidTabs dataframe.
+    codes:
+        Iterable of pay item codes to include.
+
+    Returns
+    -------
+    DataFrame
+        Concatenated BidTabs rows for the requested codes.  Includes an
+        auxiliary ``_SOURCE_ITEM_CODE`` column noting the originating code.
+    """
+
+    frames: List[pd.DataFrame] = []
+    for code in codes:
+        prepared = _prepare_pool(bidtabs, code)
+        if prepared.empty:
+            continue
+        block = prepared.copy()
+        block['_SOURCE_ITEM_CODE'] = str(code)
+        frames.append(block)
+    if not frames:
+        columns = list(bidtabs.columns)
+        if '_SOURCE_ITEM_CODE' not in columns:
+            columns.append('_SOURCE_ITEM_CODE')
+        return pd.DataFrame(columns=columns)
+    return pd.concat(frames, ignore_index=True, sort=False)
+
+
+def prepare_memo_rollup_pool(
+    bidtabs: pd.DataFrame,
+    codes: Sequence[str],
+    project_region: Optional[int] = None,
+    target_quantity: Optional[float] = None,
+) -> pd.DataFrame:
+    """
+    Build a filtered pool for design memo rollups.
+
+    Filtering steps:
+    - project region (if provided)
+    - quantity banding relative to target quantity (0.5x - 1.5x)
+    - ±2σ unit price trimming when enough observations exist
+    """
+
+    pool = get_pool_for_codes(bidtabs, codes)
+    if pool.empty:
+        return pool
+
+    out = pool.copy()
+    if project_region is not None and 'REGION' in out.columns:
+        region_series = pd.to_numeric(out['REGION'], errors='coerce')
+        out = out.loc[region_series == project_region].copy()
+        out['REGION'] = region_series
+    if target_quantity is not None and target_quantity > 0 and 'QUANTITY' in out.columns:
+        lower = 0.5 * float(target_quantity)
+        upper = 1.5 * float(target_quantity)
+        qty_series = pd.to_numeric(out['QUANTITY'], errors='coerce')
+        mask = qty_series.between(lower, upper, inclusive='both')
+        out = out.loc[mask].copy()
+        out['QUANTITY'] = qty_series.loc[out.index]
+
+    if 'UNIT_PRICE' not in out.columns:
+        return out.iloc[0:0]
+
+    out['UNIT_PRICE'] = pd.to_numeric(out['UNIT_PRICE'], errors='coerce')
+    out.dropna(subset=['UNIT_PRICE'], inplace=True)
+
+    for weight_col in ('WEIGHT', 'QUANTITY', 'JOB_SIZE'):
+        if weight_col in out.columns:
+            out[weight_col] = pd.to_numeric(out[weight_col], errors='coerce')
+
+    if 'LETTING_DATE' in out.columns and '_LET_DT' not in out.columns:
+        out['_LET_DT'] = pd.to_datetime(out['LETTING_DATE'], errors='coerce')
+
+    if len(out) >= 5:
+        prices = out['UNIT_PRICE'].astype(float)
+        mean = prices.mean()
+        std = prices.std(ddof=0)
+        if std > 0:
+            mask = (prices >= mean - 2 * std) & (prices <= mean + 2 * std)
+            out = out.loc[mask].copy()
+
+    return out
+
+
+def memo_rollup_price(
+    bidtabs: pd.DataFrame,
+    replacement_code: str,
+    obsolete_codes: Sequence[str],
+    project_region: Optional[int] = None,
+    target_quantity: Optional[float] = None,
+) -> Tuple[float, int, str]:
+    """
+    Aggregate a pooled price for a replacement item by rolling up obsolete codes.
+
+    Returns a tuple of (price, observation count, source string).
+    """
+
+    pool = prepare_memo_rollup_pool(
+        bidtabs,
+        obsolete_codes,
+        project_region=project_region,
+        target_quantity=target_quantity,
+    )
+    if pool.empty:
+        source_label = f"DESIGN_MEMO_ROLLUP:{replacement_code}"
+        return float('nan'), 0, source_label
+
+    prices = pool['UNIT_PRICE'].astype(float).to_numpy()
+    weight_source = None
+    weights = None
+    for col in ('WEIGHT', 'QUANTITY', 'JOB_SIZE'):
+        if col in pool.columns and not pool[col].fillna(0).eq(0).all():
+            weight_source = col
+            weights = pool[col].fillna(0).astype(float).to_numpy()
+            if np.isclose(weights.sum(), 0.0):
+                weights = None
+            break
+    if weights is not None and weights.size == prices.size:
+        price = float(np.average(prices, weights=weights))
+    else:
+        price = float(prices.mean())
+    count = int(len(prices))
+    codes = "+".join(str(code) for code in obsolete_codes)
+    if weight_source is not None:
+        source_label = f"DESIGN_MEMO_ROLLUP:{replacement_code}[w={weight_source}]<-{codes}"
+    else:
+        source_label = f"DESIGN_MEMO_ROLLUP:{replacement_code}<-{codes}"
+    return price, count, source_label
 
 
 def _filter_window(
@@ -212,3 +350,72 @@ def category_breakdown(
     if include_details:
         return price, source, cat_data, detail_map, used_categories, combined_detail
     return price, source, cat_data
+
+
+def compute_recency_factor(estimate_df: pd.DataFrame) -> float:
+    """
+    Estimate a recency adjustment based on STATE window ratios.
+
+    Uses STATE_12M_PRICE as the recent anchor and compares against
+    STATE_24M_PRICE and STATE_36M_PRICE when available.  Returns the
+    median ratio, clamped to [0.9, 1.2].  If no ratios are available the
+    factor defaults to 1.0.
+    """
+
+    ratios: List[float] = []
+    if estimate_df is not None and not estimate_df.empty:
+        recent = estimate_df.get('STATE_12M_PRICE')
+        if recent is not None:
+            recent = pd.to_numeric(recent, errors='coerce')
+            for older_col in ('STATE_24M_PRICE', 'STATE_36M_PRICE'):
+                older = estimate_df.get(older_col)
+                if older is None:
+                    continue
+                older = pd.to_numeric(older, errors='coerce')
+                mask = (recent > 0) & (older > 0)
+                if mask.any():
+                    series = (recent[mask] / older[mask]).replace([np.inf, -np.inf], np.nan).dropna()
+                    ratios.extend(float(value) for value in series.tolist() if np.isfinite(value))
+    if ratios:
+        factor = float(np.median(ratios))
+    else:
+        factor = 1.0
+    factor = float(np.clip(factor, 0.9, 1.2))
+    compute_recency_factor.last_meta = {
+        'samples': len(ratios),
+        'used_default': len(ratios) == 0,
+    }
+    return factor
+
+
+def compute_region_factor(estimate_df: pd.DataFrame, project_region: Optional[int] = None) -> float:
+    """
+    Estimate a locality adjustment comparing district vs. statewide pricing.
+
+    Uses DIST_12M_PRICE divided by STATE_12M_PRICE when both are present.
+    Returns the median ratio, clamped to [0.85, 1.15].  Defaults to 1.0
+    if insufficient data exist.
+    """
+
+    ratios: List[float] = []
+    if estimate_df is not None and not estimate_df.empty:
+        dist = estimate_df.get('DIST_12M_PRICE')
+        state = estimate_df.get('STATE_12M_PRICE')
+        if dist is not None and state is not None:
+            dist = pd.to_numeric(dist, errors='coerce')
+            state = pd.to_numeric(state, errors='coerce')
+            mask = (dist > 0) & (state > 0)
+            if mask.any():
+                series = (dist[mask] / state[mask]).replace([np.inf, -np.inf], np.nan).dropna()
+                ratios.extend(float(value) for value in series.tolist() if np.isfinite(value))
+    if ratios:
+        factor = float(np.median(ratios))
+    else:
+        factor = 1.0
+    factor = float(np.clip(factor, 0.85, 1.15))
+    compute_region_factor.last_meta = {
+        'samples': len(ratios),
+        'used_default': len(ratios) == 0,
+        'project_region': project_region,
+    }
+    return factor

@@ -2,7 +2,7 @@ import os
 import math
 import argparse
 from pathlib import Path
-from typing import Dict, Optional, Sequence, TYPE_CHECKING
+from typing import Dict, List, Optional, Sequence, TYPE_CHECKING
 
 import pandas as pd
 from dotenv import load_dotenv
@@ -13,14 +13,21 @@ from .bidtabs_io import (
     load_region_map,
     ensure_region_column,
     find_quantities_file,
+    normalize_item_code,
 )
-from .price_logic import category_breakdown
+from .price_logic import (
+    category_breakdown,
+    compute_recency_factor,
+    compute_region_factor,
+    memo_rollup_price,
+    prepare_memo_rollup_pool,
+)
 from .alternate_seek import find_alternate_price
 from .estimate_writer import write_outputs
 from .geometry import parse_geometry
 from .ai_reporter import generate_alternate_seek_report
 from .reporting import make_summary_text
-from . import reference_data
+from . import reference_data, design_memos
 from .project_meta import DISTRICT_CHOICES, DISTRICT_REGION_MAP, normalize_district
 if TYPE_CHECKING:
     from .config import CLIConfig
@@ -127,6 +134,243 @@ def _round_unit_price(value: float) -> float:
     step = 10 ** max(magnitude - 1, -1)
     rounded = round(numeric / step) * step
     return round(rounded, 2)
+
+
+def apply_non_geometry_fallbacks(
+    rows: List[Dict[str, object]],
+    bidtabs: pd.DataFrame,
+    project_region: Optional[int],
+    payitem_details: Dict[str, pd.DataFrame],
+) -> None:
+    """
+    Apply non-geometry fallback pricing for items with no category data.
+
+    Mutates ``rows`` in place, filling UNIT_PRICE_EST, SOURCE, NOTES, and
+    DATA_POINTS_USED when either the Unit Price Summary or design memo
+    rollup can provide pricing support.
+    """
+
+    if not rows:
+        return
+
+    pre_fallback_df = pd.DataFrame(rows)
+    summary_lookup = reference_data.load_unit_price_summary()
+    recency_factor = compute_recency_factor(pre_fallback_df)
+    recency_meta = getattr(compute_recency_factor, "last_meta", {})
+    region_factor = compute_region_factor(pre_fallback_df, project_region=project_region)
+    region_meta = getattr(compute_region_factor, "last_meta", {})
+
+    def _format_factor(label: str, factor: float, meta: Dict[str, object]) -> str:
+        if not meta:
+            meta = {}
+        if meta.get("used_default"):
+            return f"{label}=1.00 (insufficient data)"
+        delta = (factor - 1.0) * 100.0
+        sign = "+" if delta >= 0 else ""
+        return f"{label}={sign}{delta:.1f}%"
+
+    def _clamp_factor(value: float) -> tuple[float, bool]:
+        clamped = max(0.75, min(1.25, value))
+        changed = not math.isclose(clamped, value, rel_tol=1e-6, abs_tol=1e-6)
+        return clamped, changed
+
+    for row in rows:
+        current_price = float(row.get("UNIT_PRICE_EST", 0) or 0.0)
+        counts_zero = all(int(row.get(f"{label}_COUNT", 0) or 0) == 0 for label in CATEGORY_LABELS)
+        if current_price > 0 and not pd.isna(current_price):
+            continue
+        if not counts_zero:
+            continue
+        if row.get("ALTERNATE_USED"):
+            continue
+
+        code = str(row.get("ITEM_CODE") or "").strip()
+        norm_code = normalize_item_code(code)
+        qty_val = float(row.get("QUANTITY", 0) or 0)
+        existing_note = str(row.get("NOTES", "") or "").strip()
+        if existing_note.upper().startswith("NO DATA"):
+            existing_note = ""
+
+        summary_info = summary_lookup.get(norm_code)
+        summary_used = False
+        summary_reason = ""
+        if summary_info:
+            try:
+                base_price = float(summary_info.get("weighted_average", 0) or 0)
+            except Exception:
+                base_price = 0.0
+            contracts = int(float(summary_info.get("contracts", 0) or 0))
+            if base_price > 0 and contracts >= 3:
+                quantity_factor = 1.0
+                quantity_note = ""
+                if qty_val > 0:
+                    try:
+                        total_value = float(summary_info.get("total_value", 0) or 0)
+                    except Exception:
+                        total_value = 0.0
+                    typical_per_contract = 0.0
+                    if base_price > 0 and total_value > 0 and contracts > 0:
+                        total_qty = total_value / base_price
+                        typical_per_contract = total_qty / contracts if contracts else 0.0
+                    if typical_per_contract > 0:
+                        ratio = qty_val / typical_per_contract
+                        if ratio >= 2.0:
+                            quantity_factor = 0.95
+                            quantity_note = "quantity adj=-5%"
+                        elif ratio <= 0.5:
+                            quantity_factor = 1.05
+                            quantity_note = "quantity adj=+5%"
+                combined_raw = recency_factor * region_factor * quantity_factor
+                combined_factor, capped = _clamp_factor(combined_raw)
+                adjusted_price = base_price * combined_factor
+                clamp_applied = False
+                try:
+                    lowest = float(summary_info.get("lowest", 0) or 0)
+                except Exception:
+                    lowest = 0.0
+                try:
+                    highest = float(summary_info.get("highest", 0) or 0)
+                except Exception:
+                    highest = 0.0
+                if lowest > 0 and adjusted_price < lowest:
+                    adjusted_price = lowest
+                    clamp_applied = True
+                if highest > 0 and highest >= lowest and adjusted_price > highest:
+                    adjusted_price = highest
+                    clamp_applied = True
+                row["UNIT_PRICE_EST"] = _round_unit_price(adjusted_price)
+                row["SOURCE"] = "UNIT_PRICE_SUMMARY"
+                row["DATA_POINTS_USED"] = contracts
+                row["STD_DEV"] = float("nan")
+                row["COEF_VAR"] = float("nan")
+                notes_parts = [
+                    f"UNIT_PRICE_SUMMARY CY{int(summary_info.get('year', 0) or 0)} (contracts={contracts})",
+                    _format_factor("recency", recency_factor, recency_meta),
+                    _format_factor("region", region_factor, region_meta),
+                ]
+                if quantity_note:
+                    notes_parts.append(quantity_note)
+                if capped:
+                    notes_parts.append("combined adj capped at +/-25%")
+                if clamp_applied:
+                    notes_parts.append("clamped to summary range")
+                fallback_note = "; ".join(part for part in notes_parts if part)
+                row["NOTES"] = " | ".join(part for part in (existing_note, fallback_note) if part)
+                summary_used = True
+            else:
+                reasons = []
+                if base_price <= 0:
+                    reasons.append("weighted average unavailable")
+                if contracts < 3:
+                    reasons.append(f"contracts={contracts}")
+                summary_reason = ", ".join(reasons)
+        if summary_used:
+            continue
+
+        mapping = design_memos.get_obsolete_mapping(norm_code)
+        if mapping is None or not mapping.get("obsolete_codes"):
+            if summary_reason:
+                detail = f"Unit Price Summary insufficient ({summary_reason})."
+                row["NOTES"] = " | ".join(part for part in (existing_note, detail) if part)
+            row["SOURCE"] = row.get("SOURCE") or "NO_DATA"
+            row["STD_DEV"] = float("nan")
+            row["COEF_VAR"] = float("nan")
+            continue
+
+        target_quantity = qty_val if qty_val > 0 else None
+        base_price, obs_count, source_label = memo_rollup_price(
+            bidtabs,
+            norm_code,
+            mapping["obsolete_codes"],
+            project_region=project_region,
+            target_quantity=target_quantity,
+        )
+        memo_pool = prepare_memo_rollup_pool(
+            bidtabs,
+            mapping["obsolete_codes"],
+            project_region=project_region,
+            target_quantity=target_quantity,
+        )
+        if obs_count == 0 or memo_pool.empty or not math.isfinite(base_price) or base_price <= 0:
+            memo_codes = "+".join(mapping["obsolete_codes"])
+            detail = (
+                f"Design memo {mapping['memo_id']} pooling insufficient ({memo_codes}); review manually."
+            )
+            if summary_reason:
+                detail = f"Unit Price Summary insufficient ({summary_reason}); " + detail
+            row["NOTES"] = " | ".join(part for part in (existing_note, detail) if part)
+            row["SOURCE"] = row.get("SOURCE") or "NO_DATA"
+            row["STD_DEV"] = float("nan")
+            row["COEF_VAR"] = float("nan")
+            continue
+
+        quantity_factor = 1.0
+        quantity_note = ""
+        if target_quantity and "QUANTITY" in memo_pool.columns:
+            pooled_qty = pd.to_numeric(memo_pool["QUANTITY"], errors="coerce").dropna()
+            if not pooled_qty.empty:
+                median_qty = float(pooled_qty.median())
+                if median_qty > 0:
+                    ratio = target_quantity / median_qty
+                    if ratio >= 2.0:
+                        quantity_factor = 0.95
+                        quantity_note = "quantity adj=-5%"
+                    elif ratio <= 0.5:
+                        quantity_factor = 1.05
+                        quantity_note = "quantity adj=+5%"
+
+        combined_raw = recency_factor * region_factor * quantity_factor
+        combined_factor, capped = _clamp_factor(combined_raw)
+        adjusted_price = base_price * combined_factor
+        bounded_note = ""
+        pooled_prices = memo_pool["UNIT_PRICE"].astype(float)
+        if not pooled_prices.empty:
+            pool_min = float(pooled_prices.min())
+            pool_max = float(pooled_prices.max())
+            lower_bound = pool_min * 0.9 if pool_min > 0 else pool_min
+            upper_bound = pool_max * 1.1 if pool_max > 0 else pool_max
+            if lower_bound and adjusted_price < lower_bound:
+                adjusted_price = lower_bound
+                bounded_note = "bounded to pooled range"
+            if upper_bound and adjusted_price > upper_bound:
+                adjusted_price = upper_bound
+                bounded_note = "bounded to pooled range"
+
+        std_dev = float(pooled_prices.std(ddof=0)) if len(pooled_prices) > 1 else 0.0
+        if base_price > 0:
+            coef_var = abs(std_dev / base_price)
+        else:
+            coef_var = float("inf")
+
+        row["UNIT_PRICE_EST"] = _round_unit_price(adjusted_price)
+        row["SOURCE"] = "DESIGN_MEMO_ROLLUP"
+        row["DATA_POINTS_USED"] = int(obs_count)
+        row["STD_DEV"] = std_dev
+        row["COEF_VAR"] = coef_var if math.isfinite(coef_var) else float("inf")
+
+        memo_codes = "+".join(mapping["obsolete_codes"])
+        notes_parts = [
+            f"DESIGN_MEMO_ROLLUP DM {mapping['memo_id']} ({mapping['effective_date']}): {memo_codes} -> {norm_code}",
+            f"pooled obs={obs_count}",
+            source_label,
+            _format_factor("recency", recency_factor, recency_meta),
+            _format_factor("region", region_factor, region_meta),
+        ]
+        if quantity_note:
+            notes_parts.append(quantity_note)
+        if capped:
+            notes_parts.append("combined adj capped at +/-25%")
+        if bounded_note:
+            notes_parts.append(bounded_note)
+        if summary_reason:
+            notes_parts.append(f"summary insufficient ({summary_reason})")
+        fallback_note = "; ".join(part for part in notes_parts if part)
+        row["NOTES"] = " | ".join(part for part in (existing_note, fallback_note) if part)
+
+        memo_detail = memo_pool.copy()
+        memo_detail["CATEGORY"] = "DESIGN_MEMO_ROLLUP"
+        memo_detail["USED_FOR_PRICING"] = True
+        payitem_details[code] = memo_detail
 
 
 def _first_numeric(series: pd.Series) -> Optional[float]:
@@ -407,7 +651,7 @@ def run(config: Optional["CLIConfig"] = None) -> int:
         unit = str(r.get("UNIT", "")).strip()
         qty_val = float(r.get("QUANTITY", 0) or 0)
 
-        price, _, cat_data, detail_map, used_categories, combined_used = category_breakdown(
+        price, source_label, cat_data, detail_map, used_categories, combined_used = category_breakdown(
             bid,
             code,
             project_region=project_region,
@@ -430,6 +674,7 @@ def run(config: Optional["CLIConfig"] = None) -> int:
         geometry = parse_geometry(desc)
         reference_bundle = reference_data.build_reference_bundle(code)
         unit_price_est = _round_unit_price(price)
+        source_label = source_label or ("NO_DATA" if data_points_used == 0 else "")
 
         row: Dict[str, object] = {
             "ITEM_CODE": code,
@@ -440,6 +685,7 @@ def run(config: Optional["CLIConfig"] = None) -> int:
             "NOTES": note,
             "DATA_POINTS_USED": data_points_used,
             "ALTERNATE_USED": False,
+            "SOURCE": source_label,
         }
 
         if geometry is not None:
@@ -556,6 +802,7 @@ def run(config: Optional["CLIConfig"] = None) -> int:
                 detail_map = alt_result.detail_map or {}
                 used_categories = alt_result.used_categories or []
                 combined_used = alt_result.combined_detail
+                row["SOURCE"] = "GEOMETRY_ALTERNATE"
 
         for label in CATEGORY_LABELS:
             row[f"{label}_PRICE"] = cat_data.get(f"{label}_PRICE", float("nan"))
@@ -585,6 +832,8 @@ def run(config: Optional["CLIConfig"] = None) -> int:
 
         if detail_frames:
             payitem_details[code] = pd.concat(detail_frames, ignore_index=True)
+
+    apply_non_geometry_fallbacks(rows, bid, project_region, payitem_details)
 
     def _compute_contract_subtotal(exclude_codes: set[str]) -> float:
         total = 0.0

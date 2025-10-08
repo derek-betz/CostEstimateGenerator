@@ -46,6 +46,26 @@ The following packages are installed via `requirements.txt` or `pyproject.toml`:
  - Supports `--dry-run` mode and optional AI assistance that can be disabled
    via CLI flags or the `DISABLE_OPENAI=1` environment variable.
 
+## Fallback pricing
+
+Items that lack usable bid history now receive conservative prices from
+non-geometry fallbacks:
+
+- **Unit Price Summary (CY2024)** – if a weighted average exists with at least
+  three supporting contracts, the pipeline adjusts the summary price for
+  recency (STATE 12M vs. 24/36M) and region (DIST vs. STATE) before clamping it
+  to the published low/high range.
+- **Design memo rollups** – when summary support is thin or missing, the
+  replacement code can inherit data from its obsolete counterparts.  Mappings
+  live in `src/costest/design_memos.py` (e.g., DM 25-10 pooling
+  `401-10258/401-10259` into `401-11526`).  To extend the table, add another
+  entry to the dictionary and the accessor will surface it automatically.
+
+Each fallback sets `SOURCE`, `DATA_POINTS_USED`, and detailed `NOTES` so the
+Excel and CSV outputs clearly explain how the estimate was derived.  The
+existing geometry-based alternate seek continues to operate unchanged and only
+activates when both category pricing and the new fallbacks provide no data.
+
 ## Project inputs
 
 Place the project-level spreadsheets exported from the front end in
