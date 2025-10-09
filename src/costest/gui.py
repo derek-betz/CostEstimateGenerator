@@ -166,8 +166,8 @@ class EstimatorApp:
         self._palette: dict[str, str] = {}
         self._configure_theme()
         self.root.title("Cost Estimate Generator")
-        self.root.geometry("880x680")
-        self.root.minsize(720, 600)
+        self.root.geometry("1240x600")
+        self.root.minsize(1100, 580)
 
         self._queue: "queue.Queue[PipelineResult]" = queue.Queue()
         self._worker: Optional[threading.Thread] = None
@@ -442,13 +442,12 @@ class EstimatorApp:
         card.grid(row=0, column=0, sticky="nsew")
         card.columnconfigure(0, weight=1)
         card.rowconfigure(2, weight=1)
-        card.rowconfigure(3, weight=1)
 
         header = GradientFrame(
             card,
             colors=[self._palette["hero_start"], self._palette["hero_end"]],
             gloss_color=self._palette["hero_gloss"],
-            height=148,
+            height=160,
         )
         header.grid(row=0, column=0, sticky="ew")
         header.create_text(
@@ -469,8 +468,8 @@ class EstimatorApp:
         )
 
         metrics_card = ttk.Frame(header, style="Glass.TFrame", padding=(18, 18))
-        metrics_card.place(relx=1.0, rely=0.0, anchor="ne", x=-32, y=26)
-        metrics_card.configure(width=280, height=96)
+        metrics_card.place(relx=1.0, rely=0.0, anchor="ne", x=-32, y=24)
+        metrics_card.configure(width=320, height=120)
         metrics_card.pack_propagate(False)
         ttk.Label(metrics_card, text="Estimator at a glance", style="InstructionHeading.TLabel").pack(
             anchor=tk.W, pady=(0, 6)
@@ -479,6 +478,7 @@ class EstimatorApp:
             metrics_card,
             text="Automated quantity analysis paired with AI-guided bid intelligence.",
             style="InstructionBody.TLabel",
+            wraplength=280,
         ).pack(anchor=tk.W, fill=tk.X)
 
         status_bar = ttk.Frame(card, style="StatusBar.TFrame", padding=(24, 18, 24, 16))
@@ -516,7 +516,8 @@ class EstimatorApp:
         content = ttk.Frame(card, style="CardBody.TFrame", padding=(24, 16, 24, 24))
         content.grid(row=2, column=0, sticky="nsew")
         content.columnconfigure(0, weight=3)
-        content.columnconfigure(1, weight=2)
+        content.columnconfigure(1, weight=4)
+        content.columnconfigure(2, weight=2)
         content.rowconfigure(0, weight=1)
 
         left_column = ttk.Frame(content, style="CardBody.TFrame")
@@ -682,8 +683,50 @@ class EstimatorApp:
 
         content.rowconfigure(0, weight=1)
 
+        log_column = ttk.Frame(content, style="CardBody.TFrame")
+        log_column.grid(row=0, column=1, sticky="nsew", padx=(0, 18))
+        log_column.columnconfigure(0, weight=1)
+        log_column.rowconfigure(1, weight=1)
+
+        log_header = ttk.Frame(log_column, style="CardBody.TFrame")
+        log_header.grid(row=0, column=0, sticky="ew", pady=(0, 12))
+        ttk.Label(log_header, text="Run Log", style="SectionHeading.TLabel").pack(anchor=tk.W)
+        ttk.Label(
+            log_header,
+            text="A complete transcript of estimator activity for auditing and troubleshooting.",
+            style="Status.TLabel",
+        ).pack(anchor=tk.W, pady=(4, 0))
+
+        log_container = ttk.Frame(log_column, style="Log.TFrame")
+        log_container.grid(row=1, column=0, sticky="nsew")
+        log_container.columnconfigure(0, weight=1)
+        log_container.rowconfigure(0, weight=1)
+
+        self.log_widget = tk.Text(
+            log_container,
+            height=10,
+            state=tk.DISABLED,
+            wrap=tk.WORD,
+            bg=self._palette["code_bg"],
+            fg=self._palette["text"],
+            insertbackground=self._palette["text"],
+            relief=tk.FLAT,
+            bd=0,
+            highlightthickness=0,
+            padx=18,
+            pady=16,
+            font=("Cascadia Code", 11),
+        )
+        self.log_widget.grid(row=0, column=0, sticky="nsew")
+
+        scrollbar = ttk.Scrollbar(
+            log_container, orient=tk.VERTICAL, command=self.log_widget.yview, style="Modern.Vertical.TScrollbar"
+        )
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        self.log_widget.configure(yscrollcommand=scrollbar.set)
+
         sidebar = ttk.Frame(content, style="CardBody.TFrame")
-        sidebar.grid(row=0, column=1, sticky="nsew")
+        sidebar.grid(row=0, column=2, sticky="nsew")
         sidebar.columnconfigure(0, weight=1)
         sidebar.rowconfigure(1, weight=1)
 
@@ -736,48 +779,6 @@ class EstimatorApp:
             style="InstructionBody.TLabel",
         ).pack(anchor=tk.W, pady=(16, 0))
 
-        log_section = ttk.Frame(card, style="CardBody.TFrame", padding=(24, 0, 24, 24))
-        log_section.grid(row=3, column=0, sticky="nsew")
-        log_section.columnconfigure(0, weight=1)
-        log_section.rowconfigure(1, weight=1)
-
-        log_header = ttk.Frame(log_section, style="CardBody.TFrame")
-        log_header.grid(row=0, column=0, sticky="ew", pady=(0, 12))
-        ttk.Label(log_header, text="Run Log", style="SectionHeading.TLabel").pack(anchor=tk.W)
-        ttk.Label(
-            log_header,
-            text="A complete transcript of estimator activity for auditing and troubleshooting.",
-            style="Status.TLabel",
-        ).pack(anchor=tk.W, pady=(4, 0))
-
-        log_container = ttk.Frame(log_section, style="Log.TFrame")
-        log_container.grid(row=1, column=0, sticky="nsew")
-        log_container.columnconfigure(0, weight=1)
-        log_container.rowconfigure(0, weight=1)
-
-        self.log_widget = tk.Text(
-            log_container,
-            height=10,
-            state=tk.DISABLED,
-            wrap=tk.WORD,
-            bg=self._palette["code_bg"],
-            fg=self._palette["text"],
-            insertbackground=self._palette["text"],
-            relief=tk.FLAT,
-            bd=0,
-            highlightthickness=0,
-            padx=18,
-            pady=16,
-            font=("Cascadia Code", 11),
-        )
-        self.log_widget.grid(row=0, column=0, sticky="nsew")
-
-        scrollbar = ttk.Scrollbar(
-            log_container, orient=tk.VERTICAL, command=self.log_widget.yview, style="Modern.Vertical.TScrollbar"
-        )
-        scrollbar.grid(row=0, column=1, sticky="ns")
-        self.log_widget.configure(yscrollcommand=scrollbar.set)
-
         self.log_widget.tag_configure(
             "base",
             lmargin1=12,
@@ -801,14 +802,17 @@ class EstimatorApp:
         padding = 32
         required_width = self.root.winfo_reqwidth() + padding
         required_height = self.root.winfo_reqheight() + padding
+
+        minimum_width = max(required_width, 1100)
+        minimum_height = max(required_height, 580)
+
+        self.root.minsize(minimum_width, minimum_height)
+
         current_width = self.root.winfo_width()
         current_height = self.root.winfo_height()
 
-        width = max(current_width, required_width, 880)
-        height = max(current_height, required_height, 680)
-
-        self.root.minsize(width, height)
-        self.root.geometry(f"{width}x{height}")
+        if current_width < minimum_width or current_height < minimum_height:
+            self.root.geometry(f"{minimum_width}x{minimum_height}")
 
     def _show_completion_dialog(self, message: str) -> None:
         parsed = self._parse_completion_message(message)
