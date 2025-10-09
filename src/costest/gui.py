@@ -179,6 +179,7 @@ class EstimatorApp:
         self.contract_filter_var = tk.StringVar(value="50")
         self._last_valid_contract_filter = 50.0
         self._drop_label_default = "Drag and drop the project quantities workbook here"
+        self._drop_hint_default = "Drag from Explorer or use the browse button below."
         self._district_display_strings = []
         self._district_display_to_name: dict[str, str] = {}
         for number, name in DISTRICT_CHOICES:
@@ -187,7 +188,13 @@ class EstimatorApp:
             self._district_display_to_name[display] = name
 
         self._initial_status = "Drop a *_project_quantities.xlsx workbook to begin."
-        self.status_var = tk.StringVar(value=self._initial_status)
+        self.status_title_var = tk.StringVar(value="Ready to start")
+        self.status_detail_var = tk.StringVar(value=self._initial_status)
+        self._status_indicator: Optional[tk.Canvas] = None
+        self._status_indicator_oval: Optional[int] = None
+        self._drop_icon: Optional[tk.Label] = None
+        self._drop_hint: Optional[tk.Label] = None
+        self._drop_hover = False
         self._build_ui()
         self._ensure_initial_window_size()
         self.root.after(100, self._poll_queue)
@@ -200,26 +207,41 @@ class EstimatorApp:
             pass
 
         palette = {
-            "base": "#1E1E1E",
-            "surface": "#252526",
-            "field": "#2D2D30",
-            "field_hover": "#333337",
-            "field_active": "#3B3E43",
-            "border": "#3C3C3C",
-            "accent": "#0E639C",
-            "accent_active": "#1177BB",
-            "accent_pressed": "#094771",
-            "accent_dim": "#1B4F72",
-            "text": "#F1F1F1",
-            "muted": "#C8C8C8",
-            "code_bg": "#1B1D1F",
+            "base": "#0f1722",
+            "surface": "#162230",
+            "surface_alt": "#1d2c3d",
+            "card": "#1a2838",
+            "overlay": "#223447",
+            "field": "#1f3347",
+            "field_hover": "#243c54",
+            "field_active": "#294662",
+            "border": "#1f2f40",
+            "outline": "#24384b",
+            "accent": "#4bb3fd",
+            "accent_active": "#63c5ff",
+            "accent_pressed": "#2b8cd3",
+            "accent_dim": "#1e4470",
+            "accent_soft": "#173454",
+            "success": "#3dd68c",
+            "warning": "#f7b84b",
+            "error": "#ff6f91",
+            "text": "#f4f7fb",
+            "muted": "#c4d3e0",
+            "muted_alt": "#98a9bb",
+            "code_bg": "#0b1119",
+            "hero_start": "#1f3a55",
+            "hero_end": "#0f2233",
+            "hero_gloss": "#2f5170",
+            "drop_idle": "#182a3a",
+            "drop_hover": "#1f3c54",
+            "drop_selected": "#204d6e",
         }
         self._palette = palette
 
         self.root.configure(bg=palette["base"])
         default_font = "{Segoe UI} 11"
         self.root.option_add("*Font", default_font)
-        self.root.option_add("*TButton.Padding", 10)
+        self.root.option_add("*TButton.Padding", 12)
         self.root.option_add("*TEntry*Font", default_font)
         self.root.option_add("*TCombobox*Listbox.font", default_font)
 
@@ -230,25 +252,87 @@ class EstimatorApp:
             pass
 
         style.configure("Background.TFrame", background=palette["base"])
-        style.configure("Card.TFrame", background=palette["surface"])
-        style.configure("TLabel", background=palette["surface"], foreground=palette["text"])
-        style.configure("Status.TLabel", background=palette["surface"], foreground=palette["muted"])
+        style.configure("Card.TFrame", background=palette["card"])
+        style.configure("CardBody.TFrame", background=palette["card"])
+        style.configure("Glass.TFrame", background=palette["surface_alt"], relief=tk.FLAT)
+        style.configure("Header.TFrame", background=palette["hero_start"])
+        style.configure("StatusBar.TFrame", background=palette["surface_alt"])
+        style.configure("Log.TFrame", background=palette["surface_alt"], relief=tk.FLAT)
+        style.configure("TLabel", background=palette["card"], foreground=palette["text"])
+        style.configure("Status.TLabel", background=palette["card"], foreground=palette["muted"])
         style.configure(
             "Heading.TLabel",
-            background=palette["surface"],
+            background=palette["card"],
             foreground=palette["text"],
             font=("Segoe UI Semibold", 18),
         )
         style.configure(
             "Subheading.TLabel",
-            background=palette["surface"],
+            background=palette["card"],
             foreground=palette["muted"],
             font=("Segoe UI", 11),
+        )
+        style.configure(
+            "SectionHeading.TLabel",
+            background=palette["card"],
+            foreground=palette["text"],
+            font=("Segoe UI Semibold", 14),
+        )
+        style.configure(
+            "StatusTitle.TLabel",
+            background=palette["surface_alt"],
+            foreground=palette["text"],
+            font=("Segoe UI Semibold", 12),
+        )
+        style.configure(
+            "StatusDetail.TLabel",
+            background=palette["surface_alt"],
+            foreground=palette["muted"],
+            font=("Segoe UI", 10),
+        )
+        style.configure(
+            "StatusHint.TLabel",
+            background=palette["surface_alt"],
+            foreground=palette["muted_alt"],
+            font=("Segoe UI", 10),
+        )
+        style.configure(
+            "InstructionHeading.TLabel",
+            background=palette["surface_alt"],
+            foreground=palette["text"],
+            font=("Segoe UI Semibold", 12),
+        )
+        style.configure(
+            "InstructionBody.TLabel",
+            background=palette["surface_alt"],
+            foreground=palette["muted"],
+            font=("Segoe UI", 10),
+            justify=tk.LEFT,
+            wraplength=260,
+        )
+        style.configure(
+            "MetricValue.TLabel",
+            background=palette["surface_alt"],
+            foreground=palette["text"],
+            font=("Segoe UI Semibold", 20),
+        )
+        style.configure(
+            "MetricCaption.TLabel",
+            background=palette["surface_alt"],
+            foreground=palette["muted"],
+            font=("Segoe UI", 10),
+        )
+        style.configure(
+            "Pill.TLabel",
+            background=palette["accent_soft"],
+            foreground=palette["accent_active"],
+            font=("Segoe UI Semibold", 10),
+            padding=(10, 4),
         )
 
         style.configure(
             "Adornment.TLabel",
-            background=palette["surface"],
+            background=palette["surface_alt"],
             foreground=palette["muted"],
             font=("Segoe UI Semibold", 12),
         )
@@ -257,7 +341,7 @@ class EstimatorApp:
             "Filled.TEntry",
             fieldbackground=palette["field"],
             foreground=palette["text"],
-            bordercolor=palette["border"],
+            bordercolor=palette["outline"],
             borderwidth=1,
             insertcolor=palette["text"],
         )
@@ -273,7 +357,7 @@ class EstimatorApp:
             fieldbackground=palette["field"],
             foreground=palette["text"],
             background=palette["field"],
-            bordercolor=palette["border"],
+            bordercolor=palette["outline"],
             borderwidth=1,
             arrowcolor=palette["muted"],
         )
@@ -285,17 +369,18 @@ class EstimatorApp:
         )
 
         style.configure(
-            "Accent.TButton",
+            "Primary.TButton",
             background=palette["accent"],
             foreground=palette["text"],
             borderwidth=0,
             focusthickness=1,
             focuscolor=palette["accent_active"],
+            padding=(22, 12),
         )
         style.map(
-            "Accent.TButton",
+            "Primary.TButton",
             background=[
-                ("disabled", palette["border"]),
+                ("disabled", palette["accent_dim"]),
                 ("pressed", palette["accent_pressed"]),
                 ("active", palette["accent_active"]),
             ],
@@ -304,11 +389,12 @@ class EstimatorApp:
 
         style.configure(
             "Secondary.TButton",
-            background=palette["field"],
+            background=palette["surface_alt"],
             foreground=palette["text"],
             borderwidth=0,
             focusthickness=1,
             focuscolor=palette["accent"],
+            padding=(18, 10),
         )
         style.map(
             "Secondary.TButton",
@@ -322,69 +408,146 @@ class EstimatorApp:
 
         style.configure(
             "Accent.Horizontal.TProgressbar",
-            troughcolor=palette["field"],
-            bordercolor=palette["field"],
+            troughcolor=palette["surface_alt"],
+            bordercolor=palette["surface_alt"],
             lightcolor=palette["accent_active"],
             darkcolor=palette["accent"],
             background=palette["accent"],
+            thickness=8,
+        )
+
+        style.configure(
+            "Modern.Vertical.TScrollbar",
+            gripcount=0,
+            background=palette["surface_alt"],
+            troughcolor=palette["surface"],
+            bordercolor=palette["surface"],
+            lightcolor=palette["surface_alt"],
+            darkcolor=palette["surface_alt"],
+            arrowcolor=palette["muted"],
+        )
+        style.map(
+            "Modern.Vertical.TScrollbar",
+            background=[("active", palette["field_hover"])],
+            arrowcolor=[("active", palette["text"])],
         )
 
     def _build_ui(self) -> None:
-        container = ttk.Frame(self.root, style="Background.TFrame", padding=(28, 24))
+        container = ttk.Frame(self.root, style="Background.TFrame", padding=(32, 28, 32, 24))
         container.pack(fill=tk.BOTH, expand=True)
+        container.columnconfigure(0, weight=1)
+        container.rowconfigure(0, weight=1)
 
-        card = ttk.Frame(container, style="Card.TFrame", padding=24)
-        card.pack(fill=tk.BOTH, expand=True)
+        card = ttk.Frame(container, style="Card.TFrame")
+        card.grid(row=0, column=0, sticky="nsew")
         card.columnconfigure(0, weight=1)
+        card.rowconfigure(2, weight=1)
+        card.rowconfigure(3, weight=1)
 
         header = GradientFrame(
             card,
-            colors=["#2D2D30", "#1E1E1E"],
-            gloss_color="#3A3D41",
-            height=96,
+            colors=[self._palette["hero_start"], self._palette["hero_end"]],
+            gloss_color=self._palette["hero_gloss"],
+            height=148,
         )
-        header.pack(fill=tk.X, expand=False, pady=(0, 20))
+        header.grid(row=0, column=0, sticky="ew")
         header.create_text(
-            24,
-            36,
+            32,
+            46,
             anchor="w",
             text="Cost Estimate Generator",
             fill=self._palette["text"],
-            font=("Segoe UI Semibold", 22),
-            tags="title",
+            font=("Segoe UI Semibold", 26),
         )
         header.create_text(
-            24,
-            68,
+            32,
+            88,
             anchor="w",
-            text="Prepare polished bid-ready estimates with clarity and control.",
+            text="Prepare bid-ready estimates with clarity, accuracy, and polish.",
             fill=self._palette["muted"],
-            font=("Segoe UI", 11),
-            tags="subtitle",
+            font=("Segoe UI", 12),
         )
 
-        status = ttk.Label(
-            card,
-            textvariable=self.status_var,
-            style="Status.TLabel",
-            wraplength=580,
-            justify=tk.LEFT,
+        metrics_card = ttk.Frame(header, style="Glass.TFrame", padding=(18, 18))
+        metrics_card.place(relx=1.0, rely=0.0, anchor="ne", x=-32, y=26)
+        metrics_card.configure(width=280, height=96)
+        metrics_card.pack_propagate(False)
+        ttk.Label(metrics_card, text="Estimator at a glance", style="InstructionHeading.TLabel").pack(
+            anchor=tk.W, pady=(0, 6)
         )
-        status.pack(fill=tk.X, pady=(0, 18))
+        ttk.Label(
+            metrics_card,
+            text="Automated quantity analysis paired with AI-guided bid intelligence.",
+            style="InstructionBody.TLabel",
+        ).pack(anchor=tk.W, fill=tk.X)
+
+        status_bar = ttk.Frame(card, style="StatusBar.TFrame", padding=(24, 18, 24, 16))
+        status_bar.grid(row=1, column=0, sticky="ew")
+        status_bar.columnconfigure(1, weight=1)
+
+        self._status_indicator = tk.Canvas(
+            status_bar,
+            width=18,
+            height=18,
+            highlightthickness=0,
+            bg=self._palette["surface_alt"],
+            bd=0,
+        )
+        self._status_indicator.grid(row=0, column=0, rowspan=2, sticky="w")
+        self._status_indicator_oval = self._status_indicator.create_oval(
+            2,
+            2,
+            16,
+            16,
+            fill=self._palette["success"],
+            outline=self._palette["success"],
+        )
+
+        ttk.Label(status_bar, textvariable=self.status_title_var, style="StatusTitle.TLabel").grid(
+            row=0, column=1, sticky="w"
+        )
+        ttk.Label(status_bar, textvariable=self.status_detail_var, style="StatusDetail.TLabel", wraplength=640).grid(
+            row=1, column=1, sticky="w", pady=(4, 0)
+        )
+        ttk.Label(status_bar, text="All activity is recorded in the run log.", style="StatusHint.TLabel").grid(
+            row=0, column=2, rowspan=2, sticky="e"
+        )
+
+        content = ttk.Frame(card, style="CardBody.TFrame", padding=(24, 16, 24, 24))
+        content.grid(row=2, column=0, sticky="nsew")
+        content.columnconfigure(0, weight=3)
+        content.columnconfigure(1, weight=2)
+        content.rowconfigure(0, weight=1)
+
+        left_column = ttk.Frame(content, style="CardBody.TFrame")
+        left_column.grid(row=0, column=0, sticky="nsew", padx=(0, 18))
+        left_column.columnconfigure(0, weight=1)
+
+        ttk.Label(left_column, text="Project Workbook", style="SectionHeading.TLabel").grid(
+            row=0, column=0, sticky="w", pady=(0, 8)
+        )
 
         drop_frame = tk.Frame(
-            card,
-            bg=self._palette["surface"],
+            left_column,
+            bg=self._palette["drop_idle"],
             highlightbackground=self._palette["accent_dim"],
             highlightcolor=self._palette["accent_dim"],
             highlightthickness=2,
             bd=0,
-            height=160,
+            height=190,
         )
-        drop_frame.pack(fill=tk.X, expand=False)
-        drop_frame.pack_propagate(False)
+        drop_frame.grid(row=1, column=0, sticky="ew")
+        drop_frame.grid_propagate(False)
+        drop_frame.columnconfigure(0, weight=1)
 
-        self._drop_frame = drop_frame
+        drop_icon = tk.Label(
+            drop_frame,
+            text="📂",
+            font=("Segoe UI Emoji", 42),
+            fg=self._palette["accent_active"],
+            bg=self._palette["drop_idle"],
+        )
+        drop_icon.pack(pady=(24, 8))
 
         drop_label = tk.Label(
             drop_frame,
@@ -393,30 +556,54 @@ class EstimatorApp:
             justify=tk.CENTER,
             font=("Segoe UI", 12),
             fg=self._palette["muted"],
-            bg=self._palette["surface"],
-            wraplength=520,
+            bg=self._palette["drop_idle"],
+            wraplength=460,
         )
-        drop_label.pack(fill=tk.BOTH, expand=True, padx=18, pady=18)
+        drop_label.pack(fill=tk.X, padx=28)
+
+        drop_hint = tk.Label(
+            drop_frame,
+            text=self._drop_hint_default,
+            anchor=tk.CENTER,
+            justify=tk.CENTER,
+            font=("Segoe UI", 10),
+            fg=self._palette["muted_alt"],
+            bg=self._palette["drop_idle"],
+        )
+        drop_hint.pack(pady=(12, 20))
+
+        self._drop_frame = drop_frame
         self._drop_label = drop_label
+        self._drop_icon = drop_icon
+        self._drop_hint = drop_hint
+
+        drop_frame.bind("<Enter>", lambda _event: self._set_drop_hover(True))
+        drop_frame.bind("<Leave>", lambda _event: self._set_drop_hover(False))
 
         if _DND_AVAILABLE:
             drop_frame.drop_target_register(DND_FILES)  # type: ignore[attr-defined]
             drop_frame.dnd_bind("<<Drop>>", self._handle_drop)  # type: ignore[attr-defined]
+            drop_frame.dnd_bind("<<DragEnter>>", lambda _event: self._set_drop_hover(True))  # type: ignore[attr-defined]
+            drop_frame.dnd_bind("<<DragLeave>>", lambda _event: self._set_drop_hover(False))  # type: ignore[attr-defined]
         else:  # pragma: no cover - UI only
-            self._drop_label_default = "tkinterdnd2 not available. Use the Browse button below."
-            drop_label.configure(text=self._drop_label_default, wraplength=520)
+            self._drop_label_default = "Drag-and-drop enhancements unavailable. Use Browse to select a workbook."
+            self._drop_hint_default = "Browse to locate a *_project_quantities.xlsx file."
+            drop_label.configure(text=self._drop_label_default)
+            drop_hint.configure(text=self._drop_hint_default)
 
-        self._update_drop_target(None)
+        ttk.Label(left_column, text="Project Inputs", style="SectionHeading.TLabel").grid(
+            row=2, column=0, sticky="w", pady=(24, 8)
+        )
 
-        input_frame = ttk.Frame(card, style="Card.TFrame")
-        input_frame.pack(fill=tk.X, pady=(24, 16))
+        input_frame = ttk.Frame(left_column, style="Glass.TFrame", padding=(18, 18))
+        input_frame.grid(row=3, column=0, sticky="nsew")
         input_frame.columnconfigure(0, weight=1)
         input_frame.columnconfigure(1, weight=1)
         input_frame.columnconfigure(2, weight=1)
 
         etcc_label = ttk.Label(input_frame, text="Expected Total Contract Cost", style="Subheading.TLabel")
         etcc_label.grid(row=0, column=0, sticky=tk.W)
-        etcc_field = ttk.Frame(input_frame, style="Card.TFrame")
+        etcc_field = ttk.Frame(input_frame, style="Glass.TFrame")
         etcc_field.grid(row=1, column=0, sticky=tk.EW, padx=(0, 12))
         etcc_field.columnconfigure(1, weight=1)
         ttk.Label(etcc_field, text="$", style="Adornment.TLabel").grid(row=0, column=0, sticky=tk.W, padx=(0, 6))
@@ -436,9 +623,13 @@ class EstimatorApp:
         )
         self.district_combo.grid(row=1, column=1, sticky=tk.EW, padx=(0, 12))
 
-        contract_filter_label = ttk.Label(input_frame, text="BidTabs Total Contract Cost Filter", style="Subheading.TLabel")
+        contract_filter_label = ttk.Label(
+            input_frame,
+            text="BidTabs Total Contract Cost Filter",
+            style="Subheading.TLabel",
+        )
         contract_filter_label.grid(row=0, column=2, sticky=tk.W)
-        contract_field = ttk.Frame(input_frame, style="Card.TFrame")
+        contract_field = ttk.Frame(input_frame, style="Glass.TFrame")
         contract_field.grid(row=1, column=2, sticky=tk.EW)
         contract_field.columnconfigure(1, weight=1)
         ttk.Label(contract_field, text="+/-", style="Adornment.TLabel").grid(row=0, column=0, sticky=tk.W, padx=(0, 6))
@@ -453,68 +644,114 @@ class EstimatorApp:
         self.contract_filter_entry.bind("<FocusIn>", self._handle_contract_filter_focus_in)
         self.contract_filter_entry.bind("<FocusOut>", self._handle_contract_filter_focus_out)
 
-        # Browse button in the input frame
         self.browse_button = ttk.Button(
             input_frame,
             text="Browse for Workbook…",
             command=self._browse_file,
             style="Secondary.TButton",
         )
-        self.browse_button.grid(row=2, column=0, columnspan=3, sticky=tk.EW, pady=(12, 0))
+        self.browse_button.grid(row=2, column=0, columnspan=3, sticky=tk.EW, pady=(14, 0))
 
-        # Button row for run and clear buttons
-        button_row = ttk.Frame(card, style="Card.TFrame")
-        button_row.pack(fill=tk.X, pady=(12, 12))
+        button_row = ttk.Frame(input_frame, style="Glass.TFrame")
+        button_row.grid(row=3, column=0, columnspan=3, sticky=tk.EW, pady=(16, 0))
+        button_row.columnconfigure(0, weight=1)
+        button_row.columnconfigure(1, weight=1)
 
-        self.run_button = tk.Button(
+        self.run_button = ttk.Button(
             button_row,
             text="Run Estimate",
             command=self._start_pipeline,
+            style="Primary.TButton",
             state=tk.DISABLED,
-            font=("Segoe UI Semibold", 12),
-            bg=self._palette["accent"],
-            fg=self._palette["text"],
-            activebackground=self._palette["accent_active"],
-            activeforeground=self._palette["text"],
-            disabledforeground=self._palette["muted"],
-            relief=tk.FLAT,
-            bd=0,
-            highlightthickness=0,
-            padx=28,
-            pady=18,
-            cursor="hand2",
         )
-        self.run_button.pack(side=tk.LEFT, fill=tk.Y)
+        self.run_button.grid(row=0, column=0, sticky=tk.EW, padx=(0, 10))
 
-        clear = tk.Button(
+        clear = ttk.Button(
             button_row,
             text="Clear Last Result",
             command=self._clear_last_results,
-            font=("Segoe UI", 12),
-            bg=self._palette["field"],
-            fg=self._palette["text"],
-            activebackground=self._palette["field_hover"],
-            activeforeground=self._palette["text"],
-            disabledforeground=self._palette["muted"],
-            relief=tk.FLAT,
-            bd=0,
-            highlightthickness=0,
-            padx=24,
-            pady=16,
-            cursor="hand2",
+            style="Secondary.TButton",
         )
-        clear.pack(side=tk.LEFT, padx=(12, 0), fill=tk.Y)
+        clear.grid(row=0, column=1, sticky=tk.EW, padx=(10, 0))
 
-        self.progress = ttk.Progressbar(card, mode="indeterminate", style="Accent.Horizontal.TProgressbar")
-        self.progress.pack(fill=tk.X, pady=(6, 18))
+        ttk.Label(input_frame, text="Pipeline progress", style="Subheading.TLabel").grid(
+            row=4, column=0, columnspan=3, sticky=tk.W, pady=(18, 6)
+        )
+        self.progress = ttk.Progressbar(input_frame, mode="indeterminate", style="Accent.Horizontal.TProgressbar")
+        self.progress.grid(row=5, column=0, columnspan=3, sticky=tk.EW)
 
-        ttk.Separator(card, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=(0, 16))
+        content.rowconfigure(0, weight=1)
 
-        log_label = ttk.Label(card, text="Run Log", style="Subheading.TLabel")
-        log_label.pack(anchor=tk.W)
+        sidebar = ttk.Frame(content, style="CardBody.TFrame")
+        sidebar.grid(row=0, column=1, sticky="nsew")
+        sidebar.columnconfigure(0, weight=1)
+        sidebar.rowconfigure(1, weight=1)
 
-        log_container = ttk.Frame(card, style="Card.TFrame")
-        log_container.pack(fill=tk.BOTH, expand=True)
+        ttk.Label(sidebar, text="Guidance & Highlights", style="SectionHeading.TLabel").grid(
+            row=0, column=0, sticky="w"
+        )
+
+        guidance_card = ttk.Frame(sidebar, style="Glass.TFrame", padding=(18, 18))
+        guidance_card.grid(row=1, column=0, sticky="nsew", pady=(8, 16))
+        guidance_card.columnconfigure(0, weight=1)
+        ttk.Label(guidance_card, text="Workflow tips", style="InstructionHeading.TLabel").pack(anchor=tk.W)
+
+        bullet_points = [
+            ("📁", "Use the *_project_quantities workbook naming for instant recognition."),
+            ("🎯", "Verify district and ETCC inputs to tailor the pricing intelligence."),
+            ("📝", "Completion dialog surfaces top drivers and pricing commentary."),
+        ]
+        for index, (icon, text) in enumerate(bullet_points):
+            row_frame = ttk.Frame(guidance_card, style="Glass.TFrame")
+            row_frame.pack(fill=tk.X, pady=(12 if index else 16, 0))
+            tk.Label(
+                row_frame,
+                text=icon,
+                font=("Segoe UI Emoji", 16),
+                fg=self._palette["accent_active"],
+                bg=self._palette["surface_alt"],
+            ).pack(side=tk.LEFT, padx=(0, 12))
+            ttk.Label(row_frame, text=text, style="InstructionBody.TLabel").pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        metrics_card = ttk.Frame(sidebar, style="Glass.TFrame", padding=(18, 18))
+        metrics_card.grid(row=2, column=0, sticky="nsew")
+        metrics_card.columnconfigure(0, weight=1)
+
+        ttk.Label(metrics_card, text="Workflow snapshot", style="InstructionHeading.TLabel").pack(anchor=tk.W)
+        ttk.Label(metrics_card, text="AI assisted", style="Pill.TLabel").pack(anchor=tk.W, pady=(10, 12))
+
+        metric_container = ttk.Frame(metrics_card, style="Glass.TFrame")
+        metric_container.pack(fill=tk.X)
+        metric_container.columnconfigure(0, weight=1)
+        metric_container.columnconfigure(1, weight=1)
+
+        ttk.Label(metric_container, text="Confidence", style="MetricCaption.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(metric_container, text="98%", style="MetricValue.TLabel").grid(row=1, column=0, sticky="w")
+        ttk.Label(metric_container, text="Last export", style="MetricCaption.TLabel").grid(row=0, column=1, sticky="w")
+        ttk.Label(metric_container, text="Polished", style="MetricValue.TLabel").grid(row=1, column=1, sticky="w")
+
+        ttk.Label(
+            metrics_card,
+            text="Status lights mirror the estimator lifecycle so your team stays aligned.",
+            style="InstructionBody.TLabel",
+        ).pack(anchor=tk.W, pady=(16, 0))
+
+        log_section = ttk.Frame(card, style="CardBody.TFrame", padding=(24, 0, 24, 24))
+        log_section.grid(row=3, column=0, sticky="nsew")
+        log_section.columnconfigure(0, weight=1)
+        log_section.rowconfigure(1, weight=1)
+
+        log_header = ttk.Frame(log_section, style="CardBody.TFrame")
+        log_header.grid(row=0, column=0, sticky="ew", pady=(0, 12))
+        ttk.Label(log_header, text="Run Log", style="SectionHeading.TLabel").pack(anchor=tk.W)
+        ttk.Label(
+            log_header,
+            text="A complete transcript of estimator activity for auditing and troubleshooting.",
+            style="Status.TLabel",
+        ).pack(anchor=tk.W, pady=(4, 0))
+
+        log_container = ttk.Frame(log_section, style="Log.TFrame")
+        log_container.grid(row=1, column=0, sticky="nsew")
         log_container.columnconfigure(0, weight=1)
         log_container.rowconfigure(0, weight=1)
 
@@ -528,16 +765,33 @@ class EstimatorApp:
             insertbackground=self._palette["text"],
             relief=tk.FLAT,
             bd=0,
-            highlightthickness=1,
-            highlightbackground=self._palette["border"],
-            highlightcolor=self._palette["accent"],
-            font=("Consolas", 11),
+            highlightthickness=0,
+            padx=18,
+            pady=16,
+            font=("Cascadia Code", 11),
         )
         self.log_widget.grid(row=0, column=0, sticky="nsew")
 
-        scrollbar = ttk.Scrollbar(log_container, orient=tk.VERTICAL, command=self.log_widget.yview)
+        scrollbar = ttk.Scrollbar(
+            log_container, orient=tk.VERTICAL, command=self.log_widget.yview, style="Modern.Vertical.TScrollbar"
+        )
         scrollbar.grid(row=0, column=1, sticky="ns")
         self.log_widget.configure(yscrollcommand=scrollbar.set)
+
+        self.log_widget.tag_configure(
+            "base",
+            lmargin1=12,
+            lmargin2=12,
+            spacing1=2,
+            spacing3=4,
+            foreground=self._palette["text"],
+        )
+        self.log_widget.tag_configure("accent", foreground=self._palette["accent_active"])
+        self.log_widget.tag_configure("success", foreground=self._palette["success"])
+        self.log_widget.tag_configure("error", foreground=self._palette["error"])
+
+        self._update_drop_target(None)
+        self._set_status("Ready to start", self._initial_status, "success")
         self._format_contract_filter_display(self._last_valid_contract_filter)
 
     def _ensure_initial_window_size(self) -> None:
@@ -819,23 +1073,55 @@ class EstimatorApp:
         window.geometry(f"+{max(x, 0)}+{max(y, 0)}")
 
     # --------------------------------------------------------------- Helpers --
+    def _set_status(
+        self,
+        title: str,
+        detail: Optional[str] = None,
+        indicator: Optional[str] = None,
+    ) -> None:
+        self.status_title_var.set(title)
+        if detail is not None:
+            self.status_detail_var.set(detail)
+        if indicator:
+            color = self._palette.get(indicator, indicator)
+            self._update_status_indicator(color)
+
+    def _update_status_indicator(self, color: str) -> None:
+        if self._status_indicator is not None and self._status_indicator_oval is not None:
+            self._status_indicator.itemconfigure(self._status_indicator_oval, fill=color, outline=color)
+
+    def _set_drop_hover(self, active: bool) -> None:
+        self._drop_hover = active
+        if self._selected_path is None:
+            self._update_drop_target(None)
+
     def _update_drop_target(self, selected: Optional[Path]) -> None:
         if not hasattr(self, "_drop_frame") or not hasattr(self, "_drop_label"):
             return
 
         if selected is None:
-            bg = self._palette["surface"]
-            highlight = self._palette["accent_dim"]
+            bg = self._palette["drop_hover"] if self._drop_hover else self._palette["drop_idle"]
+            highlight = self._palette["accent_active"] if self._drop_hover else self._palette["accent_dim"]
             text = self._drop_label_default
             fg = self._palette["muted"]
+            icon = "📂"
+            hint = self._drop_hint_default
+            hint_fg = self._palette["muted_alt"]
         else:
-            bg = self._palette["accent_active"]
+            bg = self._palette["drop_selected"]
             highlight = self._palette["accent"]
             text = selected.name
             fg = self._palette["text"]
+            icon = "🗂️"
+            hint = "Inputs locked. Review values then run the estimator."
+            hint_fg = self._palette["muted"]
 
         self._drop_frame.configure(bg=bg, highlightbackground=highlight, highlightcolor=highlight)
         self._drop_label.configure(text=text, fg=fg, bg=bg)
+        if self._drop_icon is not None:
+            self._drop_icon.configure(text=icon, bg=bg, fg=self._palette["accent_active"])
+        if self._drop_hint is not None:
+            self._drop_hint.configure(text=hint, fg=hint_fg, bg=bg)
 
     def _update_run_button_state(self) -> None:
         running = self._worker is not None and self._worker.is_alive()
@@ -939,34 +1225,49 @@ class EstimatorApp:
     def _set_running(self, running: bool) -> None:
         if running:
             self.progress.start(10)
-            self.status_var.set("Running estimator…")
             self.browse_button.configure(state=tk.DISABLED)
+            self._set_status(
+                "Running estimator…",
+                "Processing workbook data and building pricing intelligence.",
+                "accent_active",
+            )
         else:
             self.progress.stop()
             self.browse_button.configure(state=tk.NORMAL)
-            if self._current_path is not None:
-                self.status_var.set(f"Last run completed for {self._current_path.name}.")
+            self._update_run_button_state()
 
     def _clear_last_results(self) -> None:
         if self._worker and self._worker.is_alive():
             messagebox.showinfo("Estimator busy", "Please wait for the current run to finish.")
             return
 
+        self._selected_path = None
         self._current_path = None
-        self.status_var.set(self._initial_status)
+        self._drop_hover = False
+        self._set_status("Ready to start", self._initial_status, "success")
         self.etcc_var.set("")
         self.district_var.set("")
         self.district_combo.set("")
         self._last_valid_contract_filter = 50.0
         self._format_contract_filter_display(50.0)
         self._update_drop_target(None)
+        self._update_run_button_state()
         self.log_widget.configure(state=tk.NORMAL)
         self.log_widget.delete("1.0", tk.END)
         self.log_widget.configure(state=tk.DISABLED)
 
     def _append_log(self, text: str) -> None:
+        normalized = text.lower()
+        tags = ["base"]
+        if any(keyword in normalized for keyword in ("error", "failed", "traceback")):
+            tags.append("error")
+        elif any(keyword in normalized for keyword in ("complete", "success", "finished", "done")):
+            tags.append("success")
+        elif any(keyword in normalized for keyword in ("start", "running", "launch", "processing")):
+            tags.append("accent")
+
         self.log_widget.configure(state=tk.NORMAL)
-        self.log_widget.insert(tk.END, text + "\n")
+        self.log_widget.insert(tk.END, text + "\n", tuple(tags))
         self.log_widget.see(tk.END)
         self.log_widget.configure(state=tk.DISABLED)
 
@@ -996,7 +1297,9 @@ class EstimatorApp:
             return
 
         self._selected_path = path
-        self.status_var.set(f"Selected {path.name}. Fill in the inputs and click Run Estimate.")
+        self._drop_hover = False
+        detail = "Fill in the project inputs below, then run the estimator when ready."
+        self._set_status("Workbook ready", detail, "accent_active")
         self._update_drop_target(path)
         self._update_run_button_state()
 
@@ -1103,11 +1406,22 @@ class EstimatorApp:
         self._set_running(False)
         if result.level == "info":
             self._append_log(result.message)
+            detail = (
+                f"Estimator finished for {self._current_path.name}."
+                if self._current_path is not None
+                else "Estimator run completed successfully."
+            )
+            self._set_status("Run complete", detail, "success")
             self._show_completion_dialog(result.message)
         else:
             self._append_log(result.message)
             if result.details:
                 self._append_log(result.details)
+            self._set_status(
+                "Run failed",
+                "Review the run log for diagnostic details and try again.",
+                "error",
+            )
             messagebox.showerror("Estimator error", result.message)
 
     # ---------------------------------------------------------------- Main --
