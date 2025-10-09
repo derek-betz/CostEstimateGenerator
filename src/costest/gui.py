@@ -138,6 +138,7 @@ class GradientFrame(tk.Canvas):
             )
 
         self.create_line(0, height - 1, width, height - 1, fill="#000000", tags="gradient")
+        self.tag_lower("gradient")
 
     @staticmethod
     def _hex_to_rgb(value: str) -> tuple[int, int, int]:
@@ -480,34 +481,87 @@ class EstimatorApp:
             card,
             colors=[self._palette["hero_start"], self._palette["hero_end"]],
             gloss_color=self._palette["hero_gloss"],
-            height=160,
+            height=190,
         )
         header.grid(row=0, column=0, sticky="ew")
-        title_text = "COST ESTIMATE GENERATOR"
-        header.create_text(
-            36,
-            52,
+        title_text = "Cost Estimate Generator"
+        title_font = ("Segoe UI Black", 44)
+        title_x = 40
+        title_y = 74
+
+        # Layer multiple offsets to fake a Blade Runner style neon glow.
+        glow_layers = [
+            ("#091020", (-6, 6), ("Segoe UI Black", 52)),
+            ("#ff2a6d", (-3, 0), title_font),
+            ("#00f0ff", (3, -2), title_font),
+        ]
+        glow_ids: List[int] = []
+        for color, (dx, dy), font_info in glow_layers:
+            glow_ids.append(
+                header.create_text(
+                    title_x + dx,
+                    title_y + dy,
+                    anchor="w",
+                    text=title_text,
+                    fill=color,
+                    font=font_info,
+                )
+            )
+
+        title_id = header.create_text(
+            title_x,
+            title_y,
             anchor="w",
             text=title_text,
+            fill="#fefbff",
+            font=("Segoe UI Black", 43),
+        )
+
+        bbox = header.bbox(title_id)
+        if bbox:
+            underline_start = bbox[0]
+            underline_end = bbox[2]
+            primary_line_y = bbox[3] + 6
+            secondary_line_y = primary_line_y + 4
+            tagline_y = bbox[3] + 34
+        else:
+            underline_start = title_x
+            underline_end = title_x + int(len(title_text) * 18.5)
+            primary_line_y = title_y + 30
+            secondary_line_y = title_y + 34
+            tagline_y = title_y + 58
+
+        header.create_line(
+            underline_start,
+            primary_line_y,
+            underline_end,
+            primary_line_y,
+            fill="#00f0ff",
+            width=3,
+        )
+        header.create_line(
+            underline_start,
+            secondary_line_y,
+            underline_end,
+            secondary_line_y,
             fill="#ff2a6d",
-            font=("Segoe UI Black", 30),
+            width=1,
         )
-        header.create_text(
-            32,
-            48,
-            anchor="w",
-            text=title_text,
-            fill="#33d4ff",
-            font=("Segoe UI Black", 30),
-        )
-        header.create_text(
-            32,
-            104,
+
+        tagline_id = header.create_text(
+            title_x,
+            tagline_y,
             anchor="w",
             text="Prepare bid-ready estimates with clarity, accuracy, and polish.",
             fill=self._palette["muted"],
             font=("Segoe UI", 12),
         )
+
+        for glow_id in glow_ids:
+            header.tag_lower(glow_id)
+        header.tag_lower("gradient")
+        header.tag_raise(title_id)
+        header.tag_raise(tagline_id)
 
         metrics_card = ttk.Frame(header, style="Glass.TFrame", padding=(18, 18))
         metrics_card.place(relx=1.0, rely=0.0, anchor="ne", x=-32, y=24)
