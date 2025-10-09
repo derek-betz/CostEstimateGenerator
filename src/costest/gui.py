@@ -18,6 +18,7 @@ import threading
 import traceback
 from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -178,6 +179,20 @@ class EstimatorApp:
         self.district_var = tk.StringVar()
         self.contract_filter_var = tk.StringVar(value="50")
         self._last_valid_contract_filter = 50.0
+        self._snapshot_tag_var = tk.StringVar(value="Idle")
+        self._snapshot_status_var = tk.StringVar(value="Waiting for workbook selection.")
+        self._snapshot_workbook_var = tk.StringVar(value="No workbook selected.")
+        self._snapshot_inputs_var = tk.StringVar(value="No project inputs captured yet.")
+        self._snapshot_activity_var = tk.StringVar(value="Run log is empty.")
+        self._snapshot_last_run_var = tk.StringVar(value="Estimator not yet run.")
+        self._pipeline_started_at: Optional[datetime] = None
+        self._last_run_completed_at: Optional[datetime] = None
+        self._last_run_duration: Optional[timedelta] = None
+        self._last_run_success: Optional[bool] = None
+        self._last_run_path: Optional[Path] = None
+        self._snapshot_timer_job: Optional[str] = None
+        self._log_entry_count = 0
+        self._last_log_message: Optional[str] = None
         self._drop_label_default = "Drag and drop the project quantities workbook here"
         self._drop_hint_default = "Drag from Explorer or use the browse button below."
         self._district_display_strings = []
@@ -186,6 +201,10 @@ class EstimatorApp:
             display = f"{number} - {name}"
             self._district_display_strings.append(display)
             self._district_display_to_name[display] = name
+
+        self.etcc_var.trace_add("write", self._on_inputs_changed)
+        self.district_var.trace_add("write", self._on_inputs_changed)
+        self.contract_filter_var.trace_add("write", self._on_inputs_changed)
 
         self._initial_status = "Drop a *_project_quantities.xlsx workbook to begin."
         self.status_title_var = tk.StringVar(value="Ready to start")
@@ -196,6 +215,7 @@ class EstimatorApp:
         self._drop_hint: Optional[tk.Label] = None
         self._drop_hover = False
         self._build_ui()
+        self._refresh_workflow_snapshot()
         self._ensure_initial_window_size()
         self.root.after(100, self._poll_queue)
 
@@ -759,25 +779,40 @@ class EstimatorApp:
         metrics_card = ttk.Frame(sidebar, style="Glass.TFrame", padding=(18, 18))
         metrics_card.grid(row=2, column=0, sticky="nsew")
         metrics_card.columnconfigure(0, weight=1)
+        metrics_card.rowconfigure(2, weight=1)
 
-        ttk.Label(metrics_card, text="Workflow snapshot", style="InstructionHeading.TLabel").pack(anchor=tk.W)
-        ttk.Label(metrics_card, text="AI assisted", style="Pill.TLabel").pack(anchor=tk.W, pady=(10, 12))
+        ttk.Label(metrics_card, text="Workflow snapshot", style="InstructionHeading.TLabel").grid(
+            row=0, column=0, sticky="w"
+        )
+        ttk.Label(metrics_card, textvariable=self._snapshot_tag_var, style="Pill.TLabel").grid(
+            row=1, column=0, sticky="w", pady=(10, 12)
+        )
 
-        metric_container = ttk.Frame(metrics_card, style="Glass.TFrame")
-        metric_container.pack(fill=tk.X)
-        metric_container.columnconfigure(0, weight=1)
+        metric_container = ttk.Frame(metrics_card, style="Glass.TFrame", padding=(12, 12))
+        metric_container.grid(row=2, column=0, sticky="nsew")
         metric_container.columnconfigure(1, weight=1)
 
-        ttk.Label(metric_container, text="Confidence", style="MetricCaption.TLabel").grid(row=0, column=0, sticky="w")
-        ttk.Label(metric_container, text="98%", style="MetricValue.TLabel").grid(row=1, column=0, sticky="w")
-        ttk.Label(metric_container, text="Last export", style="MetricCaption.TLabel").grid(row=0, column=1, sticky="w")
-        ttk.Label(metric_container, text="Polished", style="MetricValue.TLabel").grid(row=1, column=1, sticky="w")
+        snapshot_rows = [
+            ("Status", self._snapshot_status_var),
+            ("Workbook", self._snapshot_workbook_var),
+            ("Inputs", self._snapshot_inputs_var),
+            ("Activity", self._snapshot_activity_var),
+            ("Last run", self._snapshot_last_run_var),
+        ]
+        for index, (label_text, variable) in enumerate(snapshot_rows):
+            pady = (0, 8 if index < len(snapshot_rows) - 1 else 0)
+            ttk.Label(metric_container, text=label_text, style="MetricCaption.TLabel").grid(
+                row=index, column=0, sticky="nw", pady=pady, padx=(0, 10)
+            )
+            ttk.Label(metric_container, textvariable=variable, style="InstructionBody.TLabel").grid(
+                row=index, column=1, sticky="nw", pady=pady
+            )
 
         ttk.Label(
             metrics_card,
-            text="Status lights mirror the estimator lifecycle so your team stays aligned.",
+            text="Snapshot refreshes as the estimator runs and emits new log entries.",
             style="InstructionBody.TLabel",
-        ).pack(anchor=tk.W, pady=(16, 0))
+        ).grid(row=3, column=0, sticky="w", pady=(12, 0))
 
         self.log_widget.tag_configure(
             "base",
@@ -1066,6 +1101,64 @@ class EstimatorApp:
             return value.strip()
         return f"${numeric:,.2f}"
 
+    @staticmethod
+    def _format_duration(duration: Optional[timedelta]) -> str:
+        if duration is None:
+            return ""
+        total_seconds = int(duration.total_seconds())
+        if total_seconds <= 0:
+            return "0s"
+        hours, remainder = divmod(total_seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        parts: List[str] = []
+        if hours:
+            parts.append(f"{hours}h")
+        if minutes:
+            parts.append(f"{minutes}m")
+        elif hours and seconds:
+            parts.append(f"{seconds}s")
+        if not hours:
+            parts.append(f"{seconds}s")
+        return " ".join(dict.fromkeys(parts)) or "0s"
+
+    @staticmethod
+    def _format_relative_time(moment: datetime) -> str:
+        delta = datetime.now() - moment
+        seconds = int(delta.total_seconds())
+        if seconds < 5:
+            return "just now"
+        if seconds < 60:
+            return f"{seconds}s ago"
+        minutes, seconds = divmod(seconds, 60)
+        if minutes < 60:
+            return f"{minutes}m ago"
+        hours, minutes = divmod(minutes, 60)
+        if hours < 24:
+            return f"{hours}h ago"
+        days, hours = divmod(hours, 24)
+        if days < 7:
+            return f"{days}d ago"
+        weeks, days = divmod(days, 7)
+        if weeks < 4:
+            return f"{weeks}w ago"
+        months = weeks // 4
+        if months < 12:
+            return f"{months}mo ago"
+        years = months // 12
+        return f"{years}y ago"
+
+    @staticmethod
+    def _format_path_for_display(path: Path, max_name: int = 42, max_parent: int = 48) -> str:
+        name = path.name
+        if len(name) > max_name:
+            name = name[: max_name - 1] + "…"
+        parent = str(path.parent)
+        if parent in (".", ""):
+            return name
+        if len(parent) > max_parent:
+            parent = "…" + parent[-(max_parent - 1) :]
+        return f"{name}\n{parent}"
+
     def _center_dialog(self, window: tk.Toplevel) -> None:
         window.update_idletasks()
         root_x = self.root.winfo_rootx()
@@ -1133,6 +1226,116 @@ class EstimatorApp:
             self.run_button.configure(state=tk.DISABLED)
         else:
             self.run_button.configure(state=tk.NORMAL)
+
+    def _on_inputs_changed(self, *_: object) -> None:
+        self._refresh_workflow_snapshot()
+
+    def _stop_snapshot_timer(self) -> None:
+        if self._snapshot_timer_job is not None:
+            try:
+                self.root.after_cancel(self._snapshot_timer_job)
+            except tk.TclError:
+                pass
+            self._snapshot_timer_job = None
+
+    def _refresh_workflow_snapshot(self) -> None:
+        self._stop_snapshot_timer()
+
+        now = datetime.now()
+        running = self._worker is not None and self._worker.is_alive()
+
+        if running:
+            tag = "Live run"
+            if self._pipeline_started_at:
+                elapsed = now - self._pipeline_started_at
+                status_text = f"Estimator running | {self._format_duration(elapsed)} elapsed"
+            else:
+                status_text = "Estimator running…"
+        elif self._last_run_completed_at:
+            tag = "Success" if self._last_run_success else "Attention"
+            duration_text = self._format_duration(self._last_run_duration)
+            relative_text = self._format_relative_time(self._last_run_completed_at)
+            outcome = "Last run succeeded" if self._last_run_success else "Last run failed"
+            detail = " | ".join(bit for bit in (duration_text, relative_text) if bit)
+            status_text = f"{outcome}{f' ({detail})' if detail else ''}"
+        elif self._selected_path:
+            tag = "Ready"
+            status_text = "Workbook staged. Confirm inputs then run."
+        else:
+            tag = "Idle"
+            status_text = "Waiting for workbook selection."
+
+        self._snapshot_tag_var.set(tag)
+        self._snapshot_status_var.set(status_text)
+
+        workbook_sections: List[str] = []
+        if self._selected_path:
+            workbook_sections.append(f"Selected - {self._format_path_for_display(self._selected_path)}")
+        if self._last_run_path and (self._selected_path is None or self._last_run_path != self._selected_path):
+            workbook_sections.append(f"Last run - {self._format_path_for_display(self._last_run_path)}")
+        if not workbook_sections:
+            workbook_sections.append("No workbook selected.")
+        self._snapshot_workbook_var.set("\n\n".join(workbook_sections))
+
+        etcc = self.etcc_var.get().strip()
+        district = self.district_var.get().strip()
+        filter_value = self.contract_filter_var.get().strip()
+        input_parts = []
+        if etcc:
+            input_parts.append(f"ETCC ${etcc}")
+        if district:
+            input_parts.append(f"District {district}")
+        if filter_value:
+            display_value = filter_value.rstrip("%").strip()
+            if not display_value.startswith("+/-"):
+                display_value = f"+/-{display_value}"
+            filter_display = f"{display_value}%"
+            input_parts.append(f"Filter {filter_display}")
+        self._snapshot_inputs_var.set(" | ".join(input_parts) if input_parts else "No project inputs captured yet.")
+
+        if self._log_entry_count == 0:
+            activity_text = "Run log is empty."
+        else:
+            last_line = (self._last_log_message or "").strip().splitlines()
+            last_summary = last_line[-1] if last_line else ""
+            if last_summary and len(last_summary) > 80:
+                last_summary = last_summary[:77] + "…"
+            suffix = f" | Last: {last_summary}" if last_summary else ""
+            activity_text = f"{self._log_entry_count} log entries{suffix}"
+        self._snapshot_activity_var.set(activity_text)
+
+        if self._last_run_completed_at:
+            outcome = "Success" if self._last_run_success else "Failed"
+            duration_text = self._format_duration(self._last_run_duration)
+            relative_text = self._format_relative_time(self._last_run_completed_at)
+            header_bits = [outcome]
+            if duration_text:
+                header_bits.append(duration_text)
+            if relative_text:
+                header_bits.append(relative_text)
+            timestamp = self._last_run_completed_at.strftime("%b %d at %I:%M %p").replace(" 0", " ")
+            lines = [" | ".join(header_bits), timestamp]
+            if self._last_run_path:
+                lines.append(self._format_path_for_display(self._last_run_path))
+            self._snapshot_last_run_var.set("\n".join(line for line in lines if line))
+        else:
+            self._snapshot_last_run_var.set("Estimator not yet run.")
+
+        next_interval: Optional[int]
+        if running:
+            next_interval = 1000
+        elif self._last_run_completed_at:
+            next_interval = 60000
+        else:
+            next_interval = None
+
+        if next_interval is not None:
+            try:
+                self._snapshot_timer_job = self.root.after(next_interval, self._refresh_workflow_snapshot)
+            except tk.TclError:
+                self._snapshot_timer_job = None
+        else:
+            self._snapshot_timer_job = None
 
     def _handle_etcc_focus_in(self, event: tk.Event) -> None:
         widget = event.widget
@@ -1228,6 +1431,7 @@ class EstimatorApp:
 
     def _set_running(self, running: bool) -> None:
         if running:
+            self._pipeline_started_at = datetime.now()
             self.progress.start(10)
             self.browse_button.configure(state=tk.DISABLED)
             self._set_status(
@@ -1239,6 +1443,7 @@ class EstimatorApp:
             self.progress.stop()
             self.browse_button.configure(state=tk.NORMAL)
             self._update_run_button_state()
+        self._refresh_workflow_snapshot()
 
     def _clear_last_results(self) -> None:
         if self._worker and self._worker.is_alive():
@@ -1259,6 +1464,15 @@ class EstimatorApp:
         self.log_widget.configure(state=tk.NORMAL)
         self.log_widget.delete("1.0", tk.END)
         self.log_widget.configure(state=tk.DISABLED)
+        self._stop_snapshot_timer()
+        self._pipeline_started_at = None
+        self._last_run_completed_at = None
+        self._last_run_duration = None
+        self._last_run_success = None
+        self._last_run_path = None
+        self._log_entry_count = 0
+        self._last_log_message = None
+        self._refresh_workflow_snapshot()
 
     def _append_log(self, text: str) -> None:
         normalized = text.lower()
@@ -1274,6 +1488,13 @@ class EstimatorApp:
         self.log_widget.insert(tk.END, text + "\n", tuple(tags))
         self.log_widget.see(tk.END)
         self.log_widget.configure(state=tk.DISABLED)
+        self._log_entry_count += 1
+        stripped = text.strip()
+        if stripped:
+            meaningful_lines = [line for line in stripped.splitlines() if line.strip()]
+            if meaningful_lines:
+                self._last_log_message = meaningful_lines[-1]
+        self._refresh_workflow_snapshot()
 
     def _handle_drop(self, event: tk.Event) -> None:  # pragma: no cover - UI event
         paths = _split_dropped_paths(getattr(event, "data", ""))
@@ -1306,6 +1527,7 @@ class EstimatorApp:
         self._set_status("Workbook ready", detail, "accent_active")
         self._update_drop_target(path)
         self._update_run_button_state()
+        self._refresh_workflow_snapshot()
 
     def _start_pipeline(self) -> None:
         if self._worker and self._worker.is_alive():
@@ -1408,6 +1630,16 @@ class EstimatorApp:
 
     def _handle_queue_item(self, result: PipelineResult) -> None:
         self._set_running(False)
+        finished_at = datetime.now()
+        success = result.level == "info"
+        self._last_run_completed_at = finished_at
+        self._last_run_duration = (
+            finished_at - self._pipeline_started_at if self._pipeline_started_at else None
+        )
+        self._pipeline_started_at = None
+        self._last_run_success = success
+        if self._current_path is not None:
+            self._last_run_path = self._current_path
         if result.level == "info":
             self._append_log(result.message)
             detail = (
@@ -1427,6 +1659,7 @@ class EstimatorApp:
                 "error",
             )
             messagebox.showerror("Estimator error", result.message)
+        self._refresh_workflow_snapshot()
 
     # ---------------------------------------------------------------- Main --
     def run(self) -> None:  # pragma: no cover - UI loop
