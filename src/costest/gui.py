@@ -193,6 +193,7 @@ class EstimatorApp:
         self._snapshot_timer_job: Optional[str] = None
         self._log_entry_count = 0
         self._last_log_message: Optional[str] = None
+        self._tips_window: Optional[tk.Toplevel] = None
         self._drop_label_default = "Drag and drop the project quantities workbook here"
         self._drop_hint_default = "Drag from Explorer or use the browse button below."
         self._district_display_strings = []
@@ -207,7 +208,7 @@ class EstimatorApp:
         self.contract_filter_var.trace_add("write", self._on_inputs_changed)
 
         self._initial_status = "Drop a *_project_quantities.xlsx workbook to begin."
-        self.status_title_var = tk.StringVar(value="Ready to start")
+        self.status_title_var = tk.StringVar(value="Ready to Start")
         self.status_detail_var = tk.StringVar(value=self._initial_status)
         self._status_indicator: Optional[tk.Canvas] = None
         self._status_indicator_oval: Optional[int] = None
@@ -351,6 +352,17 @@ class EstimatorApp:
         )
 
         style.configure(
+            "Link.TLabel",
+            background=palette["card"],
+            foreground=palette["accent_active"],
+            font=("Segoe UI Semibold", 10, "underline"),
+        )
+        style.map(
+            "Link.TLabel",
+            foreground=[("active", palette["accent"])],
+        )
+
+        style.configure(
             "Adornment.TLabel",
             background=palette["surface_alt"],
             foreground=palette["muted"],
@@ -462,6 +474,7 @@ class EstimatorApp:
         card.grid(row=0, column=0, sticky="nsew")
         card.columnconfigure(0, weight=1)
         card.rowconfigure(2, weight=1)
+        card.rowconfigure(3, weight=0)
 
         header = GradientFrame(
             card,
@@ -470,17 +483,26 @@ class EstimatorApp:
             height=160,
         )
         header.grid(row=0, column=0, sticky="ew")
+        title_text = "COST ESTIMATE GENERATOR"
         header.create_text(
-            32,
-            46,
+            36,
+            52,
             anchor="w",
-            text="Cost Estimate Generator",
-            fill=self._palette["text"],
-            font=("Segoe UI Semibold", 26),
+            text=title_text,
+            fill="#ff2a6d",
+            font=("Segoe UI Black", 30),
         )
         header.create_text(
             32,
-            88,
+            48,
+            anchor="w",
+            text=title_text,
+            fill="#33d4ff",
+            font=("Segoe UI Black", 30),
+        )
+        header.create_text(
+            32,
+            104,
             anchor="w",
             text="Prepare bid-ready estimates with clarity, accuracy, and polish.",
             fill=self._palette["muted"],
@@ -491,7 +513,7 @@ class EstimatorApp:
         metrics_card.place(relx=1.0, rely=0.0, anchor="ne", x=-32, y=24)
         metrics_card.configure(width=320, height=120)
         metrics_card.pack_propagate(False)
-        ttk.Label(metrics_card, text="Estimator at a glance", style="InstructionHeading.TLabel").pack(
+        ttk.Label(metrics_card, text="Estimator at a Glance", style="InstructionHeading.TLabel").pack(
             anchor=tk.W, pady=(0, 6)
         )
         ttk.Label(
@@ -695,7 +717,7 @@ class EstimatorApp:
         )
         clear.grid(row=0, column=1, sticky=tk.EW, padx=(10, 0))
 
-        ttk.Label(input_frame, text="Pipeline progress", style="Subheading.TLabel").grid(
+        ttk.Label(input_frame, text="Pipeline Progress", style="Subheading.TLabel").grid(
             row=4, column=0, columnspan=3, sticky=tk.W, pady=(18, 6)
         )
         self.progress = ttk.Progressbar(input_frame, mode="indeterminate", style="Accent.Horizontal.TProgressbar")
@@ -750,38 +772,16 @@ class EstimatorApp:
         sidebar.columnconfigure(0, weight=1)
         sidebar.rowconfigure(1, weight=1)
 
-        ttk.Label(sidebar, text="Guidance & Highlights", style="SectionHeading.TLabel").grid(
+        ttk.Label(sidebar, text="Workflow Snapshot", style="SectionHeading.TLabel").grid(
             row=0, column=0, sticky="w"
         )
 
-        guidance_card = ttk.Frame(sidebar, style="Glass.TFrame", padding=(18, 18))
-        guidance_card.grid(row=1, column=0, sticky="nsew", pady=(8, 16))
-        guidance_card.columnconfigure(0, weight=1)
-        ttk.Label(guidance_card, text="Workflow tips", style="InstructionHeading.TLabel").pack(anchor=tk.W)
-
-        bullet_points = [
-            ("📁", "Use the *_project_quantities workbook naming for instant recognition."),
-            ("🎯", "Verify district and ETCC inputs to tailor the pricing intelligence."),
-            ("📝", "Completion dialog surfaces top drivers and pricing commentary."),
-        ]
-        for index, (icon, text) in enumerate(bullet_points):
-            row_frame = ttk.Frame(guidance_card, style="Glass.TFrame")
-            row_frame.pack(fill=tk.X, pady=(12 if index else 16, 0))
-            tk.Label(
-                row_frame,
-                text=icon,
-                font=("Segoe UI Emoji", 16),
-                fg=self._palette["accent_active"],
-                bg=self._palette["surface_alt"],
-            ).pack(side=tk.LEFT, padx=(0, 12))
-            ttk.Label(row_frame, text=text, style="InstructionBody.TLabel").pack(side=tk.LEFT, fill=tk.X, expand=True)
-
         metrics_card = ttk.Frame(sidebar, style="Glass.TFrame", padding=(18, 18))
-        metrics_card.grid(row=2, column=0, sticky="nsew")
+        metrics_card.grid(row=1, column=0, sticky="nsew", pady=(8, 16))
         metrics_card.columnconfigure(0, weight=1)
         metrics_card.rowconfigure(2, weight=1)
 
-        ttk.Label(metrics_card, text="Workflow snapshot", style="InstructionHeading.TLabel").grid(
+        ttk.Label(metrics_card, text="Workflow Snapshot", style="InstructionHeading.TLabel").grid(
             row=0, column=0, sticky="w"
         )
         ttk.Label(metrics_card, textvariable=self._snapshot_tag_var, style="Pill.TLabel").grid(
@@ -814,6 +814,17 @@ class EstimatorApp:
             style="InstructionBody.TLabel",
         ).grid(row=3, column=0, sticky="w", pady=(12, 0))
 
+        footer = ttk.Frame(card, style="CardBody.TFrame", padding=(24, 0, 24, 16))
+        footer.grid(row=3, column=0, sticky="ew")
+        footer.columnconfigure(0, weight=1)
+
+        tips_link = ttk.Label(footer, text="Workflow Tips", style="Link.TLabel", cursor="hand2")
+        tips_link.grid(row=0, column=0, sticky="w")
+        tips_link.configure(foreground=self._palette["accent_active"])
+        tips_link.bind("<Button-1>", lambda _event: self._show_workflow_tips())
+        tips_link.bind("<Enter>", lambda _event: tips_link.configure(foreground=self._palette["accent"]))
+        tips_link.bind("<Leave>", lambda _event: tips_link.configure(foreground=self._palette["accent_active"]))
+
         self.log_widget.tag_configure(
             "base",
             lmargin1=12,
@@ -827,8 +838,106 @@ class EstimatorApp:
         self.log_widget.tag_configure("error", foreground=self._palette["error"])
 
         self._update_drop_target(None)
-        self._set_status("Ready to start", self._initial_status, "success")
+        self._set_status("Ready to Start", self._initial_status, "success")
         self._format_contract_filter_display(self._last_valid_contract_filter)
+
+    def _show_workflow_tips(self) -> None:
+        if self._tips_window and self._tips_window.winfo_exists():
+            self._tips_window.deiconify()
+            self._tips_window.lift()
+            self._tips_window.focus_force()
+            return
+
+        tips_window = tk.Toplevel(self.root)
+        tips_window.title("Workflow Tips")
+        tips_window.configure(bg=self._palette["card"])
+        tips_window.transient(self.root)
+
+        def _on_close() -> None:
+            self._tips_window = None
+            tips_window.destroy()
+
+        tips_window.protocol("WM_DELETE_WINDOW", _on_close)
+
+        container = ttk.Frame(tips_window, style="CardBody.TFrame", padding=(24, 24, 24, 24))
+        container.pack(fill=tk.BOTH, expand=True)
+        container.columnconfigure(0, weight=1)
+
+        row_index = 0
+        ttk.Label(container, text="Workflow Tips & Guidance", style="Heading.TLabel").grid(
+            row=row_index, column=0, sticky="w"
+        )
+        row_index += 1
+
+        instruction_header = ttk.Label(
+            container, text="Quick start checklist", style="SectionHeading.TLabel"
+        )
+        instruction_header.grid(row=row_index, column=0, sticky="w", pady=(12, 8))
+        row_index += 1
+
+        checklist = [
+            "Drop or browse for the project workbook to load quantities.",
+            "Confirm the district and Estimated Total Contract Cost selections reflect the active bid context.",
+            "Use the contract filter to narrow BidTabs history if needed.",
+            "Click Run Estimate and monitor the Run Log for pipeline updates.",
+            "Review the Workflow Snapshot for status, inputs, and activity at a glance.",
+        ]
+        for index, text in enumerate(checklist, start=1):
+            ttk.Label(
+                container,
+                text=f"{index}. {text}",
+                style="InstructionBody.TLabel",
+                wraplength=420,
+            ).grid(row=row_index, column=0, sticky="w", pady=(0, 4))
+            row_index += 1
+
+        tips_header = ttk.Label(
+            container, text="Key workflow reminders", style="SectionHeading.TLabel"
+        )
+        tips_header.grid(row=row_index, column=0, sticky="w", pady=(12, 8))
+        row_index += 1
+
+        tips = [
+            ("📁", "Use the *_project_quantities workbook naming for instant recognition."),
+            ("🎯", "Verify district and Estimated Total Contract Cost inputs to tailor the pricing intelligence."),
+            ("📝", "Completion dialog surfaces top drivers and pricing commentary."),
+            ("⚙️", "Re-run the estimator after updating workbook data to refresh the snapshot."),
+        ]
+        for icon, text in tips:
+            row = ttk.Frame(container, style="Glass.TFrame", padding=(12, 12, 12, 12))
+            row.grid(row=row_index, column=0, sticky="nsew", pady=(0, 10))
+            row.columnconfigure(1, weight=1)
+            tk.Label(
+                row,
+                text=icon,
+                font=("Segoe UI Emoji", 18),
+                fg=self._palette["accent_active"],
+                bg=self._palette["surface_alt"],
+            ).grid(row=0, column=0, sticky="n")
+            ttk.Label(
+                row,
+                text=text,
+                style="InstructionBody.TLabel",
+                wraplength=390,
+            ).grid(row=0, column=1, sticky="w", padx=(12, 0))
+            row_index += 1
+
+        close_button = ttk.Button(
+            container,
+            text="Close",
+            style="Secondary.TButton",
+            command=_on_close,
+        )
+        close_button.grid(row=row_index, column=0, sticky="e", pady=(18, 0))
+
+        self._tips_window = tips_window
+        tips_window.update_idletasks()
+        required_width = tips_window.winfo_reqwidth() + 12
+        required_height = tips_window.winfo_reqheight() + 12
+        tips_window.minsize(required_width, required_height)
+        tips_window.geometry(f"{required_width}x{required_height}")
+        tips_window.grab_set()
+        tips_window.focus_force()
 
     def _ensure_initial_window_size(self) -> None:
         """Guarantee the window opens large enough to show the entire layout."""
@@ -1453,7 +1562,7 @@ class EstimatorApp:
         self._selected_path = None
         self._current_path = None
         self._drop_hover = False
-        self._set_status("Ready to start", self._initial_status, "success")
+        self._set_status("Ready to Start", self._initial_status, "success")
         self.etcc_var.set("")
         self.district_var.set("")
         self.district_combo.set("")
