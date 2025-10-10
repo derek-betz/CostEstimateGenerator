@@ -872,12 +872,6 @@ class EstimatorApp:
         )
         explain.grid(row=0, column=2, sticky=tk.EW, padx=(10, 0))
 
-        ttk.Label(input_frame, text="Pipeline Progress", style="Subheading.TLabel").grid(
-            row=7, column=0, columnspan=3, sticky=tk.W, pady=(18, 6)
-        )
-        self.progress = ttk.Progressbar(input_frame, mode="indeterminate", style="Accent.Horizontal.TProgressbar")
-        self.progress.grid(row=6, column=0, columnspan=3, sticky=tk.EW)
-
         content.rowconfigure(0, weight=1)
 
         log_column = ttk.Frame(content, style="CardBody.TFrame")
@@ -1139,7 +1133,7 @@ class EstimatorApp:
 
                     1. Start by dropping the *_project_quantities workbook into the large drop area or use the browse button. The app reads each pay item and quantity so you do not have to re-type them.
                     2. Choose the district and enter the Estimated Total Contract Cost range. That lets the estimator look up similar historical jobs.
-                    3. Click Run Estimate. The progress bar and run log show what the tool is doing. When it finishes you will get a polished Excel report with pricing guidance.
+                    3. Click Run Estimate. The run log shows what the tool is doing. When it finishes you will get a polished Excel report with pricing guidance.
 
                     In short, you load the workbook, confirm a couple of settings, and the estimator builds the pricing picture for you.
                     """
@@ -2248,7 +2242,6 @@ class EstimatorApp:
     def _set_running(self, running: bool) -> None:
         if running:
             self._pipeline_started_at = datetime.now()
-            self.progress.start(10)
             self.browse_button.configure(state=tk.DISABLED)
             self._set_status(
                 "Running estimator…",
@@ -2256,7 +2249,6 @@ class EstimatorApp:
                 "accent_active",
             )
         else:
-            self.progress.stop()
             self.browse_button.configure(state=tk.NORMAL)
             self._update_run_button_state()
         self._refresh_workflow_snapshot()
