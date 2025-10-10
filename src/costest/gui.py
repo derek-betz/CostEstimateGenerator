@@ -21,7 +21,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import tkinter as tk
 import tkinter.font as tkfont
@@ -1216,35 +1216,151 @@ class EstimatorApp:
         dialog.grab_set()
         dialog.configure(bg=self._palette["base"])
 
-        container = ttk.Frame(dialog, style="Background.TFrame", padding=(24, 20))
-        container.pack(fill=tk.BOTH, expand=True)
+        screen_width = dialog.winfo_screenwidth()
+        screen_height = dialog.winfo_screenheight()
+        max_width_available = max(screen_width - 80, 320)
+        max_height_available = max(screen_height - 120, 320)
+        min_width = max(320, min(max(520, int(screen_width * 0.55)), max_width_available))
+        min_height = max(320, min(max(440, int(screen_height * 0.5)), max_height_available))
+        dialog.minsize(min_width, min_height)
 
-        header_label = ttk.Label(container, text="Estimator Complete", style="Heading.TLabel")
-        header_label.pack(anchor=tk.W, pady=(0, 12))
+        content_outer = ttk.Frame(dialog, style="Background.TFrame")
+        content_outer.pack(fill=tk.BOTH, expand=True)
 
-        body = ttk.Frame(container, style="Card.TFrame", padding=20)
-        body.pack(fill=tk.BOTH, expand=True)
-        body.columnconfigure(0, weight=1)
+        scroll_container = ttk.Frame(content_outer, style="Background.TFrame")
+        scroll_container.pack(fill=tk.BOTH, expand=True)
 
-        summary = parsed["summary"]
-        if summary:
-            for line in summary:
-                ttk.Label(body, text=line, style="TLabel", wraplength=620, justify=tk.LEFT).pack(
-                    anchor=tk.W, fill=tk.X, pady=(0, 6)
-                )
+        canvas = tk.Canvas(
+            scroll_container,
+            background=self._palette["base"],
+            highlightthickness=0,
+            bd=0,
+        )
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        v_scrollbar = ttk.Scrollbar(scroll_container, orient=tk.VERTICAL, command=canvas.yview)
+        v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        canvas.configure(yscrollcommand=v_scrollbar.set)
+
+        container = ttk.Frame(canvas, style="Background.TFrame", padding=(28, 24))
+        canvas_window = canvas.create_window((0, 0), window=container, anchor="nw")
+
+        def _update_scroll_region(_event: tk.Event) -> None:
+            bbox = canvas.bbox("all")
+            if bbox is not None:
+                canvas.configure(scrollregion=bbox)
+
+        container.bind("<Configure>", _update_scroll_region, add="+")
+
+        def _resize_canvas(event: tk.Event) -> None:
+            canvas.itemconfigure(canvas_window, width=event.width)
+
+        canvas.bind("<Configure>", _resize_canvas, add="+")
+
+        def _on_mousewheel(event: tk.Event) -> None:
+            delta = getattr(event, "delta", 0)
+            if delta:
+                steps = -int(delta / 120)
+                if steps == 0:
+                    steps = -1 if delta > 0 else 1
+                canvas.yview_scroll(steps, "units")
+                return
+            num = getattr(event, "num", None)
+            if num == 4:
+                canvas.yview_scroll(-1, "units")
+            elif num == 5:
+                canvas.yview_scroll(1, "units")
+
+        canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        canvas.bind_all("<Button-4>", _on_mousewheel)
+        canvas.bind_all("<Button-5>", _on_mousewheel)
+
+        def _unbind_mousewheel(_event: tk.Event) -> None:
+            canvas.unbind_all("<MouseWheel>")
+            canvas.unbind_all("<Button-4>")
+            canvas.unbind_all("<Button-5>")
+
+        dialog.bind("<Destroy>", _unbind_mousewheel, add="+")
+
+        header_frame = ttk.Frame(container, style="Background.TFrame")
+        header_frame.pack(fill=tk.X)
+        ttk.Label(header_frame, text="Estimator Complete", style="Heading.TLabel").pack(anchor=tk.W)
+
+        subtitle_parts: List[str] = []
+        if self._last_run_path is not None:
+            subtitle_parts.append(f"Workbook: {self._last_run_path.name}")
+        if self._last_run_completed_at is not None:
+            timestamp = self._last_run_completed_at.strftime("%b %d, %Y %I:%M %p").replace(" 0", " ")
+            relative = self._format_relative_time(self._last_run_completed_at)
+            subtitle_parts.append(f"Finished {timestamp} ({relative})")
+        header_subtitle = " | ".join(part for part in subtitle_parts if part)
+        if header_subtitle:
+            ttk.Label(
+                header_frame,
+                text=header_subtitle,
+                style="StatusDetail.TLabel",
+                wraplength=720,
+                justify=tk.LEFT,
+            ).pack(anchor=tk.W, pady=(6, 0))
+
+        metrics, coverage_blurb = self._derive_completion_metrics(parsed)
+        if metrics:
+            metrics_frame = ttk.Frame(container, style="Background.TFrame")
+            metrics_frame.pack(fill=tk.X, pady=(18, 12))
+            for index, metric in enumerate(metrics):
+                card = ttk.Frame(metrics_frame, style="Glass.TFrame", padding=(18, 14))
+                card.grid(row=0, column=index, padx=(0 if index == 0 else 14, 0), sticky="nsew")
+                ttk.Label(
+                    card,
+                    text=metric["value"],
+                    style="MetricValue.TLabel",
+                    wraplength=240,
+                    justify=tk.LEFT,
+                ).pack(anchor=tk.W)
+                ttk.Label(
+                    card,
+                    text=metric["label"],
+                    style="MetricCaption.TLabel",
+                    wraplength=240,
+                    justify=tk.LEFT,
+                ).pack(anchor=tk.W, pady=(6, 0))
+                detail = metric.get("detail")
+                if detail:
+                    ttk.Label(
+                        card,
+                        text=detail,
+                        style="StatusDetail.TLabel",
+                        wraplength=260,
+                        justify=tk.LEFT,
+                    ).pack(anchor=tk.W, pady=(6, 0))
+                metrics_frame.columnconfigure(index, weight=1)
+
+        methodology_line, detail_sections = self._extract_completion_sections(parsed)
+        if methodology_line:
+            ttk.Label(
+                container,
+                text=methodology_line,
+                style="StatusDetail.TLabel",
+                wraplength=720,
+                justify=tk.LEFT,
+            ).pack(fill=tk.X, pady=(0, 14))
 
         headers = parsed["table_headers"]
         rows = parsed["table_rows"]
         if headers and rows:
-            ttk.Label(body, text="Top Cost Drivers", style="Subheading.TLabel").pack(
-                anchor=tk.W, pady=(10, 6)
+            table_card = ttk.Frame(container, style="Card.TFrame", padding=(22, 18))
+            table_card.pack(fill=tk.BOTH, expand=False, pady=(0, 16))
+            ttk.Label(table_card, text="Top Cost Drivers", style="SectionHeading.TLabel").pack(
+                anchor=tk.W, pady=(0, 10)
             )
-            table_outer = tk.Frame(body, bg=self._palette["border"], bd=1, relief=tk.SOLID)
+
+            table_outer = tk.Frame(table_card, bg=self._palette["border"], bd=1, relief=tk.SOLID)
             table_outer.pack(fill=tk.X, expand=False)
             table_frame = tk.Frame(table_outer, bg=self._palette["surface"])
             table_frame.pack(fill=tk.BOTH, expand=True)
+
             for column, header in enumerate(headers):
-                label = tk.Label(
+                header_label = tk.Label(
                     table_frame,
                     text=header,
                     font=("Segoe UI Semibold", 11),
@@ -1252,11 +1368,11 @@ class EstimatorApp:
                     fg=self._palette["text"],
                     bd=1,
                     relief=tk.SOLID,
-                    padx=10,
+                    padx=12,
                     pady=8,
                     anchor="w",
                 )
-                label.grid(row=0, column=column, sticky="nsew")
+                header_label.grid(row=0, column=column, sticky="nsew")
                 table_frame.grid_columnconfigure(column, weight=1)
 
             numeric_columns = {
@@ -1267,7 +1383,7 @@ class EstimatorApp:
             for row_index, row_values in enumerate(rows, start=1):
                 for column, value in enumerate(row_values):
                     anchor = "e" if column in numeric_columns else "w"
-                    label = tk.Label(
+                    tk.Label(
                         table_frame,
                         text=value,
                         font=("Segoe UI", 11),
@@ -1275,51 +1391,99 @@ class EstimatorApp:
                         fg=self._palette["text"],
                         bd=1,
                         relief=tk.SOLID,
-                        padx=10,
+                        padx=12,
                         pady=6,
                         anchor=anchor,
                         justify=tk.RIGHT if anchor == "e" else tk.LEFT,
-                    )
-                    label.grid(row=row_index, column=column, sticky="nsew")
+                        wraplength=260 if column == 1 else 0,
+                    ).grid(row=row_index, column=column, sticky="nsew")
 
-        footer = parsed["footer"]
-        if footer:
-            ttk.Label(body, text="", style="TLabel").pack()
-            for line in footer:
+            if coverage_blurb:
                 ttk.Label(
-                    body,
-                    text=line,
-                    style="TLabel",
-                    wraplength=620,
+                    table_card,
+                    text=coverage_blurb,
+                    style="StatusDetail.TLabel",
+                    wraplength=720,
                     justify=tk.LEFT,
-                    foreground=self._palette["muted"],
-                ).pack(anchor=tk.W, fill=tk.X, pady=(0, 4))
+                ).pack(anchor=tk.W, pady=(12, 0))
+
+        if detail_sections:
+            details_card = ttk.Frame(container, style="Card.TFrame", padding=(22, 16))
+            details_card.pack(fill=tk.BOTH, expand=False, pady=(0, 16))
+            for index, section in enumerate(detail_sections):
+                section_container = ttk.Frame(details_card, style="Card.TFrame")
+                section_container.pack(fill=tk.X, expand=False, pady=(6 if index else 0, 10))
+                ttk.Label(
+                    section_container,
+                    text=section["title"],
+                    style="SectionHeading.TLabel",
+                ).pack(anchor=tk.W, pady=(0, 6))
+                for item in section["items"]:
+                    row_frame = ttk.Frame(section_container, style="Card.TFrame")
+                    row_frame.pack(fill=tk.X, expand=False, pady=(0, 6))
+                    label_text = item.get("label", "")
+                    value_text = item.get("value", "")
+                    details_text = "\n".join(item.get("details", []))
+                    value_column = 1 if label_text else 0
+                    row_frame.columnconfigure(value_column, weight=1)
+
+                    if label_text:
+                        ttk.Label(
+                            row_frame,
+                            text=label_text,
+                            style="StatusTitle.TLabel",
+                        ).grid(row=0, column=0, sticky=tk.W)
+
+                    ttk.Label(
+                        row_frame,
+                        text=value_text,
+                        style="TLabel",
+                        wraplength=520,
+                        justify=tk.LEFT,
+                    ).grid(
+                        row=0,
+                        column=value_column,
+                        sticky=tk.W,
+                        padx=(12 if label_text else 0, 0),
+                    )
+
+                    if details_text:
+                        ttk.Label(
+                            row_frame,
+                            text=details_text,
+                            style="StatusDetail.TLabel",
+                            wraplength=520,
+                            justify=tk.LEFT,
+                        ).grid(
+                            row=1,
+                            column=value_column,
+                            sticky=tk.W,
+                            padx=(12 if label_text else 0, 0),
+                            pady=(2, 0),
+                        )
 
         other = parsed["other"]
         if other:
-            ttk.Label(body, text="Additional Notes", style="Subheading.TLabel").pack(
-                anchor=tk.W, pady=(12, 4)
-            )
-            note_box = tk.Text(
-                body,
-                height=min(6, len(other)),
-                wrap=tk.WORD,
-                bg=self._palette["code_bg"],
-                fg=self._palette["text"],
-                insertbackground=self._palette["text"],
-                relief=tk.FLAT,
-                bd=1,
-                highlightthickness=1,
-                highlightbackground=self._palette["border"],
-                highlightcolor=self._palette["accent"],
-                font=("Consolas", 11),
-            )
-            note_box.pack(fill=tk.BOTH, expand=False, pady=(0, 8))
-            note_box.insert("1.0", "\n".join(other))
-            note_box.configure(state=tk.DISABLED)
+            notes_card = ttk.Frame(container, style="Glass.TFrame", padding=(18, 14))
+            notes_card.pack(fill=tk.BOTH, expand=False, pady=(0, 16))
+            ttk.Label(
+                notes_card,
+                text="Additional Notes",
+                style="SectionHeading.TLabel",
+            ).pack(anchor=tk.W, pady=(0, 6))
+            for line in other:
+                ttk.Label(
+                    notes_card,
+                    text=line,
+                    style="StatusDetail.TLabel",
+                    wraplength=720,
+                    justify=tk.LEFT,
+                ).pack(anchor=tk.W, pady=(0, 4))
 
-        ttk.Separator(container, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=(16, 12))
-        button_row = ttk.Frame(container, style="Background.TFrame")
+        footer = ttk.Frame(dialog, style="Background.TFrame", padding=(28, 0, 28, 24))
+        footer.pack(fill=tk.X)
+        ttk.Separator(footer, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=(0, 12))
+        button_row = ttk.Frame(footer, style="Background.TFrame")
         button_row.pack(fill=tk.X)
         button_row.columnconfigure(0, weight=1)
         ttk.Button(
@@ -1327,7 +1491,7 @@ class EstimatorApp:
             text="Close",
             style="Accent.TButton",
             command=dialog.destroy,
-        ).grid(row=0, column=0, sticky=tk.E, padx=(0, 4))
+        ).grid(row=0, column=0, sticky=tk.E)
 
         self._center_dialog(dialog)
 
@@ -1338,6 +1502,7 @@ class EstimatorApp:
         intro_lines: List[str] = []
         table_lines: List[str] = []
         footer_lines: List[str] = []
+        footer_lines_raw: List[str] = []
         other_lines: List[str] = []
         section = "intro"
 
@@ -1353,12 +1518,14 @@ class EstimatorApp:
                 if lowered.startswith("pricing"):
                     section = "footer"
                     footer_lines.append(stripped)
+                    footer_lines_raw.append(line)
                 else:
                     table_lines.append(line)
                 continue
 
             if lowered.startswith("pricing"):
                 footer_lines.append(stripped)
+                footer_lines_raw.append(line)
                 section = "footer"
                 continue
 
@@ -1368,6 +1535,7 @@ class EstimatorApp:
 
             if section == "footer":
                 footer_lines.append(stripped)
+                footer_lines_raw.append(line)
                 continue
 
             if section == "intro":
@@ -1384,8 +1552,172 @@ class EstimatorApp:
             "table_headers": headers,
             "table_rows": rows,
             "footer": footer_lines,
+            "footer_full": footer_lines_raw,
             "other": other_lines,
         }
+
+    def _derive_completion_metrics(
+        self, parsed: Dict[str, Any]
+    ) -> Tuple[List[Dict[str, str]], Optional[str]]:
+        summary_lines = parsed.get("summary") or []
+        subtotal_value: Optional[float] = None
+        subtotal_display: Optional[str] = None
+
+        subtotal_line = next(
+            (line for line in summary_lines if "project subtotal" in line.lower()), None
+        )
+        if subtotal_line:
+            match = re.search(r"\$[0-9,]+(?:\.[0-9]+)?", subtotal_line)
+            if match:
+                subtotal_display = match.group().strip()
+                subtotal_value = self._parse_currency_amount(subtotal_display)
+
+        if subtotal_value is None:
+            for line in summary_lines:
+                lowered = line.lower()
+                if "contract cost" in lowered or "expected" in lowered:
+                    continue
+                match = re.search(r"\$[0-9,]+(?:\.[0-9]+)?", line)
+                if match:
+                    subtotal_display = match.group().strip()
+                    subtotal_value = self._parse_currency_amount(subtotal_display)
+                    if subtotal_value is not None:
+                        break
+
+        if subtotal_value is None:
+            additional_lines: List[str] = []
+            additional_lines.extend(parsed.get("footer_full") or [])
+            additional_lines.extend(parsed.get("footer") or [])
+            additional_lines.extend(parsed.get("other") or [])
+            for line in additional_lines:
+                lowered = line.lower()
+                if "project subtotal" not in lowered:
+                    continue
+                match = re.search(r"\$[0-9,]+(?:\.[0-9]+)?", line)
+                if match:
+                    subtotal_display = match.group().strip()
+                    subtotal_value = self._parse_currency_amount(subtotal_display)
+                    if subtotal_value is not None:
+                        break
+
+        rows: List[List[str]] = parsed.get("table_rows") or []
+        top_total_value: Optional[float] = None
+        if rows:
+            totals: List[float] = []
+            for row_values in rows:
+                if not row_values:
+                    continue
+                total_raw = row_values[-1]
+                parsed_total = self._parse_currency_amount(total_raw)
+                if parsed_total is not None:
+                    totals.append(parsed_total)
+            if totals:
+                top_total_value = sum(totals)
+
+        metrics: List[Dict[str, str]] = []
+        if subtotal_value is not None:
+            metrics.append({
+                "label": "Project Subtotal",
+                "value": subtotal_display or self._format_currency(f"{subtotal_value:.2f}"),
+                "detail": "Sum of estimated pay items",
+            })
+
+        coverage_blurb: Optional[str] = None
+        percent_text: Optional[str] = None
+        if (
+            top_total_value is not None
+            and subtotal_value is not None
+            and subtotal_value > 0
+        ):
+            percentage = max(min(top_total_value / subtotal_value, 1.0), 0.0)
+            percent_text = f"{percentage:.0%}" if percentage >= 0.1 else f"{percentage:.1%}"
+            coverage_blurb = (
+                f"Top {len(rows)} cost drivers account for {percent_text} of the subtotal."
+            )
+
+        if top_total_value is not None:
+            top_detail_parts: List[str] = []
+            if rows:
+                top_detail_parts.append(f"{len(rows)} items")
+            if percent_text:
+                top_detail_parts.append(f"{percent_text} of subtotal")
+            top_metric = {
+                "label": "Top Drivers",
+                "value": self._format_currency(f"{top_total_value:.2f}"),
+            }
+            detail_text = " | ".join(top_detail_parts)
+            if detail_text:
+                top_metric["detail"] = detail_text
+            metrics.append(top_metric)
+
+        duration_value = ""
+        if self._last_run_duration is not None:
+            duration_value = self._format_duration(self._last_run_duration)
+
+        if duration_value or self._last_run_completed_at is not None:
+            duration_metric = {
+                "label": "Run Duration",
+                "value": duration_value or "Not captured",
+            }
+            if self._last_run_completed_at is not None:
+                duration_metric["detail"] = f"Completed {self._format_relative_time(self._last_run_completed_at)}"
+            metrics.append(duration_metric)
+
+        return metrics, coverage_blurb
+
+    def _extract_completion_sections(
+        self, parsed: Dict[str, Any]
+    ) -> Tuple[Optional[str], List[Dict[str, Any]]]:
+        raw_lines: List[str] = parsed.get("footer_full") or parsed.get("footer") or []
+        if not raw_lines:
+            return None, []
+
+        lines = [line for line in raw_lines if line.strip()]
+        methodology_line: Optional[str] = None
+        if lines and lines[0].strip().lower().startswith("pricing"):
+            methodology_line = lines.pop(0).strip()
+
+        sections: List[Dict[str, Any]] = []
+        current_section: Optional[Dict[str, Any]] = None
+        last_item: Optional[Dict[str, Any]] = None
+
+        for raw_line in lines:
+            stripped = raw_line.strip()
+            if not stripped:
+                continue
+            indent = len(raw_line) - len(raw_line.lstrip(" "))
+            if stripped.endswith(":") and indent == 0:
+                current_section = {"title": stripped[:-1].strip(), "items": []}
+                sections.append(current_section)
+                last_item = None
+                continue
+            if current_section is None:
+                current_section = {"title": "Details", "items": []}
+                sections.append(current_section)
+            is_bullet = stripped.startswith("- ")
+            content = stripped[2:].strip() if is_bullet else stripped
+            if is_bullet:
+                label, _, value = content.partition(":")
+                if value:
+                    item = {"label": label.strip(), "value": value.strip(), "details": []}
+                else:
+                    item = {"label": "", "value": content, "details": []}
+                current_section["items"].append(item)
+                last_item = item
+                continue
+            if indent > 0 and last_item is not None:
+                last_item.setdefault("details", []).append(content)
+                continue
+            label, _, value = content.partition(":")
+            if value:
+                item = {"label": label.strip(), "value": value.strip(), "details": []}
+            else:
+                item = {"label": "", "value": content, "details": []}
+            current_section["items"].append(item)
+            last_item = item
+
+        filtered_sections = [section for section in sections if section["items"]]
+        return methodology_line, filtered_sections
 
     def _parse_table_lines(self, lines: List[str]) -> tuple[List[str], List[List[str]]]:
         if not lines:
@@ -1484,6 +1816,17 @@ class EstimatorApp:
         return f"${numeric:,.2f}"
 
     @staticmethod
+    def _parse_currency_amount(text: str) -> Optional[float]:
+        sanitized = text.replace("$", "").replace(",", "").strip()
+        sanitized = sanitized.rstrip(".")
+        if not sanitized:
+            return None
+        try:
+            return float(sanitized)
+        except ValueError:
+            return None
+
+    @staticmethod
     def _format_duration(duration: Optional[timedelta]) -> str:
         if duration is None:
             return ""
@@ -1543,13 +1886,23 @@ class EstimatorApp:
 
     def _center_dialog(self, window: tk.Toplevel) -> None:
         window.update_idletasks()
-        root_x = self.root.winfo_rootx()
-        root_y = self.root.winfo_rooty()
+        screen_width = window.winfo_screenwidth()
+        screen_height = window.winfo_screenheight()
         width = window.winfo_width()
         height = window.winfo_height()
-        x = root_x + (self.root.winfo_width() - width) // 2
-        y = root_y + (self.root.winfo_height() - height) // 2
-        window.geometry(f"+{max(x, 0)}+{max(y, 0)}")
+
+        max_width = max(320, min(width, int(screen_width * 0.9)))
+        max_height = max(280, min(height, int(screen_height * 0.85)))
+        if width != max_width or height != max_height:
+            window.geometry(f"{max_width}x{max_height}")
+            window.update_idletasks()
+            width = max_width
+            height = max_height
+
+        x = max((screen_width - width) // 2, 0)
+        y = max((screen_height - height) // 2, 0)
+
+        window.geometry(f"{width}x{height}+{x}+{y}")
 
     # --------------------------------------------------------------- Helpers --
     def _set_status(
