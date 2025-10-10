@@ -28,7 +28,7 @@ from .estimate_writer import write_outputs
 from .geometry import parse_geometry
 from .ai_reporter import generate_alternate_seek_report
 from .reporting import make_summary_text
-from . import reference_data, design_memos
+from . import reference_data, design_memos, visuals
 from .project_meta import DISTRICT_CHOICES, DISTRICT_REGION_MAP, normalize_district
 if TYPE_CHECKING:
     from .config import CLIConfig
@@ -40,6 +40,7 @@ DEFAULT_QTY_GLOB = str(DEFAULT_DATA_DIR / "*_project_quantities.xlsx")
 DEFAULT_PROJECT_ATTRS = DEFAULT_DATA_DIR / "project_attributes.xlsx"
 DEFAULT_ALIASES = DEFAULT_DATA_DIR / "code_aliases.csv"
 DEFAULT_OUTPUT_DIR = BASE_DIR / "outputs"
+DEFAULT_VISUALS_DIR = (BASE_DIR / "outputs" / "visuals").resolve()
 DEFAULT_REGION_MAP = BASE_DIR / "references" / "region_map.xlsx"
 
 
@@ -116,6 +117,21 @@ CATEGORY_LABELS: Sequence[str] = (
     "STATE_24M",
     "STATE_36M",
 )
+
+
+def _env_flag(value: str) -> bool:
+    if not value:
+        return False
+    return value.strip().lower() in {"1", "true", "yes", "on", "t", "y"}
+
+
+_visuals_enabled_env = _env_flag(os.getenv("EMIT_VISUALS", ""))
+_visuals_dir_override = os.getenv("VISUALS_DIR", "").strip()
+_visuals_format = os.getenv("VISUALS_FORMAT", "png").strip().lower() or "png"
+try:
+    _visuals_top_n = int(os.getenv("VISUALS_TOP_N", "20"))
+except ValueError:
+    _visuals_top_n = 20
 
 
 def _round_unit_price(value: float) -> float:
@@ -1042,6 +1058,44 @@ def run(config: Optional["CLIConfig"] = None) -> int:
     write_outputs(df, str(OUT_XLSX), str(OUT_AUDIT), payitem_details, str(OUT_PAYITEM_AUDIT))
     log_detail(f"outputs_written => {OUT_XLSX}, {OUT_AUDIT}, {OUT_PAYITEM_AUDIT}")
 
+    visuals_enabled = _visuals_enabled_env
+    visuals_dir_override = _visuals_dir_override
+    visuals_format = _visuals_format if _visuals_format in {"png", "pdf", "both"} else "png"
+    visuals_top_n = max(1, int(_visuals_top_n)) if _visuals_top_n > 0 else 20
+
+    if visuals_enabled:
+        if visuals_dir_override:
+            visuals_dir = Path(visuals_dir_override).expanduser().resolve()
+        else:
+            visuals_dir = DEFAULT_VISUALS_DIR
+        try:
+            bundle_pdf = visuals_format in {"pdf", "both"}
+            vis_result = visuals.emit_visualizations(
+                df,
+                payitem_details,
+                visuals_dir,
+                top_n_items=visuals_top_n,
+                format=visuals_format,
+                bundle_pdf=bundle_pdf,
+            )
+        except Exception as exc:  # pragma: no cover - defensive
+            print(f"visuals: failed to emit ({exc})")
+        else:
+            chart_count = len(vis_result.get("charts", []))
+            pdf_path = vis_result.get("pdf")
+            skipped = vis_result.get("skipped", []) or []
+            if chart_count or pdf_path:
+                display_pdf = pdf_path if pdf_path else "None"
+                print(f"visuals: emitted {chart_count} charts; combined_pdf={display_pdf}")
+                for reason in skipped:
+                    log_detail(f"visuals note => {reason}")
+            else:
+                message = "; ".join(skipped) if skipped else "no qualifying data"
+                if any("matplotlib not available" in reason for reason in skipped):
+                    print("visuals: skipped (matplotlib not available)")
+                else:
+                    print(f"visuals: skipped ({message})")
+
     # If running under tests, mirror mapping debug file to requested path
     if config is not None:
         try:
@@ -1106,12 +1160,24 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser.add_argument("--output-dir", help="Directory for generated outputs")
     parser.add_argument("--disable-ai", action="store_true", help="Disable OpenAI usage for alternate-seek weighting")
     parser.add_argument("--min-sample-target", type=int, help="Override minimum data points target per item")
+    parser.add_argument("--emit-visuals", action="store_true", help="Generate optional BidTabs summary charts")
+    parser.add_argument(
+        "--visuals-dir",
+        help=f"Directory for visualization artifacts (default: {DEFAULT_VISUALS_DIR})",
+    )
+    parser.add_argument(
+        "--visuals-format",
+        choices=("png", "pdf", "both"),
+        help="Visualization output format (png, pdf, or both)",
+    )
+    parser.add_argument("--visuals-top-n", type=int, help="Maximum items to include in per-item charts")
     return parser.parse_args(argv)
 
 
 def apply_cli_overrides(args: argparse.Namespace) -> None:
     global BIDFOLDER, QTY_PATH, PROJECT_ATTRS_XLSX, LEGACY_REGION_MAP_XLSX, ALIASES_CSV
     global OUTPUT_DIR, OUT_XLSX, OUT_AUDIT, OUT_PAYITEM_AUDIT, MIN_SAMPLE_TARGET
+    global _visuals_enabled_env, _visuals_dir_override, _visuals_format, _visuals_top_n
 
     if args.bidtabs_dir:
         BIDFOLDER = Path(args.bidtabs_dir).expanduser().resolve()
@@ -1133,6 +1199,17 @@ def apply_cli_overrides(args: argparse.Namespace) -> None:
         os.environ["DISABLE_OPENAI"] = "1"
     if args.min_sample_target:
         MIN_SAMPLE_TARGET = max(1, int(args.min_sample_target))
+    if getattr(args, "emit_visuals", False):
+        _visuals_enabled_env = True
+    if getattr(args, "visuals_dir", None):
+        _visuals_dir_override = str(Path(args.visuals_dir).expanduser().resolve())
+    if getattr(args, "visuals_format", None):
+        _visuals_format = args.visuals_format
+    if getattr(args, "visuals_top_n", None):
+        try:
+            _visuals_top_n = max(1, int(args.visuals_top_n))
+        except (TypeError, ValueError):
+            _visuals_top_n = 20
 
 
 def main(argv: Optional[Sequence[str]] = None) -> None:
