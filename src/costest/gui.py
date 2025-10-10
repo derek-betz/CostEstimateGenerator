@@ -16,6 +16,7 @@ import queue
 import re
 import threading
 import traceback
+import textwrap
 from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -195,6 +196,7 @@ class EstimatorApp:
         self._log_entry_count = 0
         self._last_log_message: Optional[str] = None
         self._tips_window: Optional[tk.Toplevel] = None
+        self._explanation_window: Optional[tk.Toplevel] = None
         self._drop_label_default = "Drag and drop the project quantities workbook here"
         self._drop_hint_default = "Drag from Explorer or use the browse button below."
         self._district_display_strings = []
@@ -251,6 +253,7 @@ class EstimatorApp:
             "muted": "#c4d3e0",
             "muted_alt": "#98a9bb",
             "code_bg": "#0b1119",
+            "matrix_green": "#00ff41",
             "hero_start": "#1f3a55",
             "hero_end": "#0f2233",
             "hero_gloss": "#2f5170",
@@ -753,6 +756,7 @@ class EstimatorApp:
         button_row.grid(row=3, column=0, columnspan=3, sticky=tk.EW, pady=(16, 0))
         button_row.columnconfigure(0, weight=1)
         button_row.columnconfigure(1, weight=1)
+        button_row.columnconfigure(2, weight=1)
 
         self.run_button = ttk.Button(
             button_row,
@@ -769,7 +773,15 @@ class EstimatorApp:
             command=self._clear_last_results,
             style="Secondary.TButton",
         )
-        clear.grid(row=0, column=1, sticky=tk.EW, padx=(10, 0))
+        clear.grid(row=0, column=1, sticky=tk.EW, padx=10)
+
+        explain = ttk.Button(
+            button_row,
+            text="How the Estimator Works",
+            command=self._show_estimator_explanations,
+            style="Secondary.TButton",
+        )
+        explain.grid(row=0, column=2, sticky=tk.EW, padx=(10, 0))
 
         ttk.Label(input_frame, text="Pipeline Progress", style="Subheading.TLabel").grid(
             row=4, column=0, columnspan=3, sticky=tk.W, pady=(18, 6)
@@ -804,8 +816,8 @@ class EstimatorApp:
             state=tk.DISABLED,
             wrap=tk.WORD,
             bg=self._palette["code_bg"],
-            fg=self._palette["text"],
-            insertbackground=self._palette["text"],
+            fg=self._palette["matrix_green"],
+            insertbackground=self._palette["matrix_green"],
             relief=tk.FLAT,
             bd=0,
             highlightthickness=0,
@@ -885,11 +897,11 @@ class EstimatorApp:
             lmargin2=12,
             spacing1=2,
             spacing3=4,
-            foreground=self._palette["text"],
+            foreground=self._palette["matrix_green"],
         )
-        self.log_widget.tag_configure("accent", foreground=self._palette["accent_active"])
-        self.log_widget.tag_configure("success", foreground=self._palette["success"])
-        self.log_widget.tag_configure("error", foreground=self._palette["error"])
+        self.log_widget.tag_configure("accent", foreground=self._palette["matrix_green"])
+        self.log_widget.tag_configure("success", foreground=self._palette["matrix_green"])
+        self.log_widget.tag_configure("error", foreground=self._palette["matrix_green"])
 
         self._update_drop_target(None)
         self._set_status("Ready to Start", self._initial_status, "success")
@@ -992,6 +1004,160 @@ class EstimatorApp:
         tips_window.geometry(f"{required_width}x{required_height}")
         tips_window.grab_set()
         tips_window.focus_force()
+
+    def _show_estimator_explanations(self) -> None:
+        if self._explanation_window and self._explanation_window.winfo_exists():
+            self._explanation_window.deiconify()
+            self._explanation_window.lift()
+            self._explanation_window.focus_force()
+            return
+
+        window = tk.Toplevel(self.root)
+        window.title("How the Estimator Works")
+        window.configure(bg=self._palette["card"])
+        window.transient(self.root)
+
+        def _on_close() -> None:
+            self._explanation_window = None
+            window.destroy()
+
+        window.protocol("WM_DELETE_WINDOW", _on_close)
+
+        container = ttk.Frame(window, style="CardBody.TFrame", padding=(24, 24, 24, 24))
+        container.pack(fill=tk.BOTH, expand=True)
+        container.columnconfigure(0, weight=1)
+        container.rowconfigure(2, weight=1)
+
+        ttk.Label(
+            container,
+            text="Understanding the Cost Estimator",
+            style="Heading.TLabel",
+        ).grid(row=0, column=0, sticky="w")
+
+        button_bar = ttk.Frame(container, style="Glass.TFrame", padding=(12, 12))
+        button_bar.grid(row=1, column=0, sticky="ew", pady=(20, 16))
+        for column in range(3):
+            button_bar.columnconfigure(column, weight=1)
+
+        explanation_sections: List[tuple[str, str, str]] = [
+            (
+                "lehman",
+                "Plain Language",
+                textwrap.dedent(
+                    """
+                    The estimator helps you turn a quantity spreadsheet into a bid-ready cost summary.
+
+                    1. Start by dropping the *_project_quantities workbook into the large drop area or use the browse button. The app reads each pay item and quantity so you do not have to re-type them.
+                    2. Choose the district and enter the Estimated Total Contract Cost range. That lets the estimator look up similar historical jobs.
+                    3. Click Run Estimate. The progress bar and run log show what the tool is doing. When it finishes you will get a polished Excel report with pricing guidance.
+
+                    In short, you load the workbook, confirm a couple of settings, and the estimator builds the pricing picture for you.
+                    """
+                ).strip(),
+            ),
+            (
+                "intermediate",
+                "Estimator Playbook",
+                textwrap.dedent(
+                    """
+                    The workflow blends automated quantity parsing with curated pricing intelligence.
+
+                    • Workbook ingestion maps pay items, units, and quantities directly from the *_project_quantities sheet.
+                    • District selection routes the request to the right regional pricing curves while the Estimated Total Contract Cost filter narrows the BidTabs history to comparable jobs.
+                    • During the run the pipeline enriches the items with alternate descriptions, generates AI commentary, and computes pricing bands using historical averages and machine learning adjustments.
+                    • The Excel export packages everything with highlights, callouts, and an executive-ready summary so the team can review and share immediately.
+
+                    Use this mode when you need to explain the estimator to project managers or estimators who know the basics of cost analysis.
+                    """
+                ).strip(),
+            ),
+            (
+                "technical",
+                "Deep Technical Dive",
+                textwrap.dedent(
+                    """
+                    Under the hood the GUI orchestrates the same pipeline exposed by costest.cli.run.
+
+                    • File intake triggers the IO layer to normalize workbook structure, convert units, and validate required sheets.
+                    • The pipeline stages fetch BidTabs pricing samples, apply district-specific weighting, and run alternate seek heuristics to backfill sparse items.
+                    • AI summaries are generated through ai_reporter and ai_process_report modules, while stats.py calculates contract-level metrics such as weighted averages and variance envelopes.
+                    • estimate_writer assembles the Excel deliverable with styling, pivot summaries, and narrative commentary.
+                    • Run telemetry recorded in the Workflow Snapshot (status, inputs, and activity) mirrors the log entries emitted from each stage.
+
+                    This view is ideal for technical stakeholders who want to understand how data flows through the estimator stack.
+                    """
+                ).strip(),
+            ),
+        ]
+
+        text_container = ttk.Frame(container, style="Glass.TFrame")
+        text_container.grid(row=2, column=0, sticky="nsew")
+        text_container.columnconfigure(0, weight=1)
+        text_container.rowconfigure(0, weight=1)
+
+        body_text = tk.Text(
+            text_container,
+            wrap=tk.WORD,
+            bg=self._palette["code_bg"],
+            fg=self._palette["text"],
+            insertbackground=self._palette["text"],
+            relief=tk.FLAT,
+            highlightthickness=0,
+            padx=18,
+            pady=16,
+            font=("Segoe UI", 11),
+            state=tk.DISABLED,
+        )
+        body_text.grid(row=0, column=0, sticky="nsew")
+
+        scrollbar = ttk.Scrollbar(
+            text_container,
+            orient=tk.VERTICAL,
+            command=body_text.yview,
+            style="Modern.Vertical.TScrollbar",
+        )
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        body_text.configure(yscrollcommand=scrollbar.set)
+
+        button_map: Dict[str, ttk.Button] = {}
+
+        def _display_section(key: str) -> None:
+            for section_key, button in button_map.items():
+                button.configure(style="Primary.TButton" if section_key == key else "Secondary.TButton")
+
+            for section_key, _title, content in explanation_sections:
+                if section_key == key:
+                    body_text.configure(state=tk.NORMAL)
+                    body_text.delete("1.0", tk.END)
+                    body_text.insert(tk.END, content)
+                    body_text.configure(state=tk.DISABLED)
+                    body_text.yview_moveto(0.0)
+                    break
+
+        section_count = len(explanation_sections)
+        for column, (key, label, _content) in enumerate(explanation_sections):
+            left_pad = 0 if column == 0 else 8
+            right_pad = 0 if column == section_count - 1 else 8
+            button = ttk.Button(
+                button_bar,
+                text=label,
+                command=lambda section=key: _display_section(section),
+                style="Secondary.TButton",
+            )
+            button.grid(row=0, column=column, sticky="ew", padx=(left_pad, right_pad))
+            button_map[key] = button
+
+        _display_section(explanation_sections[0][0])
+
+        window.update_idletasks()
+        required_width = max(window.winfo_reqwidth() + 12, 640)
+        required_height = max(window.winfo_reqheight() + 12, 520)
+        window.minsize(required_width, required_height)
+        window.geometry(f"{required_width}x{required_height}")
+        window.grab_set()
+        window.focus_force()
+
+        self._explanation_window = window
 
     def _ensure_initial_window_size(self) -> None:
         """Guarantee the window opens large enough to show the entire layout."""
