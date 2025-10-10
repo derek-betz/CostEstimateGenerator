@@ -1,4 +1,5 @@
 import os
+import sys
 import math
 import argparse
 from pathlib import Path
@@ -538,6 +539,17 @@ def run(config: Optional["CLIConfig"] = None) -> int:
     prev_out_xlsx = OUT_XLSX
     prev_out_audit = OUT_AUDIT
     prev_out_pay_audit = OUT_PAYITEM_AUDIT
+
+    stage_counter = 0
+
+    def log_stage(message: str) -> None:
+        nonlocal stage_counter
+        stage_counter += 1
+        print(f"[pipeline:{stage_counter:02d}] {message}")
+
+    def log_detail(message: str) -> None:
+        print(f"           {message}")
+
     if config is not None:
         # Defer import to avoid circular at module import
         try:
@@ -550,6 +562,14 @@ def run(config: Optional["CLIConfig"] = None) -> int:
         globals()["OUT_AUDIT"] = config.estimate_audit_csv
         globals()["OUT_XLSX"] = config.estimate_xlsx
         globals()["OUT_PAYITEM_AUDIT"] = config.payitems_workbook
+
+    log_stage("Bootstrapping estimator runtime context")
+    log_detail(f"output_dir={OUTPUT_DIR}")
+    log_detail(f"artifact_targets={OUT_XLSX.name},{OUT_AUDIT.name},{OUT_PAYITEM_AUDIT.name}")
+    if config is not None:
+        log_detail("config_override=CLIConfig(test harness)")
+    log_detail(f"python_version={sys.version.split()[0]} | cwd={Path.cwd()}")
+
     _load_api_key_from_file()
     (
         env_expected_cost,
@@ -562,29 +582,54 @@ def run(config: Optional["CLIConfig"] = None) -> int:
     project_district_name = env_district_name
     project_attrs_display = str(PROJECT_ATTRS_XLSX)
 
+    log_stage("Inspecting execution environment for GUI overrides")
+    if env_used:
+        env_cost_display = f"${env_expected_cost:,.2f}" if env_expected_cost is not None else "(unset)"
+        region_display = env_project_region if env_project_region is not None else "(unspecified)"
+        district_display = env_district_name or "(unspecified)"
+        log_detail(
+            f"gui_runtime_inputs => expected_cost={env_cost_display} | project_region={region_display} | district={district_display}"
+        )
+        if env_region_map is not None and not getattr(env_region_map, "empty", False):
+            log_detail(f"region_map_override_rows={len(env_region_map)}")
     if env_used:
         expected_contract_cost = env_expected_cost
         project_region = env_project_region
         region_map = env_region_map if env_region_map is not None else pd.DataFrame(columns=["DISTRICT", "REGION"])
         project_attrs_display = "(GUI inputs)"
     else:
+        log_detail("no GUI overrides detected; hydrating project attribute workbook inputs")
         expected_contract_cost, project_region, region_map = load_project_attributes(
             PROJECT_ATTRS_XLSX,
             legacy_expected_path=LEGACY_EXPECTED_COST_XLSX or None,
             legacy_region_map_path=LEGACY_REGION_MAP_XLSX or None,
         )
         project_district_name = None
-    reference_data.load_payitem_catalog()
-    reference_data.load_unit_price_summary()
-    reference_data.load_spec_sections()
+        map_rows = len(region_map) if region_map is not None and not getattr(region_map, "empty", False) else 0
+        expected_display = f"${expected_contract_cost:,.2f}" if expected_contract_cost else "(unset)"
+        region_display = project_region if project_region is not None else "(unspecified)"
+        log_detail(
+            f"project_attributes => expected_cost={expected_display} | project_region={region_display} | region_map_rows={map_rows}"
+        )
+    log_stage("Priming reference data caches")
+    payitem_catalog_size = len(reference_data.load_payitem_catalog())
+    unit_price_summary_size = len(reference_data.load_unit_price_summary())
+    spec_section_size = len(reference_data.load_spec_sections())
+    log_detail(
+        f"reference_cache_sizes => payitems={payitem_catalog_size:,} | unit_price_summary={unit_price_summary_size:,} | spec_sections={spec_section_size:,}"
+    )
 
+    log_stage(f"Ingesting BidTabs corpus from {BIDFOLDER}")
     bid = load_bidtabs_files(BIDFOLDER)
+    log_detail(f"raw_bidtabs_rows={len(bid):,} | columns={len(bid.columns)}")
     bid = ensure_region_column(bid, region_map)
+    log_detail("region dimensions normalized onto BidTabs frame")
 
-    geom_info = bid['DESCRIPTION'].apply(parse_geometry)
-    bid['GEOM_SHAPE'] = geom_info.map(lambda g: getattr(g, 'shape', None))
-    bid['GEOM_AREA_SQFT'] = geom_info.map(lambda g: getattr(g, 'area_sqft', float('nan')))
-    bid['GEOM_DIMENSIONS'] = geom_info.map(lambda g: getattr(g, 'dimensions', None))
+    log_stage("Augmenting BidTabs dataset with geometry and numeric coercions")
+    geom_info = bid["DESCRIPTION"].apply(parse_geometry)
+    bid["GEOM_SHAPE"] = geom_info.map(lambda g: getattr(g, "shape", None))
+    bid["GEOM_AREA_SQFT"] = geom_info.map(lambda g: getattr(g, "area_sqft", float("nan")))
+    bid["GEOM_DIMENSIONS"] = geom_info.map(lambda g: getattr(g, "dimensions", None))
 
     if "LETTING_DATE" in bid.columns:
         bid["LETTING_DATE"] = pd.to_datetime(bid["LETTING_DATE"], errors="coerce")
@@ -596,14 +641,21 @@ def run(config: Optional["CLIConfig"] = None) -> int:
         bid["JOB_SIZE"] = pd.to_numeric(bid["JOB_SIZE"], errors="coerce")
 
     bid = _sanitize_bidtabs(bid)
+    log_detail(f"post-sanitize BidTabs footprint => rows={len(bid):,}")
 
     # Allow runtime override of quantities workbook via environment variable
+    log_stage("Resolving project quantities workbook")
     _qty_override = os.getenv("QUANTITIES_XLSX", "").strip()
     if _qty_override:
         qty_path = Path(_qty_override).expanduser().resolve()
+        log_detail(f"env_override_quantities={qty_path}")
     else:
         qty_path = Path(QTY_PATH).expanduser().resolve() if QTY_PATH else find_quantities_file(QTY_FILE_GLOB, base_dir=BASE_DIR)
+        log_detail(f"auto_discovered_quantities={qty_path}")
     qty = load_quantities(qty_path)
+    qty_rows = len(qty)
+    unique_items = qty["ITEM_CODE"].nunique(dropna=True) if "ITEM_CODE" in qty.columns else qty_rows
+    log_detail(f"project_quantities_rows={qty_rows:,} | distinct_item_codes={unique_items:,}")
 
     if Path(ALIASES_CSV).exists():
         alias = pd.read_csv(ALIASES_CSV, dtype=str)
@@ -612,6 +664,7 @@ def run(config: Optional["CLIConfig"] = None) -> int:
             alias["HIST_CODE"] = alias["HIST_CODE"].astype(str).str.strip()
             amap = dict(zip(alias["PROJECT_CODE"], alias["HIST_CODE"]))
             qty["ITEM_CODE"] = qty["ITEM_CODE"].map(lambda c: amap.get(c, c))
+            log_detail(f"code_alias_mapping_applied => entries={len(alias):,}")
 
     filter_pct_raw = os.getenv("BIDTABS_CONTRACT_FILTER_PCT", "").strip()
     try:
@@ -621,6 +674,7 @@ def run(config: Optional["CLIConfig"] = None) -> int:
     contract_filter_pct = max(0.0, min(contract_filter_pct, 500.0))
 
     filtered_bounds = None
+    log_stage("Calibrating BidTabs contract-cost filter window")
     if expected_contract_cost and expected_contract_cost > 0 and "JOB_SIZE" in bid.columns:
         tolerance = contract_filter_pct / 100.0
         lower_bound = expected_contract_cost * (1.0 - tolerance)
@@ -640,16 +694,26 @@ def run(config: Optional["CLIConfig"] = None) -> int:
         )
         if bid.empty:
             print("WARNING: No BidTabs rows remained after contract cost filtering.")
+        else:
+            log_detail(f"contract_filter => retained_rows={after_rows:,} of {before_rows:,}")
+    else:
+        log_detail("contract_filter bypassed (expected_contract_cost missing or JOB_SIZE unavailable)")
 
     rows = []
     payitem_details: Dict[str, pd.DataFrame] = {}
     alternate_reports: Dict[str, Dict[str, object]] = {}
 
+    log_stage(f"Running item pricing analytics for {qty_rows:,} project rows")
     for _, r in qty.iterrows():
         code = str(r["ITEM_CODE"]).strip()
         desc = str(r.get("DESCRIPTION", "")).strip()
         unit = str(r.get("UNIT", "")).strip()
         qty_val = float(r.get("QUANTITY", 0) or 0)
+        code_display = code or "(blank)"
+        desc_compact = " ".join(desc.split())
+        if len(desc_compact) > 72:
+            desc_compact = desc_compact[:69].rstrip() + "..."
+        print(f"[item] {code_display} :: qty={qty_val:,.3f} {unit} :: {desc_compact}")
 
         price, source_label, cat_data, detail_map, used_categories, combined_used = category_breakdown(
             bid,
@@ -667,14 +731,23 @@ def run(config: Optional["CLIConfig"] = None) -> int:
         used_categories = used_categories or []
         used_category_set = set(used_categories)
         data_points_used = int(cat_data.get("TOTAL_USED_COUNT", len(combined_used)))
+        category_display = ", ".join(used_categories) if used_categories else "none"
+        print(f"        data_points_used={data_points_used} | categories_used={category_display}")
 
+        sampling_warning = False
         if not note and 0 < data_points_used < MIN_SAMPLE_TARGET:
             note = f"Only {data_points_used} data points found (target {MIN_SAMPLE_TARGET})."
+            print(f"        sampling_warning => {note}")
+            sampling_warning = True
 
         geometry = parse_geometry(desc)
         reference_bundle = reference_data.build_reference_bundle(code)
         unit_price_est = _round_unit_price(price)
         source_label = source_label or ("NO_DATA" if data_points_used == 0 else "")
+        source_display = source_label or "historical_category_mix"
+        print(f"        provisional_unit_price=${unit_price_est:,.2f} | source={source_display}")
+        if note and not sampling_warning:
+            print(f"        note => {note}")
 
         row: Dict[str, object] = {
             "ITEM_CODE": code,
@@ -695,6 +768,8 @@ def run(config: Optional["CLIConfig"] = None) -> int:
                 row["GEOM_DIMENSIONS"] = geometry.dimensions
 
         if data_points_used == 0 and geometry is not None:
+            area_display = getattr(geometry, "area_sqft", float("nan"))
+            print(f"        alternate_seek activating => geometry_area={area_display:.2f} sqft")
             alt_result = find_alternate_price(
                 bid,
                 code,
@@ -734,6 +809,10 @@ def run(config: Optional["CLIConfig"] = None) -> int:
                 if alt_result.ai_notes:
                     row["ALTERNATE_AI_NOTES"] = alt_result.ai_notes
                 row["NOTES"] = "AI weighted pricing" if method_label == "AI weighted alternates" else "Score-based alternate pricing"
+                note = row["NOTES"]
+                print(
+                    f"        alternate_seek resolved => selections={len(alt_result.selections)} | datapoints={data_points_used} | method={method_label}"
+                )
                 similarity_flags = []
                 for sel in alt_result.selections:
                     for note in sel.notes:
@@ -803,6 +882,8 @@ def run(config: Optional["CLIConfig"] = None) -> int:
                 used_categories = alt_result.used_categories or []
                 combined_used = alt_result.combined_detail
                 row["SOURCE"] = "GEOMETRY_ALTERNATE"
+            else:
+                print("        alternate_seek exhausted without a viable candidate; retaining NO_DATA baseline")
 
         for label in CATEGORY_LABELS:
             row[f"{label}_PRICE"] = cat_data.get(f"{label}_PRICE", float("nan"))
@@ -833,7 +914,9 @@ def run(config: Optional["CLIConfig"] = None) -> int:
         if detail_frames:
             payitem_details[code] = pd.concat(detail_frames, ignore_index=True)
 
+    log_stage("Executing non-geometry fallback pricing routines")
     apply_non_geometry_fallbacks(rows, bid, project_region, payitem_details)
+    log_detail("non-geometry fallback pass complete")
 
     def _compute_contract_subtotal(exclude_codes: set[str]) -> float:
         total = 0.0
@@ -849,9 +932,11 @@ def run(config: Optional["CLIConfig"] = None) -> int:
     def _apply_contract_percent(code: str, percent: float, exclude_codes: set[str], note_label: str) -> None:
         row_obj = next((entry for entry in rows if entry.get("ITEM_CODE") == code), None)
         if row_obj is None:
+            log_detail(f"contract_percent skipped => code={code} not present in rows")
             return
         qty_val = float(row_obj.get("QUANTITY", 0) or 0)
         if qty_val <= 0:
+            log_detail(f"contract_percent skipped => code={code} has non-positive quantity")
             return
         subtotal = _compute_contract_subtotal(exclude_codes)
         target_amount = subtotal * percent
@@ -915,12 +1000,19 @@ def run(config: Optional["CLIConfig"] = None) -> int:
             },
             columns=detail_columns,
         )
+        log_detail(
+            f"contract_percent applied => code={code} | percent={percent * 100:.1f}% | target_amount=${rounded_amount:,.0f} | unit_price=${unit_price:,.2f}"
+        )
 
+    log_stage("Applying contract percent adjustments per IDM Chapter 20 guidance")
     _apply_contract_percent("105-06845", 0.02, {"105-06845", "110-01001"}, "Per IDM Chapter 20:")
     _apply_contract_percent("110-01001", 0.05, {"105-06845", "110-01001"}, "Per IDM Chapter 20:")
 
+    log_stage("Compiling estimator dataframe for export")
     df = pd.DataFrame(rows)
+    log_detail(f"estimate_dataframe_shape => rows={len(df):,} | columns={len(df.columns)}")
 
+    log_stage("Evaluating alternate-seek narrative generation pipeline")
     ai_report_path = None
     ai_enabled = os.getenv("DISABLE_OPENAI", "0").strip().lower() not in ("1", "true", "yes")
     if alternate_reports and ai_enabled:
@@ -934,12 +1026,16 @@ def run(config: Optional["CLIConfig"] = None) -> int:
                 filtered_bounds=filtered_bounds,
                 contract_filter_pct=contract_filter_pct,
             )
+            if ai_report_path:
+                log_detail(f"alternate_seek_report_emitted => {ai_report_path}")
         except Exception as exc:  # pragma: no cover - defensive
             print(f"Warning: unable to generate alternate-seek AI report: {exc}")
     elif alternate_reports and not ai_enabled:
         print("AI reporting disabled; skipping alternate-seek narrative generation.")
 
+    log_stage("Persisting estimator outputs to disk")
     write_outputs(df, str(OUT_XLSX), str(OUT_AUDIT), payitem_details, str(OUT_PAYITEM_AUDIT))
+    log_detail(f"outputs_written => {OUT_XLSX}, {OUT_AUDIT}, {OUT_PAYITEM_AUDIT}")
 
     # If running under tests, mirror mapping debug file to requested path
     if config is not None:
