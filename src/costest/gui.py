@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import tkinter as tk
+import tkinter.font as tkfont
 from tkinter import filedialog, messagebox, ttk
 
 try:  # pragma: no cover - optional dependency
@@ -488,50 +489,58 @@ class EstimatorApp:
         )
         header.grid(row=0, column=0, sticky="ew")
         title_text = "Cost Estimate Generator"
-        title_font = ("Segoe UI Black", 44)
         title_x = 40
         title_y = 74
 
-        # Layer multiple offsets to fake a Blade Runner style neon glow.
-        glow_layers = [
-            ("#091020", (-6, 6), ("Segoe UI Black", 52)),
-            ("#ff2a6d", (-3, 0), title_font),
-            ("#00f0ff", (3, -2), title_font),
-        ]
-        glow_ids: List[int] = []
-        for color, (dx, dy), font_info in glow_layers:
-            glow_ids.append(
+        try:
+            title_font = tkfont.Font(root=self.root, family="Impact", size=46)
+        except tk.TclError:
+            title_font = tkfont.Font(root=self.root, family="Segoe UI Black", size=46)
+        self._title_font = title_font
+
+        gradient_palette = [self._palette["accent_active"], "#ffffff", self._palette["accent"]]
+        gradient_rgb = [GradientFrame._hex_to_rgb(color) for color in gradient_palette]
+        total_chars = max(len(title_text) - 1, 1)
+        current_x = title_x
+        title_tag = "header_title"
+
+        for index, char in enumerate(title_text):
+            advance = title_font.measure(char)
+            if char.strip():
+                if len(gradient_rgb) == 1:
+                    fill_color = gradient_palette[0]
+                else:
+                    segment_pos = (index / total_chars) * (len(gradient_rgb) - 1)
+                    segment_index = int(segment_pos)
+                    if segment_index >= len(gradient_rgb) - 1:
+                        segment_index = len(gradient_rgb) - 2
+                        local_ratio = 1.0
+                    else:
+                        local_ratio = segment_pos - segment_index
+                    start_rgb = gradient_rgb[segment_index]
+                    end_rgb = gradient_rgb[segment_index + 1]
+                    fill_color = GradientFrame._interpolate(start_rgb, end_rgb, local_ratio)
                 header.create_text(
-                    title_x + dx,
-                    title_y + dy,
+                    current_x,
+                    title_y,
                     anchor="w",
-                    text=title_text,
-                    fill=color,
-                    font=font_info,
+                    text=char,
+                    fill=fill_color,
+                    font=title_font,
+                    tags=(title_tag,),
                 )
-            )
+            current_x += advance
 
-        title_id = header.create_text(
-            title_x,
-            title_y,
-            anchor="w",
-            text=title_text,
-            fill="#fefbff",
-            font=("Segoe UI Black", 43),
-        )
-
-        bbox = header.bbox(title_id)
+        bbox = header.bbox(title_tag)
         if bbox:
             underline_start = bbox[0]
             underline_end = bbox[2]
             primary_line_y = bbox[3] + 6
-            secondary_line_y = primary_line_y + 4
             tagline_y = bbox[3] + 34
         else:
             underline_start = title_x
             underline_end = title_x + int(len(title_text) * 18.5)
             primary_line_y = title_y + 30
-            secondary_line_y = title_y + 34
             tagline_y = title_y + 58
 
         header.create_line(
@@ -541,14 +550,6 @@ class EstimatorApp:
             primary_line_y,
             fill="#00f0ff",
             width=3,
-        )
-        header.create_line(
-            underline_start,
-            secondary_line_y,
-            underline_end,
-            secondary_line_y,
-            fill="#ff2a6d",
-            width=1,
         )
 
         tagline_id = header.create_text(
@@ -560,10 +561,8 @@ class EstimatorApp:
             font=("Segoe UI", 12),
         )
 
-        for glow_id in glow_ids:
-            header.tag_lower(glow_id)
         header.tag_lower("gradient")
-        header.tag_raise(title_id)
+        header.tag_raise(title_tag)
         header.tag_raise(tagline_id)
 
         metrics_card = ttk.Frame(header, style="Glass.TFrame", padding=(18, 18))
