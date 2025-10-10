@@ -11,6 +11,7 @@ dialog.
 from __future__ import annotations
 
 import io
+import ctypes
 import os
 import queue
 import re
@@ -227,7 +228,54 @@ class EstimatorApp:
         self._build_ui()
         self._refresh_workflow_snapshot()
         self._ensure_initial_window_size()
+        self._ensure_window_visible()
         self.root.after(100, self._poll_queue)
+
+    def _get_work_area(self) -> Tuple[int, int, int, int]:
+        """Return the available desktop work area (excludes taskbars when possible)."""
+
+        if os.name == "nt" and hasattr(ctypes, "windll"):
+            try:
+                SPI_GETWORKAREA = 0x0030
+
+                class RECT(ctypes.Structure):
+                    _fields_ = [
+                        ("left", ctypes.c_long),
+                        ("top", ctypes.c_long),
+                        ("right", ctypes.c_long),
+                        ("bottom", ctypes.c_long),
+                    ]
+
+                rect = RECT()
+                if ctypes.windll.user32.SystemParametersInfoW(SPI_GETWORKAREA, 0, ctypes.byref(rect), 0):
+                    return rect.left, rect.top, rect.right, rect.bottom
+            except Exception:
+                pass
+
+        return 0, 0, self.root.winfo_screenwidth(), self.root.winfo_screenheight()
+
+    def _ensure_window_visible(self) -> None:
+        """Center the main window and keep it within the visible screen area."""
+        self.root.update_idletasks()
+        work_left, work_top, work_right, work_bottom = self._get_work_area()
+        max_width = max(work_right - work_left, 100)
+        max_height = max(work_bottom - work_top, 100)
+
+        width = max(min(self.root.winfo_width(), max_width), 1)
+        height = max(min(self.root.winfo_height(), max_height), 1)
+
+        x = work_left + max((max_width - width) // 2, 0)
+        y = work_top + max((max_height - height) // 2, 0)
+
+        if x + width > work_right:
+            x = work_right - width
+        if y + height > work_bottom:
+            y = work_bottom - height
+
+        x = max(x, work_left)
+        y = max(y, work_top)
+
+        self.root.geometry(f"{int(width)}x{int(height)}+{int(x)}+{int(y)}")
 
     # ------------------------------------------------------------------ UI --
     def _configure_theme(self) -> None:
@@ -809,10 +857,10 @@ class EstimatorApp:
         explain.grid(row=0, column=2, sticky=tk.EW, padx=(10, 0))
 
         ttk.Label(input_frame, text="Pipeline Progress", style="Subheading.TLabel").grid(
-            row=4, column=0, columnspan=3, sticky=tk.W, pady=(18, 6)
+            row=5, column=0, columnspan=3, sticky=tk.W, pady=(18, 6)
         )
         self.progress = ttk.Progressbar(input_frame, mode="indeterminate", style="Accent.Horizontal.TProgressbar")
-        self.progress.grid(row=5, column=0, columnspan=3, sticky=tk.EW)
+        self.progress.grid(row=6, column=0, columnspan=3, sticky=tk.EW)
 
         content.rowconfigure(0, weight=1)
 
@@ -1193,16 +1241,33 @@ class EstimatorApp:
         required_width = self.root.winfo_reqwidth() + padding
         required_height = self.root.winfo_reqheight() + padding
 
-        minimum_width = max(required_width, 1100)
-        minimum_height = max(required_height, 580)
+        work_left, work_top, work_right, work_bottom = self._get_work_area()
+        max_width = max(work_right - work_left, 1)
+        max_height = max(work_bottom - work_top, 1)
+
+        minimum_width = min(max(required_width, 1100), max_width)
+        minimum_height = min(max(required_height, 580), max_height)
 
         self.root.minsize(minimum_width, minimum_height)
 
         current_width = self.root.winfo_width()
         current_height = self.root.winfo_height()
 
-        if current_width < minimum_width or current_height < minimum_height:
-            self.root.geometry(f"{minimum_width}x{minimum_height}")
+        target_width = current_width
+        target_height = current_height
+
+        if current_width < minimum_width:
+            target_width = minimum_width
+        elif current_width > max_width:
+            target_width = max_width
+
+        if current_height < minimum_height:
+            target_height = minimum_height
+        elif current_height > max_height:
+            target_height = max_height
+
+        if target_width != current_width or target_height != current_height:
+            self.root.geometry(f"{int(target_width)}x{int(target_height)}")
 
     def _show_completion_dialog(self, message: str) -> None:
         parsed = self._parse_completion_message(message)
