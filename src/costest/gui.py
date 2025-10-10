@@ -181,6 +181,7 @@ class EstimatorApp:
         self.etcc_var = tk.StringVar()
         self.district_var = tk.StringVar()
         self.contract_filter_var = tk.StringVar(value="50")
+        self.alt_seek_var = tk.BooleanVar(value=True)
         self._last_valid_contract_filter = 50.0
         self._snapshot_tag_var = tk.StringVar(value="Idle")
         self._snapshot_status_var = tk.StringVar(value="Waiting for workbook selection.")
@@ -196,6 +197,9 @@ class EstimatorApp:
         self._snapshot_timer_job: Optional[str] = None
         self._log_entry_count = 0
         self._last_log_message: Optional[str] = None
+        self._run_log_rotation_messages: List[str] = []
+        self._run_log_rotation_index = 0
+        self._run_log_animation_job: Optional[str] = None
         self._tips_window: Optional[tk.Toplevel] = None
         self._explanation_window: Optional[tk.Toplevel] = None
         self._drop_label_default = "Drag and drop the project quantities workbook here"
@@ -210,6 +214,7 @@ class EstimatorApp:
         self.etcc_var.trace_add("write", self._on_inputs_changed)
         self.district_var.trace_add("write", self._on_inputs_changed)
         self.contract_filter_var.trace_add("write", self._on_inputs_changed)
+        self.alt_seek_var.trace_add("write", self._on_inputs_changed)
 
         self._initial_status = "Drop a *_project_quantities.xlsx workbook to begin."
         self.status_title_var = tk.StringVar(value="Ready to Start")
@@ -403,6 +408,18 @@ class EstimatorApp:
             fieldbackground=[("readonly", palette["field"]), ("hover", palette["field_hover"])],
             bordercolor=[("focus", palette["accent"])],
             foreground=[("disabled", palette["muted"])],
+        )
+
+        style.configure(
+            "Toggle.TCheckbutton",
+            background=palette["surface_alt"],
+            foreground=palette["text"],
+            focuscolor=palette["accent"],
+        )
+        style.map(
+            "Toggle.TCheckbutton",
+            foreground=[("disabled", palette["muted"])],
+            background=[("active", palette["field_hover"])],
         )
 
         style.configure(
@@ -751,8 +768,17 @@ class EstimatorApp:
         )
         self.browse_button.grid(row=2, column=0, columnspan=3, sticky=tk.EW, pady=(14, 0))
 
+        alt_seek_toggle = ttk.Checkbutton(
+            input_frame,
+            text="Enable alternate seek backfill (fills in prices when BidTabs is sparse)",
+            variable=self.alt_seek_var,
+            style="Toggle.TCheckbutton",
+            takefocus=0,
+        )
+        alt_seek_toggle.grid(row=3, column=0, columnspan=3, sticky=tk.W, pady=(16, 0))
+
         button_row = ttk.Frame(input_frame, style="Glass.TFrame")
-        button_row.grid(row=3, column=0, columnspan=3, sticky=tk.EW, pady=(16, 0))
+        button_row.grid(row=4, column=0, columnspan=3, sticky=tk.EW, pady=(16, 0))
         button_row.columnconfigure(0, weight=1)
         button_row.columnconfigure(1, weight=1)
         button_row.columnconfigure(2, weight=1)
@@ -901,6 +927,7 @@ class EstimatorApp:
         self.log_widget.tag_configure("accent", foreground=self._palette["matrix_green"])
         self.log_widget.tag_configure("success", foreground=self._palette["matrix_green"])
         self.log_widget.tag_configure("error", foreground=self._palette["matrix_green"])
+        self.log_widget.tag_configure("animation", foreground=self._palette["matrix_green"])
 
         self._update_drop_target(None)
         self._set_status("Ready to Start", self._initial_status, "success")
@@ -1320,25 +1347,27 @@ class EstimatorApp:
             if not stripped:
                 continue
 
-            if stripped.startswith("Top cost drivers"):
-                section = "table"
-                continue
+            lowered = stripped.lower()
 
             if section == "table":
-                if stripped.lower().startswith("pricing"):
+                if lowered.startswith("pricing"):
                     section = "footer"
                     footer_lines.append(stripped)
                 else:
-                    table_lines.append(stripped)
+                    table_lines.append(line)
+                continue
+
+            if lowered.startswith("pricing"):
+                footer_lines.append(stripped)
+                section = "footer"
+                continue
+
+            if "top" in lowered and "cost" in lowered and "driver" in lowered:
+                section = "table"
                 continue
 
             if section == "footer":
                 footer_lines.append(stripped)
-                continue
-
-            if stripped.lower().startswith("pricing"):
-                footer_lines.append(stripped)
-                section = "footer"
                 continue
 
             if section == "intro":
@@ -1361,6 +1390,31 @@ class EstimatorApp:
     def _parse_table_lines(self, lines: List[str]) -> tuple[List[str], List[List[str]]]:
         if not lines:
             return ([], [])
+
+        expected_columns = ["ITEM_CODE", "DESCRIPTION", "QUANTITY", "UNIT_PRICE_EST", "TOTAL_COST"]
+        try:  # Prefer a robust fixed-width parse when pandas is available.
+            import pandas as pd  # type: ignore import
+
+            table_text = "\n".join(lines)
+            table_df = pd.read_fwf(io.StringIO(table_text), dtype=str)  # type: ignore[arg-type]
+        except Exception:  # pragma: no cover - pandas missing or parsing failed
+            table_df = None  # type: ignore[assignment]
+
+        if table_df is not None and not table_df.empty:
+            if all(column in table_df.columns for column in expected_columns):
+                headers = [self._prettify_header(column) for column in expected_columns]
+                rows: List[List[str]] = []
+                for _, row in table_df[expected_columns].fillna("").iterrows():
+                    code = str(row["ITEM_CODE"]).strip()
+                    if not code:
+                        continue
+                    description = str(row["DESCRIPTION"]).strip()
+                    quantity = self._format_quantity(str(row["QUANTITY"]))
+                    unit_price = self._format_currency(str(row["UNIT_PRICE_EST"]))
+                    total_cost = self._format_currency(str(row["TOTAL_COST"]))
+                    rows.append([code, description, quantity, unit_price, total_cost])
+                if rows:
+                    return headers, rows
 
         header_raw = re.split(r"\s{2,}", lines[0].strip())
         parsed_headers = [self._prettify_header(cell) for cell in header_raw if cell]
@@ -1781,6 +1835,7 @@ class EstimatorApp:
         self._selected_path = None
         self._current_path = None
         self._drop_hover = False
+        self._stop_run_log_animation()
         self._set_status("Ready to Start", self._initial_status, "success")
         self.etcc_var.set("")
         self.district_var.set("")
@@ -1789,6 +1844,7 @@ class EstimatorApp:
         self._format_contract_filter_display(50.0)
         self._update_drop_target(None)
         self._update_run_button_state()
+        self._stop_run_log_animation()
         self.log_widget.configure(state=tk.NORMAL)
         self.log_widget.delete("1.0", tk.END)
         self.log_widget.configure(state=tk.DISABLED)
@@ -1822,6 +1878,101 @@ class EstimatorApp:
             meaningful_lines = [line for line in stripped.splitlines() if line.strip()]
             if meaningful_lines:
                 self._last_log_message = meaningful_lines[-1]
+        self._refresh_workflow_snapshot()
+
+    def _build_run_log_animation_messages(
+        self,
+        workbook: Path,
+        expected_cost: float,
+        district_display: str,
+        region_id: int,
+        contract_filter_pct: float,
+    ) -> List[str]:
+        rounded_filter = round(contract_filter_pct, 2)
+        if abs(rounded_filter - round(rounded_filter)) < 1e-6:
+            filter_display = f"+/-{int(round(rounded_filter))}%"
+        else:
+            trimmed = f"{rounded_filter:.2f}".rstrip("0").rstrip(".")
+            filter_display = f"+/-{trimmed}%"
+        workbook_name = workbook.name
+        etcc_display = f"${expected_cost:,.2f}"
+        return [
+            f"Prepping workbook '{workbook_name}' for the estimator...",
+            "Indexing quantity groups and validating workbook sheets...",
+            f"Verifying district alignment for {district_display} (Region {region_id})...",
+            f"Pulling BidTabs comparisons within {filter_display} of target quantities...",
+            f"Calibrating pricing models around {etcc_display} ETCC target...",
+            "Synthesizing AI guidance and design memos...",
+            "Compiling estimate package and quality checks...",
+        ]
+
+    def _start_run_log_animation(
+        self,
+        workbook: Path,
+        expected_cost: float,
+        district_display: str,
+        region_id: int,
+        contract_filter_pct: float,
+    ) -> None:
+        self._stop_run_log_animation()
+        messages = self._build_run_log_animation_messages(
+            workbook, expected_cost, district_display, region_id, contract_filter_pct
+        )
+        self._run_log_rotation_messages = messages
+        if not self._run_log_rotation_messages:
+            return
+        self._run_log_rotation_index = 0
+        self._advance_run_log_animation()
+
+    def _advance_run_log_animation(self) -> None:
+        if not self._run_log_rotation_messages:
+            return
+        if self._run_log_rotation_index >= len(self._run_log_rotation_messages):
+            self._run_log_rotation_index = 0
+        message = self._run_log_rotation_messages[self._run_log_rotation_index]
+        self._run_log_rotation_index += 1
+        self._show_rotating_log_message(message)
+        try:
+            self._run_log_animation_job = self.root.after(2000, self._advance_run_log_animation)
+        except tk.TclError:
+            self._run_log_animation_job = None
+
+    def _show_rotating_log_message(self, message: str) -> None:
+        if not hasattr(self, "log_widget"):
+            return
+        self.log_widget.configure(state=tk.NORMAL)
+        try:
+            ranges = self.log_widget.tag_ranges("animation")
+            # Remove previous animated message (if any) before inserting the next one.
+            while ranges:
+                start, end = ranges[0], ranges[1]
+                self.log_widget.delete(start, end)
+                ranges = self.log_widget.tag_ranges("animation")
+            self.log_widget.insert(tk.END, message + "\n", ("base", "animation"))
+            self.log_widget.see(tk.END)
+        finally:
+            self.log_widget.configure(state=tk.DISABLED)
+        self._last_log_message = message
+        self._refresh_workflow_snapshot()
+
+    def _stop_run_log_animation(self) -> None:
+        if self._run_log_animation_job is not None:
+            try:
+                self.root.after_cancel(self._run_log_animation_job)
+            except tk.TclError:
+                pass
+            self._run_log_animation_job = None
+        if not hasattr(self, "log_widget"):
+            return
+        self.log_widget.configure(state=tk.NORMAL)
+        try:
+            ranges = self.log_widget.tag_ranges("animation")
+            while ranges:
+                start, end = ranges[0], ranges[1]
+                self.log_widget.delete(start, end)
+                ranges = self.log_widget.tag_ranges("animation")
+        finally:
+            self.log_widget.configure(state=tk.DISABLED)
         self._refresh_workflow_snapshot()
 
     def _handle_drop(self, event: tk.Event) -> None:  # pragma: no cover - UI event
@@ -1885,11 +2036,16 @@ class EstimatorApp:
         self._append_log(
             f"Expected Total Contract Cost: ${expected_cost:,.2f} | Project District: {district_display} | BidTabs Contract Filter: {filter_display}"
         )
+        if not self.alt_seek_var.get():
+            self._append_log(
+                "Alternate seek disabled for this run; missing pay items will retain their NO DATA baseline."
+            )
         self._set_running(True)
+        self._start_run_log_animation(path, expected_cost, district_display, region_id, contract_filter_pct)
 
         self._worker = threading.Thread(
             target=self._run_pipeline,
-            args=(path, expected_cost, district_name, region_id, contract_filter_pct),
+            args=(path, expected_cost, district_name, region_id, contract_filter_pct, bool(self.alt_seek_var.get())),
             daemon=True,
         )
         self._worker.start()
@@ -1901,6 +2057,7 @@ class EstimatorApp:
         district_name: str,
         region_id: int,
         contract_filter_pct: float,
+        alt_seek_enabled: bool,
     ) -> None:
         stdout_buffer = io.StringIO()
         stderr_buffer = io.StringIO()
@@ -1910,6 +2067,7 @@ class EstimatorApp:
             "PROJECT_DISTRICT": os.environ.get("PROJECT_DISTRICT"),
             "PROJECT_REGION": os.environ.get("PROJECT_REGION"),
             "BIDTABS_CONTRACT_FILTER_PCT": os.environ.get("BIDTABS_CONTRACT_FILTER_PCT"),
+            "DISABLE_ALT_SEEK": os.environ.get("DISABLE_ALT_SEEK"),
         }
 
         try:
@@ -1918,6 +2076,10 @@ class EstimatorApp:
             os.environ["PROJECT_DISTRICT"] = district_name
             os.environ["PROJECT_REGION"] = str(region_id)
             os.environ["BIDTABS_CONTRACT_FILTER_PCT"] = f"{contract_filter_pct:.6f}"
+            if alt_seek_enabled:
+                os.environ.pop("DISABLE_ALT_SEEK", None)
+            else:
+                os.environ["DISABLE_ALT_SEEK"] = "1"
             with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
                 exit_code = run_estimator()
 
@@ -1958,6 +2120,7 @@ class EstimatorApp:
 
     def _handle_queue_item(self, result: PipelineResult) -> None:
         self._set_running(False)
+        self._stop_run_log_animation()
         finished_at = datetime.now()
         success = result.level == "info"
         self._last_run_completed_at = finished_at

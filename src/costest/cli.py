@@ -699,6 +699,11 @@ def run(config: Optional["CLIConfig"] = None) -> int:
     else:
         log_detail("contract_filter bypassed (expected_contract_cost missing or JOB_SIZE unavailable)")
 
+    disable_alt_seek_env = os.getenv("DISABLE_ALT_SEEK", "").strip().lower()
+    alt_seek_enabled = disable_alt_seek_env not in {"1", "true", "yes", "on"}
+    if not alt_seek_enabled:
+        log_detail("alternate_seek disabled via runtime configuration")
+
     rows = []
     payitem_details: Dict[str, pd.DataFrame] = {}
     alternate_reports: Dict[str, Dict[str, object]] = {}
@@ -767,7 +772,7 @@ def run(config: Optional["CLIConfig"] = None) -> int:
             if geometry.dimensions:
                 row["GEOM_DIMENSIONS"] = geometry.dimensions
 
-        if data_points_used == 0 and geometry is not None:
+        if alt_seek_enabled and data_points_used == 0 and geometry is not None:
             area_display = getattr(geometry, "area_sqft", float("nan"))
             print(f"        alternate_seek activating => geometry_area={area_display:.2f} sqft")
             alt_result = find_alternate_price(
