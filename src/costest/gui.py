@@ -159,6 +159,126 @@ class GradientFrame(tk.Canvas):
         return f"#{red:02x}{green:02x}{blue:02x}"
 
 
+class AdaptiveScrollableFrame(ttk.Frame):
+    """Scrollable container that keeps content accessible on smaller displays."""
+
+    def __init__(
+        self,
+        master: tk.Misc,
+        *,
+        content_style: str,
+        content_padding: tuple[int, int, int, int] = (0, 0, 0, 0),
+        canvas_background: Optional[str] = None,
+        scrollbar_style: str = "Vertical.TScrollbar",
+    ) -> None:
+        super().__init__(master)
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=1)
+
+        self._canvas = tk.Canvas(
+            self,
+            highlightthickness=0,
+            bd=0,
+            background=canvas_background,
+        )
+        self._canvas.grid(row=0, column=0, sticky="nsew")
+
+        self._scrollbar = ttk.Scrollbar(
+            self,
+            orient=tk.VERTICAL,
+            command=self._canvas.yview,
+            style=scrollbar_style,
+        )
+        self._scrollbar.grid(row=0, column=1, sticky="ns")
+        self._canvas.configure(yscrollcommand=self._scrollbar.set)
+
+        self.content = ttk.Frame(self._canvas, style=content_style, padding=content_padding)
+        self._window_id = self._canvas.create_window((0, 0), window=self.content, anchor="nw")
+
+        self.content.bind("<Configure>", self._update_scroll_region, add="+")
+        self._canvas.bind("<Configure>", self._resize_canvas, add="+")
+        self.bind("<Destroy>", self._unbind_mousewheel, add="+")
+
+        self._mousewheel_bound = False
+        self._bind_mousewheel()
+
+    # ---------------------------------------------------------------- Private --
+    def _update_scroll_region(self, _event: tk.Event) -> None:
+        bbox = self._canvas.bbox("all")
+        if bbox is not None:
+            self._canvas.configure(scrollregion=bbox)
+        self._update_scrollbar_visibility()
+
+    def _resize_canvas(self, event: tk.Event) -> None:
+        self._canvas.itemconfigure(self._window_id, width=event.width)
+        self._update_scrollbar_visibility()
+
+    def _update_scrollbar_visibility(self) -> None:
+        try:
+            canvas_height = self._canvas.winfo_height()
+            content_height = self.content.winfo_reqheight()
+        except tk.TclError:
+            return
+        if canvas_height <= 1:
+            return
+        needs_scrollbar = content_height > canvas_height + 2
+        if needs_scrollbar:
+            if not self._scrollbar.winfo_ismapped():
+                self._scrollbar.grid()
+        else:
+            if self._scrollbar.winfo_ismapped():
+                self._scrollbar.grid_remove()
+            self._canvas.yview_moveto(0.0)
+
+    def _bind_mousewheel(self) -> None:
+        if self._mousewheel_bound:
+            return
+        self._canvas.bind_all("<MouseWheel>", self._handle_mousewheel, add="+")
+        self._canvas.bind_all("<Button-4>", self._handle_mousewheel, add="+")
+        self._canvas.bind_all("<Button-5>", self._handle_mousewheel, add="+")
+        self._mousewheel_bound = True
+
+    def _unbind_mousewheel(self, _event: Optional[tk.Event] = None) -> None:
+        if not self._mousewheel_bound:
+            return
+        try:
+            self._canvas.unbind_all("<MouseWheel>")
+            self._canvas.unbind_all("<Button-4>")
+            self._canvas.unbind_all("<Button-5>")
+        except tk.TclError:
+            pass
+        self._mousewheel_bound = False
+
+    def _handle_mousewheel(self, event: tk.Event) -> None:
+        if not self.winfo_exists():
+            return
+        widget = self.content.winfo_containing(event.x_root, event.y_root)
+        if widget is None or not self._is_descendant(widget):
+            return
+        if hasattr(widget, "yview") and widget.winfo_class() in {"Text", "Listbox", "Treeview"}:
+            return
+        delta = getattr(event, "delta", 0)
+        if delta:
+            steps = -int(delta / 120)
+            if steps == 0:
+                steps = -1 if delta > 0 else 1
+            self._canvas.yview_scroll(steps, "units")
+            return
+        num = getattr(event, "num", None)
+        if num == 4:
+            self._canvas.yview_scroll(-1, "units")
+        elif num == 5:
+            self._canvas.yview_scroll(1, "units")
+
+    def _is_descendant(self, widget: tk.Misc) -> bool:
+        current: Optional[tk.Misc] = widget
+        while current is not None:
+            if current == self.content:
+                return True
+            current = getattr(current, "master", None)
+        return False
+
+
 class EstimatorApp:
     """Tk-based interface for running the estimator pipeline."""
 
@@ -171,8 +291,8 @@ class EstimatorApp:
         self._palette: dict[str, str] = {}
         self._configure_theme()
         self.root.title("Cost Estimate Generator")
-        self.root.geometry("1240x600")
-        self.root.minsize(1100, 580)
+        self._initialize_window_bounds()
+        self._layout_mode = "wide"
 
         self._queue: "queue.Queue[PipelineResult]" = queue.Queue()
         self._worker: Optional[threading.Thread] = None
@@ -231,6 +351,123 @@ class EstimatorApp:
         self._ensure_initial_window_size()
         self._ensure_window_visible()
         self.root.after(100, self._poll_queue)
+
+    # --------------------------------------------------------------- Sizing --
+    def _initialize_window_bounds(self) -> None:
+        """Size the main window based on the available work area."""
+        self.root.update_idletasks()
+        work_left, work_top, work_right, work_bottom = self._get_work_area()
+        work_width = max(work_right - work_left, 400)
+        work_height = max(work_bottom - work_top, 400)
+
+        desired_width = 1240
+        desired_height = 720
+        initial_width = int(min(desired_width, max(work_width * 0.94, min(960, work_width))))
+        initial_height = int(min(desired_height, max(work_height * 0.9, min(620, work_height))))
+
+        min_width = int(min(max(work_width * 0.75, 880), work_width))
+        min_height = int(min(max(work_height * 0.75, 560), work_height))
+
+        self.root.geometry(f"{initial_width}x{initial_height}")
+        self.root.minsize(min_width, min_height)
+
+    def _configure_responsive_layout(self) -> None:
+        """Adapt the three column layout for compact screens."""
+        self.root.bind("<Configure>", self._handle_root_resize, add="+")
+        self._apply_responsive_layout(self.root.winfo_width())
+
+    def _handle_root_resize(self, event: tk.Event) -> None:
+        if event.widget is not self.root:
+            return
+        self._apply_responsive_layout(event.width)
+
+    def _apply_responsive_layout(self, width: int) -> None:
+        if width <= 0 or not hasattr(self, "_content_frame"):
+            return
+
+        breakpoint = 1160
+        new_mode = "compact" if width < breakpoint else "wide"
+
+        if new_mode != self._layout_mode:
+            self._layout_mode = new_mode
+            if new_mode == "compact":
+                self._content_frame.columnconfigure(0, weight=1)
+                self._content_frame.columnconfigure(1, weight=0)
+                self._content_frame.columnconfigure(2, weight=0)
+                self._content_frame.rowconfigure(0, weight=0)
+                self._content_frame.rowconfigure(1, weight=1)
+                self._content_frame.rowconfigure(2, weight=0)
+
+                self._left_column.grid_configure(
+                    row=0,
+                    column=0,
+                    columnspan=1,
+                    sticky="nsew",
+                    padx=0,
+                    pady=(0, 16),
+                )
+                self._log_column.grid_configure(
+                    row=1,
+                    column=0,
+                    columnspan=1,
+                    sticky="nsew",
+                    padx=0,
+                    pady=(0, 16),
+                )
+                self._sidebar.grid_configure(
+                    row=2,
+                    column=0,
+                    columnspan=1,
+                    sticky="nsew",
+                    padx=0,
+                    pady=(0, 0),
+                )
+            else:
+                self._content_frame.columnconfigure(0, weight=3)
+                self._content_frame.columnconfigure(1, weight=4)
+                self._content_frame.columnconfigure(2, weight=2)
+                self._content_frame.rowconfigure(0, weight=1)
+                self._content_frame.rowconfigure(1, weight=0)
+                self._content_frame.rowconfigure(2, weight=0)
+
+                self._left_column.grid_configure(
+                    row=0,
+                    column=0,
+                    columnspan=1,
+                    sticky="nsew",
+                    padx=(0, 18),
+                    pady=0,
+                )
+                self._log_column.grid_configure(
+                    row=0,
+                    column=1,
+                    columnspan=1,
+                    sticky="nsew",
+                    padx=(0, 18),
+                    pady=0,
+                )
+                self._sidebar.grid_configure(
+                    row=0,
+                    column=2,
+                    columnspan=1,
+                    sticky="nsew",
+                    padx=(0, 0),
+                    pady=0,
+                )
+
+        self._update_status_wrap(width)
+        if hasattr(self, "_scroll_frame"):
+            self._scroll_frame._update_scrollbar_visibility()  # type: ignore[attr-defined]
+
+    def _update_status_wrap(self, width: int) -> None:
+        detail_label = getattr(self, "_status_detail_label", None)
+        if detail_label is not None:
+            wrap = max(360, min(int(width * 0.5), 640))
+            detail_label.configure(wraplength=wrap)
+        hint_label = getattr(self, "_status_hint_label", None)
+        if hint_label is not None:
+            wrap = max(220, min(int(width * 0.22), 360))
+            hint_label.configure(wraplength=wrap)
 
     def _get_work_area(self) -> Tuple[int, int, int, int]:
         """Return the available desktop work area (excludes taskbars when possible)."""
@@ -541,8 +778,17 @@ class EstimatorApp:
         container.columnconfigure(0, weight=1)
         container.rowconfigure(0, weight=1)
 
-        card = ttk.Frame(container, style="Card.TFrame")
-        card.grid(row=0, column=0, sticky="nsew")
+        scroll_frame = AdaptiveScrollableFrame(
+            container,
+            content_style="Card.TFrame",
+            content_padding=(0, 0, 0, 0),
+            canvas_background=self._palette["base"],
+            scrollbar_style="Modern.Vertical.TScrollbar",
+        )
+        scroll_frame.grid(row=0, column=0, sticky="nsew")
+        self._scroll_frame = scroll_frame
+
+        card = scroll_frame.content
         card.columnconfigure(0, weight=1)
         card.rowconfigure(2, weight=1)
         card.rowconfigure(3, weight=0)
@@ -670,12 +916,24 @@ class EstimatorApp:
         ttk.Label(status_bar, textvariable=self.status_title_var, style="StatusTitle.TLabel").grid(
             row=0, column=1, sticky="w"
         )
-        ttk.Label(status_bar, textvariable=self.status_detail_var, style="StatusDetail.TLabel", wraplength=640).grid(
-            row=1, column=1, sticky="w", pady=(4, 0)
+        status_detail_label = ttk.Label(
+            status_bar,
+            textvariable=self.status_detail_var,
+            style="StatusDetail.TLabel",
+            wraplength=640,
         )
-        ttk.Label(status_bar, text="All activity is recorded in the run log.", style="StatusHint.TLabel").grid(
-            row=0, column=2, rowspan=2, sticky="e"
+        status_detail_label.grid(row=1, column=1, sticky="w", pady=(4, 0))
+        self._status_detail_label = status_detail_label
+
+        status_hint_label = ttk.Label(
+            status_bar,
+            text="All activity is recorded in the run log.",
+            style="StatusHint.TLabel",
+            wraplength=360,
+            justify=tk.RIGHT,
         )
+        status_hint_label.grid(row=0, column=2, rowspan=2, sticky="e", padx=(12, 0))
+        self._status_hint_label = status_hint_label
 
         content = ttk.Frame(card, style="CardBody.TFrame", padding=(24, 16, 24, 24))
         content.grid(row=2, column=0, sticky="nsew")
@@ -684,9 +942,12 @@ class EstimatorApp:
         content.columnconfigure(2, weight=2)
         content.rowconfigure(0, weight=1)
 
+        self._content_frame = content
+
         left_column = ttk.Frame(content, style="CardBody.TFrame")
         left_column.grid(row=0, column=0, sticky="nsew", padx=(0, 18))
         left_column.columnconfigure(0, weight=1)
+        self._left_column = left_column
 
         ttk.Label(left_column, text="Project Workbook", style="SectionHeading.TLabel").grid(
             row=0, column=0, sticky="w", pady=(0, 8)
@@ -734,8 +995,16 @@ class EstimatorApp:
             font=("Segoe UI", 10),
             fg=self._palette["muted_alt"],
             bg=self._palette["drop_idle"],
+            wraplength=420,
         )
         drop_hint.pack(pady=(12, 20))
+
+        def _refresh_drop_wrap(_event: Optional[tk.Event]) -> None:
+            available = max(drop_frame.winfo_width() - 56, 220)
+            drop_label.configure(wraplength=available)
+            drop_hint.configure(wraplength=available)
+
+        drop_frame.bind("<Configure>", _refresh_drop_wrap, add="+")
 
         self._drop_frame = drop_frame
         self._drop_label = drop_label
@@ -878,6 +1147,7 @@ class EstimatorApp:
         log_column.grid(row=0, column=1, sticky="nsew", padx=(0, 18))
         log_column.columnconfigure(0, weight=1)
         log_column.rowconfigure(1, weight=1)
+        self._log_column = log_column
 
         log_header = ttk.Frame(log_column, style="CardBody.TFrame")
         log_header.grid(row=0, column=0, sticky="ew", pady=(0, 12))
@@ -920,6 +1190,7 @@ class EstimatorApp:
         sidebar.grid(row=0, column=2, sticky="nsew")
         sidebar.columnconfigure(0, weight=1)
         sidebar.rowconfigure(1, weight=1)
+        self._sidebar = sidebar
 
         ttk.Label(sidebar, text="Workflow Snapshot", style="SectionHeading.TLabel").grid(
             row=0, column=0, sticky="w"
@@ -990,6 +1261,7 @@ class EstimatorApp:
         self._update_drop_target(None)
         self._set_status("Ready to Start", self._initial_status, "success")
         self._format_contract_filter_display(self._last_valid_contract_filter)
+        self._configure_responsive_layout()
 
     def _show_workflow_tips(self) -> None:
         if self._tips_window and self._tips_window.winfo_exists():
