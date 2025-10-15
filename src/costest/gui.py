@@ -393,10 +393,8 @@ class EstimatorApp:
             if new_mode == "compact":
                 self._content_frame.columnconfigure(0, weight=1)
                 self._content_frame.columnconfigure(1, weight=0)
-                self._content_frame.columnconfigure(2, weight=0)
                 self._content_frame.rowconfigure(0, weight=0)
                 self._content_frame.rowconfigure(1, weight=1)
-                self._content_frame.rowconfigure(2, weight=0)
 
                 self._left_column.grid_configure(
                     row=0,
@@ -405,30 +403,35 @@ class EstimatorApp:
                     sticky="nsew",
                     padx=0,
                     pady=(0, 16),
+                    rowspan=1,
                 )
-                self._log_column.grid_configure(
+                self._right_column.grid_configure(
                     row=1,
-                    column=0,
-                    columnspan=1,
-                    sticky="nsew",
-                    padx=0,
-                    pady=(0, 16),
-                )
-                self._sidebar.grid_configure(
-                    row=2,
                     column=0,
                     columnspan=1,
                     sticky="nsew",
                     padx=0,
                     pady=(0, 0),
                 )
+                self._log_column.grid_configure(
+                    row=0,
+                    column=0,
+                    sticky="nsew",
+                    padx=0,
+                    pady=(0, 16),
+                )
+                self._sidebar.grid_configure(
+                    row=1,
+                    column=0,
+                    sticky="nsew",
+                    padx=0,
+                    pady=0,
+                )
             else:
                 self._content_frame.columnconfigure(0, weight=3)
                 self._content_frame.columnconfigure(1, weight=4)
-                self._content_frame.columnconfigure(2, weight=2)
                 self._content_frame.rowconfigure(0, weight=1)
-                self._content_frame.rowconfigure(1, weight=0)
-                self._content_frame.rowconfigure(2, weight=0)
+                self._content_frame.rowconfigure(1, weight=1)
 
                 self._left_column.grid_configure(
                     row=0,
@@ -437,8 +440,9 @@ class EstimatorApp:
                     sticky="nsew",
                     padx=(0, 18),
                     pady=0,
+                    rowspan=1,
                 )
-                self._log_column.grid_configure(
+                self._right_column.grid_configure(
                     row=0,
                     column=1,
                     columnspan=1,
@@ -446,14 +450,8 @@ class EstimatorApp:
                     padx=(0, 18),
                     pady=0,
                 )
-                self._sidebar.grid_configure(
-                    row=0,
-                    column=2,
-                    columnspan=1,
-                    sticky="nsew",
-                    padx=(0, 0),
-                    pady=0,
-                )
+                self._log_column.grid_configure(row=0, column=0, sticky="nsew", padx=0, pady=(0, 18))
+                self._sidebar.grid_configure(row=1, column=0, sticky="nsew", padx=0, pady=0)
 
         self._update_status_wrap(width)
         if hasattr(self, "_scroll_frame"):
@@ -939,8 +937,8 @@ class EstimatorApp:
         content.grid(row=2, column=0, sticky="nsew")
         content.columnconfigure(0, weight=3)
         content.columnconfigure(1, weight=4)
-        content.columnconfigure(2, weight=2)
         content.rowconfigure(0, weight=1)
+        content.rowconfigure(1, weight=1)
 
         self._content_frame = content
 
@@ -1141,10 +1139,15 @@ class EstimatorApp:
         )
         explain.grid(row=0, column=2, sticky=tk.EW, padx=(10, 0))
 
-        content.rowconfigure(0, weight=1)
+        right_column = ttk.Frame(content, style="CardBody.TFrame")
+        right_column.grid(row=0, column=1, sticky="nsew", padx=(0, 18))
+        right_column.columnconfigure(0, weight=1)
+        right_column.rowconfigure(0, weight=1)
+        right_column.rowconfigure(1, weight=1)
+        self._right_column = right_column
 
-        log_column = ttk.Frame(content, style="CardBody.TFrame")
-        log_column.grid(row=0, column=1, sticky="nsew", padx=(0, 18))
+        log_column = ttk.Frame(right_column, style="CardBody.TFrame")
+        log_column.grid(row=0, column=0, sticky="nsew", pady=(0, 18))
         log_column.columnconfigure(0, weight=1)
         log_column.rowconfigure(1, weight=1)
         self._log_column = log_column
@@ -1165,7 +1168,7 @@ class EstimatorApp:
 
         self.log_widget = tk.Text(
             log_container,
-            height=10,
+            height=5,
             state=tk.DISABLED,
             wrap=tk.WORD,
             bg=self._palette["code_bg"],
@@ -1186,8 +1189,8 @@ class EstimatorApp:
         scrollbar.grid(row=0, column=1, sticky="ns")
         self.log_widget.configure(yscrollcommand=scrollbar.set)
 
-        sidebar = ttk.Frame(content, style="CardBody.TFrame")
-        sidebar.grid(row=0, column=2, sticky="nsew")
+        sidebar = ttk.Frame(right_column, style="CardBody.TFrame")
+        sidebar.grid(row=1, column=0, sticky="nsew")
         sidebar.columnconfigure(0, weight=1)
         sidebar.rowconfigure(1, weight=1)
         self._sidebar = sidebar
@@ -1212,6 +1215,7 @@ class EstimatorApp:
         metric_container.grid(row=2, column=0, sticky="nsew")
         metric_container.columnconfigure(1, weight=1)
 
+        snapshot_value_labels: List[ttk.Label] = []
         snapshot_rows = [
             ("Status", self._snapshot_status_var),
             ("Workbook", self._snapshot_workbook_var),
@@ -1224,15 +1228,46 @@ class EstimatorApp:
             ttk.Label(metric_container, text=label_text, style="MetricCaption.TLabel").grid(
                 row=index, column=0, sticky="nw", pady=pady, padx=(0, 10)
             )
-            ttk.Label(metric_container, textvariable=variable, style="InstructionBody.TLabel").grid(
+            value_label = ttk.Label(metric_container, textvariable=variable, style="InstructionBody.TLabel")
+            value_label.grid(
                 row=index, column=1, sticky="nw", pady=pady
             )
+            snapshot_value_labels.append(value_label)
 
-        ttk.Label(
+        snapshot_note_label = ttk.Label(
             metrics_card,
             text="Snapshot refreshes as the estimator runs and emits new log entries.",
             style="InstructionBody.TLabel",
-        ).grid(row=3, column=0, sticky="w", pady=(12, 0))
+        )
+        snapshot_note_label.grid(row=3, column=0, sticky="w", pady=(12, 0))
+
+        def _sync_snapshot_wrap(_event: Optional[tk.Event] = None) -> None:
+            try:
+                metric_container.update_idletasks()
+                metrics_card.update_idletasks()
+            except tk.TclError:
+                return
+
+            value_cell_bbox = metric_container.grid_bbox(1, 0)
+            if value_cell_bbox:
+                value_wrap = max(value_cell_bbox[2], 100)
+            else:
+                container_width = metric_container.winfo_width()
+                if container_width <= 0:
+                    return
+                value_wrap = max(container_width - 120, 100)
+
+            for label in snapshot_value_labels:
+                label.configure(wraplength=value_wrap)
+
+            note_width = metrics_card.winfo_width() - 36
+            if note_width <= 0:
+                note_width = value_wrap
+            snapshot_note_label.configure(wraplength=max(note_width, 100))
+
+        metric_container.bind("<Configure>", _sync_snapshot_wrap, add="+")
+        metrics_card.bind("<Configure>", _sync_snapshot_wrap, add="+")
+        self.root.after_idle(_sync_snapshot_wrap)
 
         footer = ttk.Frame(card, style="CardBody.TFrame", padding=(24, 0, 24, 16))
         footer.grid(row=3, column=0, sticky="ew")
