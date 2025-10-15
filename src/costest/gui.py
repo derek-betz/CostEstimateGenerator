@@ -324,7 +324,7 @@ class EstimatorApp:
         self._tips_window: Optional[tk.Toplevel] = None
         self._explanation_window: Optional[tk.Toplevel] = None
         self._drop_label_default = "Drag and drop the project quantities workbook here"
-        self._drop_hint_default = "Drag from Explorer or use the browse button below."
+        self._drop_hint_default = "Drag from Explorer or click to browse for it."
         self._district_display_strings = []
         self._district_display_to_name: dict[str, str] = {}
         for number, name in DISTRICT_CHOICES:
@@ -342,9 +342,12 @@ class EstimatorApp:
         self.status_detail_var = tk.StringVar(value=self._initial_status)
         self._status_indicator: Optional[tk.Canvas] = None
         self._status_indicator_oval: Optional[int] = None
+        self._drop_frame: Optional[tk.Frame] = None
+        self._drop_label: Optional[tk.Label] = None
         self._drop_icon: Optional[tk.Label] = None
         self._drop_hint: Optional[tk.Label] = None
         self._drop_hover = False
+        self._drop_enabled = True
         self._build_ui()
         self._refresh_workflow_snapshot()
         self._ensure_initial_window_size()
@@ -958,8 +961,10 @@ class EstimatorApp:
             highlightthickness=2,
             bd=0,
             height=190,
+            cursor="hand2",
+            takefocus=1,
         )
-        drop_frame.grid(row=1, column=0, sticky="ew")
+        drop_frame.grid(row=1, column=0, sticky="ew", pady=(0, 14))
         drop_frame.grid_propagate(False)
         drop_frame.columnconfigure(0, weight=1)
 
@@ -969,6 +974,7 @@ class EstimatorApp:
             font=("Segoe UI Emoji", 42),
             fg=self._palette["accent_active"],
             bg=self._palette["drop_idle"],
+            cursor="hand2",
         )
         drop_icon.pack(pady=(24, 8))
 
@@ -981,6 +987,7 @@ class EstimatorApp:
             fg=self._palette["muted"],
             bg=self._palette["drop_idle"],
             wraplength=460,
+            cursor="hand2",
         )
         drop_label.pack(fill=tk.X, padx=28)
 
@@ -993,6 +1000,7 @@ class EstimatorApp:
             fg=self._palette["muted_alt"],
             bg=self._palette["drop_idle"],
             wraplength=420,
+            cursor="hand2",
         )
         drop_hint.pack(pady=(12, 20))
 
@@ -1003,6 +1011,11 @@ class EstimatorApp:
 
         drop_frame.bind("<Configure>", _refresh_drop_wrap, add="+")
 
+        for widget in (drop_frame, drop_icon, drop_label, drop_hint):
+            widget.bind("<Button-1>", self._handle_drop_click, add="+")
+            widget.bind("<Return>", self._handle_drop_click, add="+")
+            widget.bind("<space>", self._handle_drop_click, add="+")
+
         self._drop_frame = drop_frame
         self._drop_label = drop_label
         self._drop_icon = drop_icon
@@ -1010,6 +1023,8 @@ class EstimatorApp:
 
         drop_frame.bind("<Enter>", lambda _event: self._set_drop_hover(True))
         drop_frame.bind("<Leave>", lambda _event: self._set_drop_hover(False))
+        drop_frame.bind("<FocusIn>", lambda _event: self._set_drop_hover(True), add="+")
+        drop_frame.bind("<FocusOut>", lambda _event: self._set_drop_hover(False), add="+")
 
         if _DND_AVAILABLE:
             drop_frame.drop_target_register(DND_FILES)  # type: ignore[attr-defined]
@@ -1017,8 +1032,8 @@ class EstimatorApp:
             drop_frame.dnd_bind("<<DragEnter>>", lambda _event: self._set_drop_hover(True))  # type: ignore[attr-defined]
             drop_frame.dnd_bind("<<DragLeave>>", lambda _event: self._set_drop_hover(False))  # type: ignore[attr-defined]
         else:  # pragma: no cover - UI only
-            self._drop_label_default = "Drag-and-drop enhancements unavailable. Use Browse to select a workbook."
-            self._drop_hint_default = "Browse to locate a *_project_quantities.xlsx file."
+            self._drop_label_default = "Drag-and-drop enhancements unavailable. Click to select a workbook."
+            self._drop_hint_default = "Click to locate a *_project_quantities.xlsx file."
             drop_label.configure(text=self._drop_label_default)
             drop_hint.configure(text=self._drop_hint_default)
 
@@ -1075,14 +1090,6 @@ class EstimatorApp:
         self.contract_filter_entry.bind("<FocusIn>", self._handle_contract_filter_focus_in)
         self.contract_filter_entry.bind("<FocusOut>", self._handle_contract_filter_focus_out)
 
-        self.browse_button = ttk.Button(
-            input_frame,
-            text="Browse for Workbook…",
-            command=self._browse_file,
-            style="Secondary.TButton",
-        )
-        self.browse_button.grid(row=2, column=0, columnspan=3, sticky=tk.EW, pady=(14, 0))
-
         alt_seek_toggle = ttk.Checkbutton(
             input_frame,
             text="Enable alternate seek backfill (fills in prices when BidTabs is sparse)",
@@ -1090,10 +1097,10 @@ class EstimatorApp:
             style="Toggle.TCheckbutton",
             takefocus=0,
         )
-        alt_seek_toggle.grid(row=3, column=0, columnspan=3, sticky=tk.W, pady=(16, 0))
+        alt_seek_toggle.grid(row=2, column=0, columnspan=3, sticky=tk.W)
 
         button_row = ttk.Frame(input_frame, style="Glass.TFrame")
-        button_row.grid(row=4, column=0, columnspan=3, sticky=tk.EW, pady=(16, 0))
+        button_row.grid(row=3, column=0, columnspan=3, sticky=tk.EW, pady=(16, 0))
         button_row.columnconfigure(0, weight=1)
         button_row.columnconfigure(1, weight=1)
         button_row.columnconfigure(2, weight=1)
@@ -1317,7 +1324,7 @@ class EstimatorApp:
         row_index += 1
 
         checklist = [
-            "Drop or browse for the project workbook to load quantities.",
+            "Drop or click the project workbook area to load quantities.",
             "Confirm the district and Estimated Total Contract Cost selections reflect the active bid context.",
             "Use the contract filter to narrow BidTabs history if needed.",
             "Click Run Estimate and monitor the Run Log for pipeline updates.",
@@ -1422,7 +1429,7 @@ class EstimatorApp:
                     """
                     The estimator helps you turn a quantity spreadsheet into a bid-ready cost summary.
 
-                    1. Start by dropping the *_project_quantities workbook into the large drop area or use the browse button. The app reads each pay item and quantity so you do not have to re-type them.
+                    1. Start by dropping the *_project_quantities workbook into the large drop area or click it to browse for the file. The app reads each pay item and quantity so you do not have to re-type them.
                     2. Choose the district and enter the Estimated Total Contract Cost range. That lets the estimator look up similar historical jobs.
                     3. Click Run Estimate. The run log shows what the tool is doing. When it finishes you will get a polished Excel report with pricing guidance.
 
@@ -2293,8 +2300,22 @@ class EstimatorApp:
         if self._selected_path is None:
             self._update_drop_target(None)
 
+    def _set_drop_enabled(self, enabled: bool) -> None:
+        self._drop_enabled = enabled
+        cursor = "arrow" if not enabled else "hand2"
+        frame = self._drop_frame
+        for widget in (frame, self._drop_icon, self._drop_label, self._drop_hint):
+            if widget is None:
+                continue
+            try:
+                widget.configure(cursor=cursor)
+            except tk.TclError:
+                continue
+        if frame is not None:
+            frame.configure(takefocus=0 if not enabled else 1)
+
     def _update_drop_target(self, selected: Optional[Path]) -> None:
-        if not hasattr(self, "_drop_frame") or not hasattr(self, "_drop_label"):
+        if self._drop_frame is None or self._drop_label is None:
             return
 
         if selected is None:
@@ -2533,14 +2554,14 @@ class EstimatorApp:
     def _set_running(self, running: bool) -> None:
         if running:
             self._pipeline_started_at = datetime.now()
-            self.browse_button.configure(state=tk.DISABLED)
+            self._set_drop_enabled(False)
             self._set_status(
                 "Running estimator…",
                 "Processing workbook data and building pricing intelligence.",
                 "accent_active",
             )
         else:
-            self.browse_button.configure(state=tk.NORMAL)
+            self._set_drop_enabled(True)
             self._update_run_button_state()
         self._refresh_workflow_snapshot()
 
@@ -2693,12 +2714,20 @@ class EstimatorApp:
         self._refresh_workflow_snapshot()
 
     def _handle_drop(self, event: tk.Event) -> None:  # pragma: no cover - UI event
+        if not self._drop_enabled:
+            return
+
         paths = _split_dropped_paths(getattr(event, "data", ""))
         for path in paths:
             if path.is_file() and path.name.endswith("_project_quantities.xlsx"):
                 self._select_workbook(path)
                 return
         messagebox.showerror("Invalid file", "Please drop a *_project_quantities.xlsx workbook.")
+
+    def _handle_drop_click(self, _event: Optional[tk.Event] = None) -> None:  # pragma: no cover - UI event
+        if not self._drop_enabled:
+            return
+        self._browse_file()
 
     def _browse_file(self) -> None:  # pragma: no cover - UI event
         initial_dir = self._current_path.parent if self._current_path else os.getcwd()
