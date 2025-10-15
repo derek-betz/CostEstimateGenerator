@@ -303,7 +303,6 @@ class EstimatorApp:
         self.district_var = tk.StringVar()
         self.contract_filter_var = tk.StringVar(value="50")
         self.alt_seek_var = tk.BooleanVar(value=True)
-        self.visuals_var = tk.BooleanVar(value=False)
         self._last_valid_contract_filter = 50.0
         self._snapshot_tag_var = tk.StringVar(value="Idle")
         self._snapshot_status_var = tk.StringVar(value="Waiting for workbook selection.")
@@ -1093,23 +1092,8 @@ class EstimatorApp:
         )
         alt_seek_toggle.grid(row=3, column=0, columnspan=3, sticky=tk.W, pady=(16, 0))
 
-        visuals_toggle = ttk.Checkbutton(
-            input_frame,
-            text="Generate charts",
-            variable=self.visuals_var,
-            style="Toggle.TCheckbutton",
-            takefocus=0,
-        )
-        visuals_toggle.grid(row=4, column=0, columnspan=3, sticky=tk.W, pady=(8, 0))
-
-        ttk.Label(
-            input_frame,
-            text="Create summary charts of BidTabs data used for pricing.",
-            style="StatusHint.TLabel",
-        ).grid(row=5, column=0, columnspan=3, sticky=tk.W, pady=(2, 0))
-
         button_row = ttk.Frame(input_frame, style="Glass.TFrame")
-        button_row.grid(row=6, column=0, columnspan=3, sticky=tk.EW, pady=(16, 0))
+        button_row.grid(row=4, column=0, columnspan=3, sticky=tk.EW, pady=(16, 0))
         button_row.columnconfigure(0, weight=1)
         button_row.columnconfigure(1, weight=1)
         button_row.columnconfigure(2, weight=1)
@@ -2773,8 +2757,6 @@ class EstimatorApp:
             self._append_log(
                 "Alternate seek disabled for this run; missing pay items will retain their NO DATA baseline."
             )
-        if self.visuals_var.get():
-            self._append_log("Summary charts enabled; BidTabs visuals will be emitted.")
         self._set_running(True)
         self._start_run_log_animation(path, expected_cost, district_display, region_id, contract_filter_pct)
 
@@ -2803,10 +2785,6 @@ class EstimatorApp:
             "PROJECT_REGION": os.environ.get("PROJECT_REGION"),
             "BIDTABS_CONTRACT_FILTER_PCT": os.environ.get("BIDTABS_CONTRACT_FILTER_PCT"),
             "DISABLE_ALT_SEEK": os.environ.get("DISABLE_ALT_SEEK"),
-            "EMIT_VISUALS": os.environ.get("EMIT_VISUALS"),
-            "VISUALS_DIR": os.environ.get("VISUALS_DIR"),
-            "VISUALS_FORMAT": os.environ.get("VISUALS_FORMAT"),
-            "VISUALS_TOP_N": os.environ.get("VISUALS_TOP_N"),
         }
 
         try:
@@ -2819,10 +2797,6 @@ class EstimatorApp:
                 os.environ.pop("DISABLE_ALT_SEEK", None)
             else:
                 os.environ["DISABLE_ALT_SEEK"] = "1"
-            if self.visuals_var.get():
-                os.environ["EMIT_VISUALS"] = "1"
-            else:
-                os.environ.pop("EMIT_VISUALS", None)
             with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
                 exit_code = run_estimator()
 

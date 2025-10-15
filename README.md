@@ -152,23 +152,6 @@ A convenience wrapper is available:
 python scripts/run_pipeline.py --help
 ```
 
-## Optional visuals
-
-When matplotlib is installed you can generate summary charts that highlight the
-BidTabs data powering the estimate. Visuals remain disabled by default.
-
-- **CLI**: pass `--emit-visuals` (optionally add `--visuals-format both` to
-  bundle a PDF summary and `--visuals-top-n 20` to adjust the number of
-  per-item histograms). Use `--visuals-dir` to override the output location
-  (defaults to `C:\AI\CostEstimateGenerator\outputs\visuals`).
-- **Environment**: set `EMIT_VISUALS=1` before running the pipeline. Additional
-  variables include `VISUALS_FORMAT` (`png`, `pdf`, or `both`) and
-  `VISUALS_TOP_N`.
-- **Outputs**: charts land in `outputs/visuals/` and include
-  `overall_unit_price_hist.png`, `top_items_data_points.png`, and
-  per-item histograms (`item_<CODE>_hist.png`). When PDF bundling is enabled the
-  file `BidTabs_Visual_Summary.pdf` is created alongside the images.
-
 ## Testing
 
 Run the automated test suite with:
