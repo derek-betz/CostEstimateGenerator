@@ -1,0 +1,35 @@
+{
+  "memo_page_url": "https://www.in.gov/dot/div/contracts/standards/memos/memos.html",
+  "polling_interval_days": 30,
+  "storage_root": "references/memos",
+  "raw_directory": "references/memos/raw",
+  "processed_directory": "references/memos/processed",
+  "digests_directory": "references/memos/digests",
+  "state_file": "references/memos/state.json",
+  "index_file": "references/memos/index.json",
+  "notification": {
+    "enabled": true,
+    "sender": "noreply@example.com",
+    "recipients": [
+      "dbetz@hanson-inc.com"
+    ],
+    "smtp": {
+      "host": "smtp.example.com",
+      "port": 587,
+      "use_tls": true,
+      "username": "",
+      "password": ""
+    }
+  },
+  "approval": {
+    "method": "email-reply",
+    "phrase_format": "Approved {memo_id}",
+    "mailbox": {
+      "host": "imap.example.com",
+      "port": 993,
+      "username": "",
+      "password": "",
+      "folder": "INBOX"
+    }
+  }
+}
