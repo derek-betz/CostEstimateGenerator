@@ -270,6 +270,7 @@ def apply_non_geometry_fallbacks(
 
         mapping = design_memos.get_obsolete_mapping(norm_code)
         if mapping is None or not mapping.get("obsolete_codes"):
+            # Nothing worked: record insufficiency and keep NO_DATA
             if summary_reason:
                 detail = f"Unit Price Summary insufficient ({summary_reason})."
                 row["NOTES"] = " | ".join(part for part in (existing_note, detail) if part)
@@ -1056,6 +1057,12 @@ def run(config: Optional["CLIConfig"] = None) -> int:
 
     print("\n=== SUMMARY ===\n")
     print(make_summary_text(df))
+    # Extra count for alternates
+    try:
+        alt_count = int(df.get("ALTERNATE_USED", pd.Series([False]*len(df))).fillna(False).astype(bool).sum())
+        print(f"Alternates used: {alt_count}")
+    except Exception:
+        pass
     print("\nInputs used:")
     print(" - BidTabs folder:", BIDFOLDER)
     print(" - Quantities file:", Path(qty_path).resolve())

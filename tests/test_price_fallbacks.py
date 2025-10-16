@@ -129,3 +129,6 @@ def test_confidence_generated_for_fallback(tmp_path, monkeypatch):
     audit_df = pd.read_csv(audit_path)
     assert "CONFIDENCE" in audit_df.columns
     assert (audit_df["CONFIDENCE"].between(0.0, 1.0)).all()
+
+
+    pass  # placeholder to keep line numbers stable if needed

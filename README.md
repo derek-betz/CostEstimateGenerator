@@ -177,3 +177,29 @@ CostEstimateGenerator/
 
 The project is designed to be idempotent: running the pipeline multiple times
 with the same inputs produces consistent outputs.
+
+## Pricing fallback tiers and configuration
+
+When estimating unit prices, the pipeline uses the following tiers in order:
+
+1. Historical category mix (BidTabs):
+   - District and statewide windows (12/24/36 months) aggregated using the configured method.
+2. Design memo rollup:
+   - Uses officially replaced/rolled-up item codes to form a pooled set and applies the same adjustments.
+3. Unit Price Summary (UPS):
+  - Falls back to the statewide weighted average for the specific item when sufficient UPS contracts exist.
+4. NO_DATA:
+   - If none of the above tiers apply, the item remains with a $0.00 placeholder and a review note.
+
+Notes and metrics:
+- Fallback tiers annotate SOURCE (e.g., `DESIGN_MEMO_ROLLUP`, `UNIT_PRICE_SUMMARY`) and add details in NOTES.
+- Confidence is computed in the exports to help triage low-data items.
+
+Configuration toggles:
+- Alternate-seek toggle (geometry-based backfill):
+  - Environment: `DISABLE_ALT_SEEK=1` to disable.
+  - GUI: “Enable alternate seek backfill” checkbox.
+  
+
+Dashboard / summary:
+- The run summary now includes a count of items priced via alternates.

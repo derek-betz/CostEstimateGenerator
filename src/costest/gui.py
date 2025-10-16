@@ -1099,8 +1099,10 @@ class EstimatorApp:
         )
         alt_seek_toggle.grid(row=2, column=0, columnspan=3, sticky=tk.W)
 
+        
+
         button_row = ttk.Frame(input_frame, style="Glass.TFrame")
-        button_row.grid(row=3, column=0, columnspan=3, sticky=tk.EW, pady=(16, 0))
+        button_row.grid(row=4, column=0, columnspan=3, sticky=tk.EW, pady=(16, 0))
         button_row.columnconfigure(0, weight=1)
         button_row.columnconfigure(1, weight=1)
         button_row.columnconfigure(2, weight=1)
@@ -2036,6 +2038,27 @@ class EstimatorApp:
                 duration_metric["detail"] = f"Completed {self._format_relative_time(self._last_run_completed_at)}"
             metrics.append(duration_metric)
 
+    # Extract count for alternates from CLI summary line
+        try:
+            all_lines: List[str] = []
+            all_lines.extend(summary_lines)
+            all_lines.extend(parsed.get("footer_full") or [])
+            all_lines.extend(parsed.get("footer") or [])
+            all_lines.extend(parsed.get("other") or [])
+            import re as _re
+            count_line = next((ln for ln in all_lines if "alternates used" in ln.lower()), None)
+            if count_line:
+                m_alt = _re.search(r"Alternates used:\s*(\d+)", count_line, _re.IGNORECASE)
+                if m_alt:
+                    metrics.append({
+                        "label": "Alternates Used",
+                        "value": m_alt.group(1),
+                        "detail": "Geometry-based backfill",
+                    })
+                # Section surrogate metric removed
+        except Exception:
+            pass
+
         return metrics, coverage_blurb
 
     def _extract_completion_sections(
@@ -2826,6 +2849,7 @@ class EstimatorApp:
                 os.environ.pop("DISABLE_ALT_SEEK", None)
             else:
                 os.environ["DISABLE_ALT_SEEK"] = "1"
+            # Section surrogate env toggle removed
             with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
                 exit_code = run_estimator()
 
