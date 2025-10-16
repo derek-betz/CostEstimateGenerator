@@ -192,16 +192,36 @@ def apply_non_geometry_fallbacks(
         if existing_note.upper().startswith("NO DATA"):
             existing_note = ""
 
+        # Precompute Unit Price Summary sufficiency (for notes and fallback), but do not apply yet
         summary_info = summary_lookup.get(norm_code)
-        summary_used = False
         summary_reason = ""
+        summary_eligible = False
         if summary_info:
             try:
-                base_price = float(summary_info.get("weighted_average", 0) or 0)
+                _sum_base_price = float(summary_info.get("weighted_average", 0) or 0)
             except Exception:
-                base_price = 0.0
-            contracts = int(float(summary_info.get("contracts", 0) or 0))
-            if base_price > 0 and contracts >= 3:
+                _sum_base_price = 0.0
+            _sum_contracts = int(float(summary_info.get("contracts", 0) or 0))
+            if _sum_base_price > 0 and _sum_contracts >= 3:
+                summary_eligible = True
+            else:
+                reasons = []
+                if _sum_base_price <= 0:
+                    reasons.append("weighted average unavailable")
+                if _sum_contracts < 3:
+                    reasons.append(f"contracts={_sum_contracts}")
+                summary_reason = ", ".join(reasons)
+
+        # Try Design Memo Rollup first
+        mapping = design_memos.get_obsolete_mapping(norm_code)
+        if mapping is None or not mapping.get("obsolete_codes"):
+            # No design memo mapping; try summary if eligible, else remain NO_DATA with context.
+            if summary_eligible and summary_info:
+                try:
+                    base_price = float(summary_info.get("weighted_average", 0) or 0)
+                except Exception:
+                    base_price = 0.0
+                contracts = int(float(summary_info.get("contracts", 0) or 0))
                 quantity_factor = 1.0
                 quantity_note = ""
                 if qty_val > 0:
@@ -257,27 +277,16 @@ def apply_non_geometry_fallbacks(
                     notes_parts.append("clamped to summary range")
                 fallback_note = "; ".join(part for part in notes_parts if part)
                 row["NOTES"] = " | ".join(part for part in (existing_note, fallback_note) if part)
-                summary_used = True
+                continue
             else:
-                reasons = []
-                if base_price <= 0:
-                    reasons.append("weighted average unavailable")
-                if contracts < 3:
-                    reasons.append(f"contracts={contracts}")
-                summary_reason = ", ".join(reasons)
-        if summary_used:
-            continue
-
-        mapping = design_memos.get_obsolete_mapping(norm_code)
-        if mapping is None or not mapping.get("obsolete_codes"):
-            # Nothing worked: record insufficiency and keep NO_DATA
-            if summary_reason:
-                detail = f"Unit Price Summary insufficient ({summary_reason})."
-                row["NOTES"] = " | ".join(part for part in (existing_note, detail) if part)
-            row["SOURCE"] = row.get("SOURCE") or "NO_DATA"
-            row["STD_DEV"] = float("nan")
-            row["COEF_VAR"] = float("nan")
-            continue
+                # Nothing worked: record insufficiency and keep NO_DATA
+                if summary_reason:
+                    detail = f"Unit Price Summary insufficient ({summary_reason})."
+                    row["NOTES"] = " | ".join(part for part in (existing_note, detail) if part)
+                row["SOURCE"] = row.get("SOURCE") or "NO_DATA"
+                row["STD_DEV"] = float("nan")
+                row["COEF_VAR"] = float("nan")
+                continue
 
         target_quantity = qty_val if qty_val > 0 else None
         base_price, obs_count, source_label = memo_rollup_price(
@@ -294,17 +303,82 @@ def apply_non_geometry_fallbacks(
             target_quantity=target_quantity,
         )
         if obs_count == 0 or memo_pool.empty or not math.isfinite(base_price) or base_price <= 0:
-            memo_codes = "+".join(mapping["obsolete_codes"])
-            detail = (
-                f"Design memo {mapping['memo_id']} pooling insufficient ({memo_codes}); review manually."
-            )
-            if summary_reason:
-                detail = f"Unit Price Summary insufficient ({summary_reason}); " + detail
-            row["NOTES"] = " | ".join(part for part in (existing_note, detail) if part)
-            row["SOURCE"] = row.get("SOURCE") or "NO_DATA"
-            row["STD_DEV"] = float("nan")
-            row["COEF_VAR"] = float("nan")
-            continue
+            # DM insufficient: attempt Unit Price Summary if eligible; otherwise record insufficiency and NO_DATA
+            if summary_eligible and summary_info:
+                try:
+                    sum_base = float(summary_info.get("weighted_average", 0) or 0)
+                except Exception:
+                    sum_base = 0.0
+                contracts = int(float(summary_info.get("contracts", 0) or 0))
+                quantity_factor = 1.0
+                quantity_note = ""
+                if qty_val > 0:
+                    try:
+                        total_value = float(summary_info.get("total_value", 0) or 0)
+                    except Exception:
+                        total_value = 0.0
+                    typical_per_contract = 0.0
+                    if sum_base > 0 and total_value > 0 and contracts > 0:
+                        total_qty = total_value / sum_base
+                        typical_per_contract = total_qty / contracts if contracts else 0.0
+                    if typical_per_contract > 0:
+                        ratio = qty_val / typical_per_contract
+                        if ratio >= 2.0:
+                            quantity_factor = 0.95
+                            quantity_note = "quantity adj=-5%"
+                        elif ratio <= 0.5:
+                            quantity_factor = 1.05
+                            quantity_note = "quantity adj=+5%"
+                combined_raw = recency_factor * region_factor * quantity_factor
+                combined_factor, capped = _clamp_factor(combined_raw)
+                adjusted_price = sum_base * combined_factor
+                clamp_applied = False
+                try:
+                    lowest = float(summary_info.get("lowest", 0) or 0)
+                except Exception:
+                    lowest = 0.0
+                try:
+                    highest = float(summary_info.get("highest", 0) or 0)
+                except Exception:
+                    highest = 0.0
+                if lowest > 0 and adjusted_price < lowest:
+                    adjusted_price = lowest
+                    clamp_applied = True
+                if highest > 0 and highest >= lowest and adjusted_price > highest:
+                    adjusted_price = highest
+                    clamp_applied = True
+                row["UNIT_PRICE_EST"] = _round_unit_price(adjusted_price)
+                row["SOURCE"] = "UNIT_PRICE_SUMMARY"
+                row["DATA_POINTS_USED"] = contracts
+                row["STD_DEV"] = float("nan")
+                row["COEF_VAR"] = float("nan")
+                memo_codes_fallback = "+".join(mapping["obsolete_codes"])
+                notes_parts = [
+                    f"Design memo {mapping['memo_id']} pooling insufficient ({memo_codes_fallback}); review manually.",
+                    f"UNIT_PRICE_SUMMARY CY{int(summary_info.get('year', 0) or 0)} (contracts={contracts})",
+                    _format_factor("recency", recency_factor, recency_meta),
+                    _format_factor("region", region_factor, region_meta),
+                ]
+                if quantity_note:
+                    notes_parts.append(quantity_note)
+                if capped:
+                    notes_parts.append("combined adj capped at +/-25%")
+                if clamp_applied:
+                    notes_parts.append("clamped to summary range")
+                row["NOTES"] = " | ".join(part for part in (existing_note, "; ".join(notes_parts)) if part)
+                continue
+            else:
+                memo_codes = "+".join(mapping["obsolete_codes"])
+                detail = (
+                    f"Design memo {mapping['memo_id']} pooling insufficient ({memo_codes}); review manually."
+                )
+                if summary_reason:
+                    detail = f"Unit Price Summary insufficient ({summary_reason}); " + detail
+                row["NOTES"] = " | ".join(part for part in (existing_note, detail) if part)
+                row["SOURCE"] = row.get("SOURCE") or "NO_DATA"
+                row["STD_DEV"] = float("nan")
+                row["COEF_VAR"] = float("nan")
+                continue
 
         quantity_factor = 1.0
         quantity_note = ""
