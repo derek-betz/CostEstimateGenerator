@@ -43,8 +43,11 @@ The following packages are installed via `requirements.txt` or `pyproject.toml`:
   after `DATA_POINTS_USED` and populating them for every row.
 - Produces a debug mapping report at `outputs/payitem_mapping_debug.csv` showing
   how item codes were matched to historical sources.
- - Supports `--dry-run` mode and optional AI assistance that can be disabled
-   via CLI flags or the `DISABLE_OPENAI=1` environment variable.
+- Supports `--dry-run` mode and optional AI assistance that can be disabled
+  via CLI flags or the `DISABLE_OPENAI=1` environment variable.
+- Automates retrieval of INDOT Active Design Memos, producing structured
+  summaries under `references/memos/processed/` and Markdown digests in
+  `references/memos/digests/` to highlight pay-item updates for review.
 
 ## Fallback pricing
 

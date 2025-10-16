@@ -1,0 +1,48 @@
+name: INDOT Memo Monitor
+
+on:
+  schedule:
+    - cron: '0 11 * * 1'  # Every Monday at 11:00 UTC
+  workflow_dispatch:
+
+jobs:
+  memo-ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run memo ingestion pipeline
+        env:
+          SMTP_HOST: ${{ secrets.MEMO_SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.MEMO_SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.MEMO_SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.MEMO_SMTP_PASSWORD }}
+          SMTP_SENDER: ${{ secrets.MEMO_SMTP_SENDER }}
+          IMAP_HOST: ${{ secrets.MEMO_IMAP_HOST }}
+          IMAP_PORT: ${{ secrets.MEMO_IMAP_PORT }}
+          IMAP_USERNAME: ${{ secrets.MEMO_IMAP_USERNAME }}
+          IMAP_PASSWORD: ${{ secrets.MEMO_IMAP_PASSWORD }}
+        run: |
+          python scripts/memos/run_pipeline.py --verbose --no-notify
+
+      - name: Upload memo artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: memo-artifacts
+          path: |
+            references/memos/raw
+            references/memos/processed
+            references/memos/digests
+          if-no-files-found: ignore
