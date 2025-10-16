@@ -35,6 +35,10 @@ class ParsedMemo:
     source_pdf: Path
     summary_path: Path
     digest_path: Path
+    text_path: Path
+    highlights: Dict[str, List[str]]
+    metadata: Dict[str, str]
+    ai_digest_path: Path | None = None
     highlights: Dict[str, List[str]]
     metadata: Dict[str, str]
 
@@ -76,12 +80,16 @@ class MemoParser:
         text = self._extract_text(pdf_path)
         highlights = self._extract_highlights(text)
 
+        text_path = self.config.processed_directory / f"{record.memo_id}.txt"
+        text_path.write_text(text, encoding="utf-8")
+
         metadata = {
             "memo_id": record.memo_id,
             "source_pdf": str(pdf_path),
             "checksum": record.checksum,
             "extracted_at": datetime.now().astimezone().strftime(ISO_FORMAT),
             "character_count": str(len(text)),
+            "text_path": str(text_path),
         }
 
         summary_path = self.config.processed_directory / f"{record.memo_id}.json"
@@ -108,6 +116,7 @@ class MemoParser:
             source_pdf=pdf_path,
             summary_path=summary_path,
             digest_path=digest_path,
+            text_path=text_path,
             highlights=highlights,
             metadata=metadata,
         )

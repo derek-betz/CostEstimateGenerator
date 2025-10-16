@@ -23,3 +23,13 @@ environment variables when running the scripts or GitHub Action:
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_SENDER`,
   `SMTP_RECIPIENTS`
 - `IMAP_HOST`, `IMAP_PORT`, `IMAP_USERNAME`, `IMAP_PASSWORD`, `IMAP_FOLDER`
+
+## AI-assisted review
+
+An optional OpenAI-assisted reviewer expands each digest with reasoning-based
+insights. Enable it via the `ai` section in `config.json`. By default the
+automation reads the API key from `C:\AI\CostEstimateGenerator\API_KEY\API_KEY.txt`;
+adjust the path if the key is stored elsewhere or set the `OPENAI_API_KEY`
+environment variable. When enabled, AI feedback is written next to the
+human-readable digest and the
+summary JSON gains an `ai_analysis` block that downstream tooling can inspect.

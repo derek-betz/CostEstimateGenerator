@@ -17,3 +17,7 @@ poetry run python scripts/memos/prepare_approved.py --verbose
 
 Configuration is sourced from `references/memos/config.json`. Update that file
 with valid SMTP/IMAP credentials before enabling notifications or approvals.
+To activate AI-assisted memo reviews, keep the `ai.enabled` flag set to `true`
+and ensure the OpenAI API key can be read from the configured path (defaults to
+`C:\AI\CostEstimateGenerator\API_KEY\API_KEY.txt`) or via the
+`OPENAI_API_KEY` environment variable.

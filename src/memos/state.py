@@ -20,6 +20,7 @@ class MemoRecord:
     processed: bool = False
     processed_at: Optional[str] = None
     summary_path: Optional[str] = None
+    ai_digest_path: Optional[str] = None
     approved: bool = False
     approved_at: Optional[str] = None
 
@@ -72,6 +73,8 @@ class MemoState:
             data["processed_at"] = record.processed_at
         if record.summary_path:
             data["summary_path"] = record.summary_path
+        if record.ai_digest_path:
+            data["ai_digest_path"] = record.ai_digest_path
         if record.approved:
             data["approved"] = record.approved
         if record.approved_at:

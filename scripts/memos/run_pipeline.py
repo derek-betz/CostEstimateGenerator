@@ -44,6 +44,7 @@ def main() -> None:
         "fetched": len(result.fetched),
         "downloaded": [record.memo_id for record in result.downloaded],
         "parsed": [memo.memo_id for memo in result.parsed],
+        "ai_reviews": [review.memo_id for review in result.ai_reviews],
     }
     print(json.dumps(summary, indent=2))
 

@@ -1,5 +1,7 @@
 """Automation toolkit for ingesting INDOT Active Design Memos."""
 
+from .ai import AIReview, MemoAIReviewer
+from .config import AIConfig, MemoConfig
 from .config import MemoConfig
 from .state import MemoState
 from .scraper import MemoScraper
@@ -10,6 +12,9 @@ from .approval import ApprovalChecker
 from .indexer import MemoIndexer
 
 __all__ = [
+    "AIReview",
+    "AIConfig",
+    "MemoAIReviewer",
     "MemoConfig",
     "MemoState",
     "MemoScraper",

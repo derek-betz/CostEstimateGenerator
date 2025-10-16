@@ -31,5 +31,12 @@
       "password": "",
       "folder": "INBOX"
     }
+  },
+  "ai": {
+    "enabled": true,
+    "provider": "openai",
+    "api_key_path": "C:\\AI\\CostEstimateGenerator\\API_KEY\\API_KEY.txt",
+    "model": "gpt-4o-mini",
+    "max_context_chars": 15000
   }
 }

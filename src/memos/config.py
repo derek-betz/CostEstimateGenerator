@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -13,6 +14,7 @@ except ImportError:  # pragma: no cover - executed when PyYAML is unavailable
     yaml = None
 
 DEFAULT_CONFIG_PATH = Path("references/memos/config.json")
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
@@ -49,6 +51,36 @@ class NotificationConfig:
 
 
 @dataclass
+class AIConfig:
+    enabled: bool = False
+    provider: str = "openai"
+    api_key_path: Path | None = Path(r"C:\AI\CostEstimateGenerator\API_KEY\API_KEY.txt")
+    api_key_env: str = "OPENAI_API_KEY"
+    model: str = "gpt-4o-mini"
+    system_prompt: Optional[str] = None
+    summary_template: Optional[str] = None
+    max_context_chars: int = 15000
+
+    def resolve_api_key(self) -> Optional[str]:
+        """Return the API key from the environment or configured file."""
+        if self.api_key_env and self.api_key_env in os.environ:
+            token = os.environ[self.api_key_env].strip()
+            if token:
+                return token
+        if self.api_key_path:
+            try:
+                content = Path(self.api_key_path).expanduser().read_text(encoding="utf-8")
+            except FileNotFoundError:
+                return None
+            except OSError:
+                LOGGER.debug("Unable to read AI API key from %s", self.api_key_path)
+                return None
+            token = content.strip()
+            return token or None
+        return None
+
+
+@dataclass
 class MemoConfig:
     memo_page_url: str
     polling_interval_days: int = 30
@@ -60,6 +92,7 @@ class MemoConfig:
     index_file: Path = Path("references/memos/index.json")
     notification: NotificationConfig = field(default_factory=NotificationConfig)
     approval: ApprovalConfig = field(default_factory=ApprovalConfig)
+    ai: AIConfig = field(default_factory=AIConfig)
 
     @classmethod
     def load(cls, path: Path | None = None) -> "MemoConfig":
@@ -85,6 +118,7 @@ class MemoConfig:
     def from_dict(cls, raw: dict) -> "MemoConfig":
         notification = raw.get("notification") or {}
         approval = raw.get("approval") or {}
+        ai = raw.get("ai") or {}
 
         smtp_cfg = None
         if notification.get("smtp"):
@@ -123,6 +157,23 @@ class MemoConfig:
             mailbox=mailbox_cfg,
         )
 
+        default_ai = AIConfig()
+        api_key_path = (
+            Path(ai["api_key_path"]).expanduser()
+            if ai.get("api_key_path")
+            else default_ai.api_key_path
+        )
+        ai_cfg = AIConfig(
+            enabled=bool(ai.get("enabled", False)),
+            provider=ai.get("provider", "openai"),
+            api_key_path=api_key_path,
+            api_key_env=ai.get("api_key_env", "OPENAI_API_KEY"),
+            model=ai.get("model", "gpt-4o-mini"),
+            system_prompt=ai.get("system_prompt"),
+            summary_template=ai.get("summary_template"),
+            max_context_chars=int(ai.get("max_context_chars", 15000)),
+        )
+
         return cls(
             memo_page_url=raw["memo_page_url"],
             polling_interval_days=int(raw.get("polling_interval_days", 30)),
@@ -134,6 +185,7 @@ class MemoConfig:
             index_file=Path(raw.get("index_file", "references/memos/index.json")),
             notification=notification_cfg,
             approval=approval_cfg,
+            ai=ai_cfg,
         )
 
     def ensure_directories(self) -> None:
@@ -158,6 +210,7 @@ __all__ = [
     "ApprovalConfig",
     "SMTPConfig",
     "MailboxConfig",
+    "AIConfig",
 ]
 
 
