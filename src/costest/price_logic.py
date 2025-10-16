@@ -11,6 +11,9 @@ MODE = 'WGT_AVG'
 PROJECT_REGION = os.getenv('PROJECT_REGION', '').strip()
 PROJECT_REGION = int(PROJECT_REGION) if PROJECT_REGION else None
 MIN_SAMPLE_TARGET = int(os.getenv('MIN_SAMPLE_TARGET', '50'))
+ROLLUP_QUANTITY_LOWER = float(os.getenv('MEMO_ROLLUP_QUANTITY_LOWER', '0.5'))
+ROLLUP_QUANTITY_UPPER = float(os.getenv('MEMO_ROLLUP_QUANTITY_UPPER', '1.5'))
+ROLLUP_SIGMA_THRESHOLD = float(os.getenv('MEMO_ROLLUP_SIGMA_THRESHOLD', '2.0'))
 
 CATEGORY_DEFS = [
     ('DIST_12M', 'REGION', 0, 12),
@@ -104,8 +107,8 @@ def prepare_memo_rollup_pool(
         out = out.loc[region_series == project_region].copy()
         out['REGION'] = region_series
     if target_quantity is not None and target_quantity > 0 and 'QUANTITY' in out.columns:
-        lower = 0.5 * float(target_quantity)
-        upper = 1.5 * float(target_quantity)
+        lower = ROLLUP_QUANTITY_LOWER * float(target_quantity)
+        upper = ROLLUP_QUANTITY_UPPER * float(target_quantity)
         qty_series = pd.to_numeric(out['QUANTITY'], errors='coerce')
         mask = qty_series.between(lower, upper, inclusive='both')
         out = out.loc[mask].copy()
@@ -124,12 +127,13 @@ def prepare_memo_rollup_pool(
     if 'LETTING_DATE' in out.columns and '_LET_DT' not in out.columns:
         out['_LET_DT'] = pd.to_datetime(out['LETTING_DATE'], errors='coerce')
 
-    if len(out) >= 5:
+    if len(out) >= 5 and ROLLUP_SIGMA_THRESHOLD > 0:
         prices = out['UNIT_PRICE'].astype(float)
         mean = prices.mean()
         std = prices.std(ddof=0)
         if std > 0:
-            mask = (prices >= mean - 2 * std) & (prices <= mean + 2 * std)
+            threshold = float(ROLLUP_SIGMA_THRESHOLD)
+            mask = (prices >= mean - threshold * std) & (prices <= mean + threshold * std)
             out = out.loc[mask].copy()
 
     return out

@@ -22,6 +22,7 @@ The following packages are installed via `requirements.txt` or `pyproject.toml`:
 - `openai>=1.0.0,<2.0.0` - AI assistance (optional, can be disabled)
 - `reportlab>=4.0.0,<5.0.0` - PDF generation
 - `PyPDF2==3.0.1` - PDF manipulation
+- `jsonschema>=4.19.0,<5.0.0` - Validation of memo summary payloads
 - `pytest==7.4.4` - Testing framework
 
 ### Optional Features
@@ -48,6 +49,14 @@ The following packages are installed via `requirements.txt` or `pyproject.toml`:
 - Automates retrieval of INDOT Active Design Memos, producing structured
   summaries under `references/memos/processed/` and Markdown digests in
   `references/memos/digests/` to highlight pay-item updates for review.
+- Validates processed memo JSON against `references/memos/schema/processed.schema.json`
+  so downstream tooling receives consistent metadata.
+- Supports optional failure alerts when the memo ingest CI workflow fails
+  (`notification.enabled_on_failure`) and standardises retry/backoff behaviour
+  for HTTP, SMTP, and IMAP integrations.
+- Allows design memo rollup mappings to be extended at runtime via
+  `references/memos/mappings/design_memo_mappings.csv` without modifying the
+  bundled defaults.
 
 ## Fallback pricing
 
@@ -59,10 +68,12 @@ non-geometry fallbacks:
   recency (STATE 12M vs. 24/36M) and region (DIST vs. STATE) before clamping it
   to the published low/high range.
 - **Design memo rollups** – when summary support is thin or missing, the
-  replacement code can inherit data from its obsolete counterparts.  Mappings
-  live in `src/costest/design_memos.py` (e.g., DM 25-10 pooling
-  `401-10258/401-10259` into `401-11526`).  To extend the table, add another
-  entry to the dictionary and the accessor will surface it automatically.
+  replacement code can inherit data from its obsolete counterparts.  Static
+  mappings live in `src/costest/design_memos.py` (e.g., DM 25-10 pooling
+  `401-10258/401-10259` into `401-11526`) and can be supplemented with
+  additional rows in `references/memos/mappings/design_memo_mappings.csv`
+  (columns: `memo_id,effective_date,replacement_code,obsolete_code`).  Static
+  entries win on conflicts to preserve legacy behaviour.
 
 Each fallback sets `SOURCE`, `DATA_POINTS_USED`, and detailed `NOTES` so the
 Excel and CSV outputs clearly explain how the estimate was derived.  The
@@ -197,6 +208,10 @@ When estimating unit prices, the pipeline uses the following tiers in order:
 Notes and metrics:
 - Fallback tiers annotate SOURCE (e.g., `DESIGN_MEMO_ROLLUP`, `UNIT_PRICE_SUMMARY`) and add details in NOTES.
 - Confidence is computed in the exports to help triage low-data items.
+- Quantity window and sigma trimming thresholds are configurable via
+  `MEMO_ROLLUP_QUANTITY_LOWER`, `MEMO_ROLLUP_QUANTITY_UPPER`, and
+  `MEMO_ROLLUP_SIGMA_THRESHOLD` environment variables (defaults remain 0.5/1.5
+  and ±2σ respectively).
 
 Configuration toggles:
 - Alternate-seek toggle (geometry-based backfill):

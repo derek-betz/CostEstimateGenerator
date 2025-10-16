@@ -17,9 +17,63 @@ memos, parsing them, and preparing notification artifacts. Summaries are only
 committed to the repository after explicit approval from the designated
 reviewer.
 
-Populate `config.json` with SMTP/IMAP credentials or provide them via
-environment variables when running the scripts or GitHub Action:
+## Configuration overview
+
+`config.json` (or the YAML equivalent) controls the workflow.  The following
+sections supplement the existing SMTP/IMAP credentials:
+
+- `http` and `download` – retry/backoff policy for the memo listing request and
+  individual PDF downloads. Fields include `timeout_seconds`, `retries`,
+  `backoff_factor`, and `circuit_breaker_failures`. Environment overrides:
+  `MEMO_HTTP_TIMEOUT`, `MEMO_HTTP_RETRIES`, `MEMO_HTTP_BACKOFF`,
+  `MEMO_DOWNLOAD_TIMEOUT`, `MEMO_DOWNLOAD_RETRIES`, `MEMO_DOWNLOAD_BACKOFF`.
+- `notification.enabled_on_failure` – send a short `[ALERT] Memo workflow failed`
+  email when the GitHub Action fails. Requires `notification.enabled` or a
+  `force=True` send and a valid SMTP block. Override with
+  `SMTP_NOTIFY_ON_FAILURE=1`.
+- `notification.smtp.retry` and `approval.mailbox.retry` – granular retry
+  configuration for SMTP/IMAP (same fields as HTTP). Environment overrides:
+  `SMTP_TIMEOUT`, `SMTP_RETRIES`, `SMTP_BACKOFF`, `IMAP_TIMEOUT`, `IMAP_RETRIES`,
+  `IMAP_BACKOFF`.
+- `patterns` – customise the parser’s regular expressions and keyword list
+  (`pay_item_regex`, `spec_section_regex`, `dollar_regex`, `keywords`) along
+  with `pay_item_limit` and `pay_item_frequency_guard` to control false
+  positives.
+
+Environment variables continue to supply credentials when preferred:
 
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_SENDER`,
   `SMTP_RECIPIENTS`
 - `IMAP_HOST`, `IMAP_PORT`, `IMAP_USERNAME`, `IMAP_PASSWORD`, `IMAP_FOLDER`
+
+## Processed memo schema
+
+Structured summaries are validated against
+`schema/processed.schema.json`.  Update the schema when adding fields and ensure
+tests cover the change.  Validation failures mark the memo in `state.json` with
+an error rather than aborting the run, allowing partial progress when a single
+PDF causes trouble.
+
+## Design memo mappings
+
+The static replacement-to-obsolete mapping in
+`src/costest/design_memos.py` can be augmented with
+`mappings/design_memo_mappings.csv`.  Each row should provide
+`memo_id,effective_date,replacement_code,obsolete_code`.  The loader groups
+rows by replacement code so multiple obsolete items may be listed.  When CSV
+and static mappings conflict, the static entry wins to preserve historical
+behaviour.
+
+## Troubleshooting
+
+- **Repeated network failures:** increase `retries`/`backoff_factor` in the
+  relevant section (`http`, `download`, `notification.smtp.retry`, or
+  `approval.mailbox.retry`). Circuit breakers (`circuit_breaker_failures`) stop
+  hammering endpoints after consecutive errors and log that the category was
+  skipped.
+- **Schema validation errors:** inspect the JSON written to `processed/` and the
+  corresponding error recorded in `state.json`. Adjust the schema or parser and
+  rerun once resolved.
+- **Failure alerts not sent:** ensure `notification.enabled_on_failure` is true
+  and the SMTP block is valid. Alerts respect the same retry policy as the
+  normal success notifications.

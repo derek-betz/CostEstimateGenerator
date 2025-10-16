@@ -34,7 +34,7 @@ class MemoIndexer:
             existing = next((entry for entry in index if entry["memo_id"] == record.memo_id), None)
             data = {
                 "memo_id": record.memo_id,
-                "summary_path": record.summary_path,
+                "summary_path": Path(record.summary_path).as_posix(),
                 "checksum": record.checksum,
             }
             if existing:

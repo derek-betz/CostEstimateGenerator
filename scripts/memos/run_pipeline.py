@@ -41,9 +41,13 @@ def main() -> None:
     result = workflow.run(notify=not args.no_notify)
 
     summary = {
-        "fetched": len(result.fetched),
+        "fetched": result.fetched_count,
         "downloaded": [record.memo_id for record in result.downloaded],
+        "downloaded_count": result.downloaded_count,
         "parsed": [memo.memo_id for memo in result.parsed],
+        "parsed_count": result.parsed_count,
+        "failed_parse_count": result.failed_parse_count,
+        "notified": result.notified,
     }
     print(json.dumps(summary, indent=2))
 

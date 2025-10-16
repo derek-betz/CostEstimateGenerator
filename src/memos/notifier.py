@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Iterable
 
 from .config import MemoConfig
+from .retry import CircuitBreaker, CircuitBreakerOpen, execute_with_retry
 
 LOGGER = logging.getLogger(__name__)
 
@@ -17,11 +18,25 @@ class MemoNotifier:
 
     def __init__(self, config: MemoConfig) -> None:
         self.config = config
+        retry_policy = (
+            config.notification.smtp.retry
+            if config.notification.smtp
+            else None
+        )
+        threshold = retry_policy.circuit_breaker_failures if retry_policy else 0
+        self._breaker = CircuitBreaker(threshold)
 
-    def notify(self, subject: str, body: str, attachments: Iterable[Path] | None = None) -> None:
-        if not self.config.notification.enabled:
+    def notify(
+        self,
+        subject: str,
+        body: str,
+        attachments: Iterable[Path] | None = None,
+        *,
+        force: bool = False,
+    ) -> bool:
+        if not self.config.notification.enabled and not force:
             LOGGER.info("Notifications are disabled; skipping email send")
-            return
+            return False
         smtp_cfg = self.config.notification.smtp
         if not smtp_cfg:
             raise ValueError("SMTP configuration missing for notifications")
@@ -29,7 +44,7 @@ class MemoNotifier:
             raise ValueError("Notification sender email is not configured")
         if not self.config.notification.recipients:
             LOGGER.warning("No recipients configured; notification skipped")
-            return
+            return False
 
         message = EmailMessage()
         message["Subject"] = subject
@@ -48,12 +63,34 @@ class MemoNotifier:
             )
 
         LOGGER.info("Sending memo notification to %s", message["To"])
-        with smtplib.SMTP(smtp_cfg.host, smtp_cfg.port, timeout=30) as smtp:
-            if smtp_cfg.use_tls:
-                smtp.starttls()
-            if smtp_cfg.username and smtp_cfg.password:
-                smtp.login(smtp_cfg.username, smtp_cfg.password)
-            smtp.send_message(message)
+
+        if self._breaker.is_open:
+            LOGGER.error("SMTP circuit breaker open; notification skipped")
+            return False
+
+        def _send(timeout: float) -> None:
+            with smtplib.SMTP(smtp_cfg.host, smtp_cfg.port, timeout=timeout) as smtp:
+                if smtp_cfg.use_tls:
+                    smtp.starttls()
+                if smtp_cfg.username and smtp_cfg.password:
+                    smtp.login(smtp_cfg.username, smtp_cfg.password)
+                smtp.send_message(message)
+
+        try:
+            execute_with_retry(
+                _send,
+                policy=smtp_cfg.retry,
+                description="SMTP notification send",
+                logger=LOGGER,
+                breaker=self._breaker,
+            )
+        except CircuitBreakerOpen:
+            LOGGER.error("SMTP circuit breaker open; notification skipped")
+            return False
+        except Exception as exc:  # pragma: no cover - defensive logging
+            LOGGER.error("Failed to send notification: %s", exc)
+            return False
+        return True
 
 
 __all__ = ["MemoNotifier"]

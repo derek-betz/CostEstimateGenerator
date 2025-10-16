@@ -22,6 +22,7 @@ class MemoRecord:
     summary_path: Optional[str] = None
     approved: bool = False
     approved_at: Optional[str] = None
+    error: Optional[str] = None
 
 
 @dataclass
@@ -38,10 +39,11 @@ class MemoState:
         else:
             raw = {"last_checked": None, "memos": {}}
 
-        memos = {
-            memo_id: MemoRecord(memo_id=memo_id, **data)
-            for memo_id, data in raw.get("memos", {}).items()
-        }
+        memos = {}
+        for memo_id, data in raw.get("memos", {}).items():
+            if "summary_path" in data and data["summary_path"]:
+                data["summary_path"] = Path(data["summary_path"]).as_posix()
+            memos[memo_id] = MemoRecord(memo_id=memo_id, **data)
         return cls(path=path, last_checked=raw.get("last_checked"), memos=memos)
 
     def save(self) -> None:
@@ -71,11 +73,13 @@ class MemoState:
         if record.processed_at:
             data["processed_at"] = record.processed_at
         if record.summary_path:
-            data["summary_path"] = record.summary_path
+            data["summary_path"] = Path(record.summary_path).as_posix()
         if record.approved:
             data["approved"] = record.approved
         if record.approved_at:
             data["approved_at"] = record.approved_at
+        if record.error:
+            data["error"] = record.error
         return data
 
 

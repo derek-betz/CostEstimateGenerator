@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Processed Memo Summary",
+  "type": "object",
+  "required": ["metadata", "highlights", "snippets"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": [
+        "memo_id",
+        "source_pdf",
+        "checksum",
+        "extracted_at",
+        "character_count"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "memo_id": { "type": "string" },
+        "source_pdf": { "type": "string" },
+        "checksum": { "type": "string" },
+        "extracted_at": { "type": "string" },
+        "character_count": { "type": "string" },
+        "title": { "type": "string" },
+        "effective_date": { "type": "string" },
+        "affected_spec_sections": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "replacement_item_codes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "obsolete_item_codes": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "highlights": {
+      "type": "object",
+      "required": [
+        "pay_items",
+        "spec_sections",
+        "dollar_amounts",
+        "keywords_present"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "pay_items": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "spec_sections": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "dollar_amounts": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "keywords_present": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "snippets": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

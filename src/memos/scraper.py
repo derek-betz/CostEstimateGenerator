@@ -13,6 +13,7 @@ from urllib.parse import urljoin, urlparse
 from urllib.request import Request, urlopen
 
 from .config import MemoConfig
+from .retry import CircuitBreaker, CircuitBreakerOpen, execute_with_retry
 from .state import ISO_FORMAT, MemoRecord, MemoState
 
 LOGGER = logging.getLogger(__name__)
@@ -66,14 +67,23 @@ class MemoScraper:
     def __init__(self, config: MemoConfig, state: MemoState) -> None:
         self.config = config
         self.state = state
+        self._listing_breaker = CircuitBreaker(self.config.http_retry.circuit_breaker_failures)
+        self._download_breaker = CircuitBreaker(self.config.download_retry.circuit_breaker_failures)
 
     def fetch_listing(self) -> List[ScrapedMemo]:
         LOGGER.info("Fetching memo listing: %s", self.config.memo_page_url)
         request = Request(self.config.memo_page_url, headers={"User-Agent": "Mozilla/5.0"})
         try:
-            with urlopen(request, timeout=30) as response:
-                html = response.read().decode("utf-8", errors="ignore")
-                base_url = response.geturl()
+            html, base_url = execute_with_retry(
+                lambda timeout: _read_listing(request, timeout),
+                policy=self.config.http_retry,
+                description="memo listing fetch",
+                logger=LOGGER,
+                breaker=self._listing_breaker,
+            )
+        except CircuitBreakerOpen:
+            LOGGER.error("HTTP circuit breaker open; skipping memo listing fetch")
+            return []
         except Exception as exc:  # pragma: no cover - network failures
             LOGGER.error("Unable to fetch memo listing: %s", exc)
             return []
@@ -97,6 +107,11 @@ class MemoScraper:
             if memo.memo_id in self.state.memos:
                 LOGGER.debug("Skipping known memo %s", memo.memo_id)
                 continue
+            if self._download_breaker.is_open:
+                LOGGER.error(
+                    "Download circuit breaker open; skipping remaining memo downloads"
+                )
+                break
             record = self._download_memo(memo)
             if record:
                 self.state.register_memo(record)
@@ -107,14 +122,22 @@ class MemoScraper:
         LOGGER.info("Downloading memo %s", memo.url)
         request = Request(memo.url, headers={"User-Agent": "Mozilla/5.0"})
         try:
-            with urlopen(request, timeout=60) as response:
-                content = response.read()
+            content = execute_with_retry(
+                lambda timeout: _read_binary(request, timeout),
+                policy=self.config.download_retry,
+                description=f"memo download {memo.memo_id}",
+                logger=LOGGER,
+                breaker=self._download_breaker,
+            )
+        except CircuitBreakerOpen:
+            LOGGER.error("Download circuit breaker open; skipping memo %s", memo.memo_id)
+            return None
         except Exception as exc:  # pragma: no cover - network failures
             LOGGER.error("Failed to download %s: %s", memo.url, exc)
             return None
 
         checksum = hashlib.sha256(content).hexdigest()
-        target_path = self.config.raw_directory / memo.filename
+        target_path = (self.config.raw_directory / Path(memo.filename).name).resolve()
         target_path.parent.mkdir(parents=True, exist_ok=True)
         with target_path.open("wb") as f:
             f.write(content)
@@ -133,11 +156,11 @@ class MemoScraper:
         parsed = urlparse(url)
         filename = Path(parsed.path).name
         basename = PDF_PATTERN.sub("", filename)
-        normalized = basename.replace(" ", "-")
+        normalized = _normalize_memo_id(basename)
         if date_match := DATE_PATTERN.search(text):
             year, month = date_match.groups()
             normalized = f"{year}-{int(month):02d}-adm"
-        return normalized.lower()
+        return _normalize_memo_id(normalized)
 
     def _filename_from_url(self, url: str, memo_id: str) -> str:
         parsed = urlparse(url)
@@ -155,3 +178,21 @@ class MemoScraper:
 
 
 __all__ = ["MemoScraper", "ScrapedMemo"]
+
+
+def _read_listing(request: Request, timeout: float) -> tuple[str, str]:
+    with urlopen(request, timeout=timeout) as response:
+        html = response.read().decode("utf-8", errors="ignore")
+        base_url = response.geturl()
+    return html, base_url
+
+
+def _read_binary(request: Request, timeout: float) -> bytes:
+    with urlopen(request, timeout=timeout) as response:
+        return response.read()
+
+
+def _normalize_memo_id(value: str) -> str:
+    cleaned = re.sub(r"[^a-zA-Z0-9]+", "-", value).strip("-")
+    cleaned = cleaned or "memo"
+    return re.sub(r"-+", "-", cleaned).lower()

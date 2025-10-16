@@ -23,6 +23,8 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run memo ingestion pipeline
+        id: run_pipeline
+        continue-on-error: true
         env:
           SMTP_HOST: ${{ secrets.MEMO_SMTP_HOST }}
           SMTP_PORT: ${{ secrets.MEMO_SMTP_PORT }}
@@ -36,8 +38,39 @@ jobs:
         run: |
           python scripts/memos/run_pipeline.py --verbose --no-notify
 
+      - name: Emit failure annotation
+        if: steps.run_pipeline.outcome == 'failure'
+        run: |
+          echo "::error::INDOT memo ingestion pipeline failed. Review logs for details."
+
+      - name: Send failure notification
+        if: steps.run_pipeline.outcome == 'failure'
+        env:
+          SMTP_HOST: ${{ secrets.MEMO_SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.MEMO_SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.MEMO_SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.MEMO_SMTP_PASSWORD }}
+          SMTP_SENDER: ${{ secrets.MEMO_SMTP_SENDER }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from memos import MemoConfig, MemoNotifier
+
+          config = MemoConfig.load(Path("references/memos/config.json"))
+          if config.notification.enabled_on_failure and config.notification.smtp:
+              notifier = MemoNotifier(config)
+              notifier.notify(
+                  subject="[ALERT] Memo workflow failed",
+                  body="The scheduled memo ingestion workflow failed. Check GitHub Actions logs for details.",
+                  attachments=[],
+                  force=True,
+              )
+          else:
+              print("Failure notifications are disabled or SMTP not configured; skipping alert.")
+          PY
+
       - name: Upload memo artifacts
-        if: success()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: memo-artifacts
@@ -46,3 +79,7 @@ jobs:
             references/memos/processed
             references/memos/digests
           if-no-files-found: ignore
+
+      - name: Fail job when pipeline failed
+        if: steps.run_pipeline.outcome == 'failure'
+        run: exit 1

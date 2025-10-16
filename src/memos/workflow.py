@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable, List
 
@@ -20,6 +20,16 @@ class WorkflowResult:
     fetched: List[ScrapedMemo]
     downloaded: List[MemoRecord]
     parsed: List[ParsedMemo]
+    failed_parse_count: int = 0
+    notified: bool = False
+    fetched_count: int = field(init=False)
+    downloaded_count: int = field(init=False)
+    parsed_count: int = field(init=False)
+
+    def __post_init__(self) -> None:
+        self.fetched_count = len(self.fetched)
+        self.downloaded_count = len(self.downloaded)
+        self.parsed_count = len(self.parsed)
 
 
 class MemoWorkflow:
@@ -38,15 +48,32 @@ class MemoWorkflow:
         listing = self.scraper.fetch_listing()
         downloaded = self.scraper.download_new_memos(listing)
         parsed = self.parser.parse_new_memos(downloaded)
+        failed_parse = getattr(self.parser, "last_failed_count", 0)
         self.state.update_last_checked()
         self.state.save()
 
+        notification_sent = False
         if notify and parsed:
-            self._send_notification(parsed)
+            notification_sent = self._send_notification(parsed)
 
-        return WorkflowResult(fetched=listing, downloaded=downloaded, parsed=parsed)
+        result = WorkflowResult(
+            fetched=listing,
+            downloaded=downloaded,
+            parsed=parsed,
+            failed_parse_count=failed_parse,
+            notified=notification_sent,
+        )
+        LOGGER.info(
+            "Workflow summary: fetched=%d downloaded=%d parsed=%d failed=%d notified=%s",
+            result.fetched_count,
+            result.downloaded_count,
+            result.parsed_count,
+            result.failed_parse_count,
+            "yes" if result.notified else "no",
+        )
+        return result
 
-    def _send_notification(self, parsed: Iterable[ParsedMemo]) -> None:
+    def _send_notification(self, parsed: Iterable[ParsedMemo]) -> bool:
         lines = ["New INDOT Active Design Memos detected:"]
         attachments: List[Path] = []
         for memo in parsed:
@@ -54,7 +81,11 @@ class MemoWorkflow:
             attachments.append(memo.digest_path)
         lines.append("\nPlease review the attached digests. Reply with the configured approval phrase to approve ingestion.")
         subject = f"{len(attachments)} new INDOT memo(s) ready for review"
-        self.notifier.notify(subject=subject, body="\n".join(lines), attachments=attachments)
+        return self.notifier.notify(
+            subject=subject,
+            body="\n".join(lines),
+            attachments=attachments,
+        )
 
 
 __all__ = ["MemoWorkflow", "WorkflowResult"]
