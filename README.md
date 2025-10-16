@@ -48,9 +48,6 @@ The following packages are installed via `requirements.txt` or `pyproject.toml`:
 - Automates retrieval of INDOT Active Design Memos, producing structured
   summaries under `references/memos/processed/` and Markdown digests in
   `references/memos/digests/` to highlight pay-item updates for review.
-- Enriches new memos with optional AI reasoning sourced from the repository API
-  key file at `C:\AI\CostEstimateGenerator\API_KEY\API_KEY.txt`, appending a
-  reviewer-friendly synopsis to each digest.
 
 ## Fallback pricing
 

@@ -39,6 +39,8 @@ class ParsedMemo:
     highlights: Dict[str, List[str]]
     metadata: Dict[str, str]
     ai_digest_path: Path | None = None
+    highlights: Dict[str, List[str]]
+    metadata: Dict[str, str]
 
 
 class MemoParser:

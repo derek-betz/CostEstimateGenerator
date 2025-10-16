@@ -2,6 +2,7 @@
 
 from .ai import AIReview, MemoAIReviewer
 from .config import AIConfig, MemoConfig
+from .config import MemoConfig
 from .state import MemoState
 from .scraper import MemoScraper
 from .parser import MemoParser
