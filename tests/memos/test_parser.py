@@ -10,6 +10,7 @@ jsonschema = pytest.importorskip("jsonschema")
 from jsonschema import ValidationError
 
 from memos.parser import MemoParser
+from memos.state import MemoRecord
 
 
 def test_parse_creates_outputs(memo_config, memo_state, memo_record_factory) -> None:
@@ -48,10 +49,10 @@ def test_parse_validation_failure(monkeypatch, memo_config, memo_state, memo_rec
     if parser._validator is None:  # pragma: no cover - schema missing only when jsonschema absent
         pytest.skip("jsonschema not available")
 
-    def fail_validate(payload):
+    def fail_validate(self, payload):
         raise ValidationError("bad schema")
 
-    monkeypatch.setattr(parser._validator, "validate", fail_validate)
+    monkeypatch.setattr(type(parser._validator), "validate", fail_validate, raising=False)
 
     parsed = parser.parse_new_memos([record])
     assert parsed == []
@@ -84,3 +85,40 @@ def test_metadata_extraction(memo_config, memo_state, memo_record_factory) -> No
     assert "60001" in metadata["replacement_item_codes"]
     assert "40000" in metadata["obsolete_item_codes"]
     assert "601" in metadata["affected_spec_sections"]
+
+
+def test_parse_missing_pdf_records_error(memo_config, memo_state) -> None:
+    record = MemoRecord(
+        memo_id="missing-pdf",
+        url="https://example.com/missing.pdf",
+        checksum="deadbeef",
+        downloaded_at="2024-01-01T00:00:00+0000",
+        filename="missing.pdf",
+    )
+    parser = MemoParser(memo_config, memo_state)
+    parsed = parser.parse_new_memos([record])
+    assert parsed == []
+    state_record = memo_state.memos[record.memo_id]
+    assert state_record.processed is False
+    assert state_record.error
+    assert "not found" in state_record.error.lower()
+
+
+def test_parse_falls_back_to_matching_pdf(memo_config, memo_state, memo_record_factory) -> None:
+    text = (
+        "Memo Title\n"
+        "Effective 2024-06-01\n"
+        "Pay Item 55555 with updates.\n"
+    )
+    record = memo_record_factory("memo-fallback", text)
+    original_path = memo_config.raw_directory / record.filename
+    fallback_path = memo_config.raw_directory / "2024-06-memo-fallback-update.pdf"
+    original_path.rename(fallback_path)
+    record.filename = "missing-name.pdf"
+
+    parser = MemoParser(memo_config, memo_state)
+    parsed = parser.parse_new_memos([record])
+    assert len(parsed) == 1
+    parsed_record = parsed[0]
+    assert parsed_record.source_pdf == fallback_path
+    assert memo_state.memos[record.memo_id].processed

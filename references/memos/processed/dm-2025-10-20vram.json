@@ -1,0 +1,42 @@
+{
+  "metadata": {
+    "memo_id": "dm-2025-10-20vram",
+    "source_pdf": "references/memos/raw/DM%2025-10%20VRAM.pdf",
+    "checksum": "469c3c7dbf596c844cee11b298816b1747f8b7713f1667bc4e2b56b00027a841",
+    "extracted_at": "2025-10-16T17:24:22-0600",
+    "character_count": "3849",
+    "title": "Design Memo No. 25-10",
+    "effective_date": "September 1, 2025",
+    "affected_spec_sections": [
+      "602"
+    ]
+  },
+  "highlights": {
+    "pay_items": [
+      "10258",
+      "10259",
+      "11526",
+      "2025"
+    ],
+    "spec_sections": [
+      "602"
+    ],
+    "dollar_amounts": [],
+    "keywords_present": [
+      "pay item",
+      "specification",
+      "change",
+      "update"
+    ]
+  },
+  "snippets": [
+    "to RSP 401 -R-750, Void Reducing Asphalt \nMembrane for HMA; RSP 410 -R-751, Void Reducing Asphalt Membrane for SMA ; and RSP \n400- R-680, QC/QA Sampling and Testing on 401 and 410 Pay Items, at the February 2025 meeting.  \nThe revisions deleted requirements for using liquid asphalt sealant and added Void Reducing \nAsphalt Membrane (VRAM) requirements on all",
+    "SP 401-R- 750, Void Reducing Asphalt Membrane for HMA and RSP 410 -R-751, Void \nReducing Asphalt Membrane for SMA will be sunset and revisions incorporated into the \n2026 Standard Specifications.  \n\u2022 RSP 400 -R-680, QC/QA Sampling and Testing on 401 and 410 Pay Items will appear on the \nMay 2025 RSP menu.  For bundled contracts , the designer should fill out",
+    "ng Asphalt Membrane for Asphalt Paving  \nREVISES:  Indiana Design Manual Section 602-3.02  \nEFFECTIVE:  Lettings on or after  September 1,  2025  \nThe Standards Committee approved changes  to RSP 401 -R-750, Void Reducing Asphalt \nMembrane for HMA; RSP 410 -R-751, Void Reducing Asphalt Membrane for SMA ; and RSP \n400- R-680, QC/QA Sampling and Testing on 401",
+    "th the Final Tracings package.  For \ncontracts whose Final Tracings have been submitted, please work with your project manager to \nensure the Final Pavement Design file in ERMS is updated.  \nIDM Revisions  \nThe referenced section  of IDM Chapter 602 has been revised to reflect these changes.  \nQuestions regarding this design memo should be directed to the Of",
+    "401-10258  Joint Adhesive, Surface  LFT",
+    "401-10259  Joint Adhesive, Intermediate  LFT",
+    "401-11526  Joint Adhesive LFT The course type (surface or intermediate)",
+    "Page | 1  of 3 April 16, 2025"
+  ]
+}

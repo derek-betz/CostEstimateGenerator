@@ -32,11 +32,11 @@ EFFECTIVE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 REPLACEMENT_PATTERN = re.compile(
-    r"(?:replacement|new)\s+(?:item|pay item|code)[:\s]+(?P<code>[0-9]{4,6}[A-Za-z]?)",
+    r"(?:replacement|new)\s+(?:pay\s+item|item(?:\s+code)?|code)\s*[:\-]?\s*(?P<code>[0-9]{4,6}[A-Za-z]?)",
     re.IGNORECASE,
 )
 OBSOLETE_PATTERN = re.compile(
-    r"(?:obsolete|retired|retire)\s+(?:item|pay item|code)[:\s]+(?P<code>[0-9]{4,6}[A-Za-z]?)",
+    r"(?:obsolete|retired|retire)\s+(?:pay\s+item|item(?:\s+code)?|code)\s*[:\-]?\s*(?P<code>[0-9]{4,6}[A-Za-z]?)",
     re.IGNORECASE,
 )
 REPLACES_PATTERN = re.compile(

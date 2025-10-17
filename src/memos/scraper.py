@@ -9,7 +9,7 @@ from datetime import datetime
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Iterable, List, Optional
-from urllib.parse import urljoin, urlparse
+from urllib.parse import quote, urljoin, urlparse, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
 from .config import MemoConfig
@@ -95,6 +95,7 @@ class MemoScraper:
         scraped: List[ScrapedMemo] = []
         for href, text in parser.links:
             full_url = urljoin(base_url, href)
+            full_url = _normalise_url(full_url)
             memo_id = self._memo_id_from_link(text, full_url)
             filename = self._filename_from_url(full_url, memo_id)
             published = self._extract_date(text) or self._extract_date(filename)
@@ -120,7 +121,7 @@ class MemoScraper:
 
     def _download_memo(self, memo: ScrapedMemo) -> Optional[MemoRecord]:
         LOGGER.info("Downloading memo %s", memo.url)
-        request = Request(memo.url, headers={"User-Agent": "Mozilla/5.0"})
+        request = Request(_normalise_url(memo.url), headers={"User-Agent": "Mozilla/5.0"})
         try:
             content = execute_with_retry(
                 lambda timeout: _read_binary(request, timeout),
@@ -196,3 +197,11 @@ def _normalize_memo_id(value: str) -> str:
     cleaned = re.sub(r"[^a-zA-Z0-9]+", "-", value).strip("-")
     cleaned = cleaned or "memo"
     return re.sub(r"-+", "-", cleaned).lower()
+
+
+def _normalise_url(url: str) -> str:
+    parts = urlsplit(url)
+    path = quote(parts.path, safe="/%")
+    query = quote(parts.query, safe="=&;%+")
+    fragment = quote(parts.fragment, safe="")
+    return urlunsplit((parts.scheme, parts.netloc, path, query, fragment))

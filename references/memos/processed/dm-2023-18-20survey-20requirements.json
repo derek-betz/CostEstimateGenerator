@@ -1,0 +1,21 @@
+{
+  "metadata": {
+    "memo_id": "dm-2023-18-20survey-20requirements",
+    "source_pdf": "references/memos/raw/DM%2023-18%20Survey%20Requirements.pdf",
+    "checksum": "cbe8b2dd10e6b54412a15282521c9f9c1bb43e3b0219388513cdbf2746e9ee3a",
+    "extracted_at": "2025-10-16T17:24:24-0600",
+    "character_count": "5569",
+    "title": "Design Memo 23- 18 1 | Page"
+  },
+  "highlights": {
+    "pay_items": [],
+    "spec_sections": [],
+    "dollar_amounts": [],
+    "keywords_present": [
+      "change"
+    ]
+  },
+  "snippets": [
+    "und coordinate system .  All survey items must be electronic  and submitted to ProjectWise under \nthe appropriate Des. number.    IDM Chapter 26\n has been revised to reflect these changes.  The chapter has been reorganized for clarity.  \nA summary of revisions is included on the next page. \n For questions related to this design memo, please contact the Land"
+  ]
+}

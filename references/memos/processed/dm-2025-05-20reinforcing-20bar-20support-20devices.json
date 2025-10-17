@@ -1,0 +1,32 @@
+{
+  "metadata": {
+    "memo_id": "dm-2025-05-20reinforcing-20bar-20support-20devices",
+    "source_pdf": "references/memos/raw/DM%2025-05%20Reinforcing%20Bar%20Support%20Devices.pdf",
+    "checksum": "c27f4c5d6159b6faf9203d01dab67f7ca09aeacb63bc391fc5530e48d929b9f7",
+    "extracted_at": "2025-10-16T17:24:22-0600",
+    "character_count": "1947",
+    "title": "Design Memo No. 25-05",
+    "affected_spec_sections": [
+      "406",
+      "703"
+    ]
+  },
+  "highlights": {
+    "pay_items": [],
+    "spec_sections": [
+      "406",
+      "703"
+    ],
+    "dollar_amounts": [],
+    "keywords_present": [
+      "specification",
+      "change",
+      "update"
+    ]
+  },
+  "snippets": [
+    "05-3D and 405 -3E, Section 406-12.03(03) , \nand Figure 406 -12D [New]  \nEFFECTIVE:  Lettings on or after September 1, 2025  \nThe Standards Committee approved revisions to Standard Specifications Section 703 , Reinforcing \nBars, at the July 2024 meeting, Old Business item 3. The revisions provide an upper limit on the \nspacing of support devices and explicitl",
+    "spacing of support devices and explicitly allow bent reinforcing to be used as a support device.  \nThe cost of support devices is included in the cost of reinforcing bars.  \nThese changes will be incorporated directly into the 2026 Standard Specifications . A recurring \nspecial provision will not be issued.    \nChanges in Design Practice  \n1. Discontinue d e",
+    "d in the estimate.  \n \nIDM Re visions  \nThe referenced section s and figures in Chapter 405  and Chapter 406  have been revised to reflect \nthese changes.   Editorial revisions to update the term \u201chaunch\u201d to \u201cfillet\u201d have been incorporated \nwhere appropriate.    \nFor questions related to this design memo , please contact the Bridge Engineering Division at \nB"
+  ]
+}

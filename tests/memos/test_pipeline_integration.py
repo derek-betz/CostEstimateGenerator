@@ -112,7 +112,7 @@ def test_pipeline_integration(monkeypatch, capsys, pipeline_setup):
     assert memo_entry["processed"] is True
     processed_path = Path(memo_entry["summary_path"])
     assert processed_path.exists()
-    digest_path = Path(processed_path.with_suffix(".md"))
+    digest_path = root / "digests" / f"{processed_path.stem}.md"
     assert digest_path.exists()
 
     validator = Draft7Validator(json.loads((root / "schema" / "processed.schema.json").read_text(encoding="utf-8")))

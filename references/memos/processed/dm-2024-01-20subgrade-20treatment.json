@@ -1,0 +1,47 @@
+{
+  "metadata": {
+    "memo_id": "dm-2024-01-20subgrade-20treatment",
+    "source_pdf": "references/memos/raw/DM%2024-01%20Subgrade%20Treatment.pdf",
+    "checksum": "335f4c2af865f3d1b82618b74327f9fc0f2687dbd0f69e55b83e207232256a90",
+    "extracted_at": "2025-10-16T17:24:23-0600",
+    "character_count": "2979",
+    "title": "Design Memo No. 24-01",
+    "affected_spec_sections": [
+      "207",
+      "214",
+      "603"
+    ]
+  },
+  "highlights": {
+    "pay_items": [
+      "08268",
+      "09935",
+      "11796",
+      "12151",
+      "12498",
+      "2024"
+    ],
+    "spec_sections": [
+      "207",
+      "214",
+      "603"
+    ],
+    "dollar_amounts": [],
+    "keywords_present": [
+      "pay item",
+      "specification",
+      "update"
+    ]
+  },
+  "snippets": [
+    "with 214.  \n\u2022 IVA, 12 in. coarse aggregate with geocell confinement system in accordance with 214.  \n RSP 207 -R-781 should be included in all contracts with a subgrade treatment pay item.  The RSP \nwill be included on the February 2024 RSP Menu . \n Subgrade Treatment Recommendations  \nWhere the project geotechnical report includes a recommendation for subg",
+    "ade Treatment  \n \nREVISES:  Indiana Design Manual Section 603 -4.0  \n \n \nEFFECTIVE:  Lettings on or after June 1, 2024  \n \n \nThe Standards Committee approved revisions to Standard Specifications section 207, Subgrade, \nat the October 2023 meeting. Revisions address the desire to reduce the number of standard \nsubgrade treatments and refine the compaction and",
+    "e should be replaced with the following.  \n207-09935    SUBGRADE TREATMENT, TYPE IC  SYS \n214-11796  GEOGRID, TYPE IB  SYS \n \nRevisions  \nPlans, quantities, and estimate should be updated to reflect the revised subgrade treatment type.  \n \nIDM Revisions  \nReferences to Subgrade Treatment Types IV and Type IVA have been deleted from IDM Section \n603- 4.0, Wid",
+    "207-08268     SUBGRADE TREATMENT, TYPE IV   SYS",
+    "207-09935    SUBGRADE TREATMENT, TYPE IC  SYS",
+    "214-11796  GEOGRID, TYPE IB  SYS",
+    "207-12151     SUBGRADE TREATMENT, TYPE IVA   SYS",
+    "207-12498     SUBGRADE TREATMENT, TYPE ID   SYS",
+    "January 09, 2024"
+  ]
+}

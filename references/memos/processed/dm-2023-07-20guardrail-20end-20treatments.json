@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "memo_id": "dm-2023-07-20guardrail-20end-20treatments",
+    "source_pdf": "references/memos/raw/DM%2023-07%20Guardrail%20End%20Treatments.pdf",
+    "checksum": "6b5acc196823867eacbd4f0c7f1c082903df9bff4ca0e30ab3a99d92ff31ff5c",
+    "extracted_at": "2025-10-16T17:24:24-0600",
+    "character_count": "3012",
+    "title": "D e s i g n  M e m o  2 3 - 0 7               1  |  Page"
+  },
+  "highlights": {
+    "pay_items": [
+      "94689",
+      "94690"
+    ],
+    "spec_sections": [],
+    "dollar_amounts": [],
+    "keywords_present": [
+      "pay item",
+      "standard drawing"
+    ]
+  },
+  "snippets": [
+    "nd is included for reference on the \nfollowing page. \n Designers should no longer include either \u201c31 in.\u201d or \u201c27 \u00be in.\u201d  as a supplemental description for \nguardrail end treatment pay items.   \n All MASH-compliant end treatments have a standa rd installation height of 31 in. \u00b1 1 in. and \naccommodate the mid-span splice that is part of MGS w-beam guardrail.",
+    "NCHRP Report 350-compliant Guardrail \nEnd Treatment, Type OS may still be necessary as the industry lacks a MASH-compliant curved w-beam system on par with the system detailed in Standard Drawing series 601-CWGS.  In these instances, designers should coordinate with the INDOT Standards and Policy Division as well as \ndocument the decision as part of a Level",
+    "601-94689   GUARDRAIL, END",
+    "601-94690   GUARDRAIL, END"
+  ]
+}

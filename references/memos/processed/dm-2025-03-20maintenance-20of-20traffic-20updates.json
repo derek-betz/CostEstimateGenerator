@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "memo_id": "dm-2025-03-20maintenance-20of-20traffic-20updates",
+    "source_pdf": "references/memos/raw/DM%2025-03%20Maintenance%20of%20Traffic%20Updates.pdf",
+    "checksum": "d59480a5873d8de702016fe4179de1501a6ca5ef56a7c975e8226385aca992d8",
+    "extracted_at": "2025-10-16T17:24:22-0600",
+    "character_count": "2334",
+    "title": "Design\u00a0Memo\u00a0No.\u00a025\u201003",
+    "affected_spec_sections": [
+      "503"
+    ]
+  },
+  "highlights": {
+    "pay_items": [],
+    "spec_sections": [
+      "503"
+    ],
+    "dollar_amounts": [],
+    "keywords_present": [
+      "change",
+      "update"
+    ]
+  },
+  "snippets": [
+    "7.05\u00a0Automated \u00a0Flagger\u00a0Assistance \u00a0Devices.\u00a0\u00a0AFADs\u00a0should\u00a0be\u00a0considered \u00a0for\u00a0any\u00a0\ntemporary \u00a0traffic\u00a0control\u00a0plan\u00a0involving\u00a0flagging,\u00a0not\u00a0just\u00a0those\u00a0on\u00a0higher\u00a0speed\u00a0roads.\u00a0\u00a0This\u00a0\nchange\u00a0recognizes \u00a0flagger\u00a0vulnerability \u00a0and\u00a0likelihood \u00a0for\u00a0injury\u00a0or\u00a0fatality\u00a0from\u00a0crashes\u00a0\ninvolving\u00a0even\u00a0lower\u00a0speeds.\u00a0\u00a0\nGeneral\u00a0questions \u00a0should\u00a0be\u00a0directed\u00a0to\u00a0Dave\u00a0Boruff,",
+    "Personnel \u00a0and\u00a0Consultants \u00a0\nFROM:\u00a0 /s/David\u00a0Boruff\u00a0\nDavid\u00a0Boruff\u00a0\u00a0\nManager, \u00a0Office\u00a0of\u00a0Traffic\u00a0Administration \u00a0\u00a0\nTraffic\u00a0Engineering \u00a0Division\u00a0\u00a0\nSUBJECT:\u00a0 Maintenance \u00a0of\u00a0Traffic\u00a0Updates\u00a0\nREVISES:\u00a0 Indiana\u00a0Design\u00a0Manual\u00a0Section\u00a0503\u20102.05(01),\u00a0503\u20106.01,\u00a0503\u20107.01(04),\u00a0\n503\u20107.03,\u00a0and\u00a0503\u20107.05.\u00a0\u00a0\nEFFECTIVE: \u00a0Lettings\u00a0on\u00a0or\u00a0after\u00a0September \u00a01,\u00a02025.\u00a0\nThe\u00a0referenc"
+  ]
+}

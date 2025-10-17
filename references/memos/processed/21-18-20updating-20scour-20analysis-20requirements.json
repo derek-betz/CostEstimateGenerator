@@ -1,0 +1,26 @@
+{
+  "metadata": {
+    "memo_id": "21-18-20updating-20scour-20analysis-20requirements",
+    "source_pdf": "references/memos/raw/21-18%20Updating%20Scour%20Analysis%20Requirements.pdf",
+    "checksum": "5abdb930a6938308083ff4b05f630f0c6774ba018aaf836987917f2f11ada31e",
+    "extracted_at": "2025-10-16T17:24:25-0600",
+    "character_count": "12277",
+    "title": "Design Memo 21- 18 1 | Page",
+    "affected_spec_sections": [
+      "412"
+    ]
+  },
+  "highlights": {
+    "pay_items": [],
+    "spec_sections": [
+      "412"
+    ],
+    "dollar_amounts": [],
+    "keywords_present": [
+      "update"
+    ]
+  },
+  "snippets": [
+    "(IDM) Chapter 14-2.05  \n Indiana Design Manual  (IDM) Chapter 412- 2.0 and Figure 412-2C \n EFFECTIVE:  Stage 1 Submittals on or after October 1, 2021  \n    \nEditorial revision to update software nomenclature from BIAS to iTAMS.  \n \nThis design memo has been revised to include additional consideration of the Scour Analysis \nStatus in the Integrated Technolog"
+  ]
+}

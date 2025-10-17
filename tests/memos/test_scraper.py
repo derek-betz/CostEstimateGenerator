@@ -104,6 +104,43 @@ def test_fetch_listing_retries(monkeypatch, scraper) -> None:
     assert len(attempts) == 2
 
 
+def test_download_handles_spaces(monkeypatch, scraper, memo_state, tmp_path) -> None:
+    content = b"pdf-content"
+    listing = tmp_path / "listing.html"
+    pdf_name = "DM 25-19 Traffic Signal Preemption_Light Trespass.pdf"
+    listing.write_text(
+        f'<a href="{pdf_name}">DM 25-19 Traffic Signal Preemption_Light Trespass</a>',
+        encoding="utf-8",
+    )
+    pdf_local = tmp_path / pdf_name
+    pdf_local.write_bytes(content)
+
+    observed_urls: List[str] = []
+
+    def fake_urlopen(request, timeout=0):
+        url = getattr(request, "full_url", request)
+        observed_urls.append(url)
+        if str(url).lower().endswith(".html"):
+            return DummyResponse(listing.read_bytes(), listing.as_uri())
+        return DummyResponse(content, pdf_local.as_uri())
+
+    monkeypatch.setattr("memos.scraper.urlopen", fake_urlopen)
+
+    scraper.config.memo_page_url = listing.as_uri()
+    scraper.config.raw_directory = tmp_path / "raw"
+    scraper.config.raw_directory.mkdir(parents=True, exist_ok=True)
+
+    memos = scraper.fetch_listing()
+    assert len(memos) == 1
+
+    downloaded = scraper.download_new_memos(memos)
+    assert downloaded
+    saved = scraper.config.raw_directory / memos[0].filename
+    assert saved.exists()
+    # ensure the request we issued has encoded spaces
+    assert any("%20" in url for url in observed_urls if isinstance(url, str))
+
+
 def test_download_circuit_breaker(monkeypatch, scraper) -> None:
     def failing_urlopen(request, timeout=0):
         raise OSError("fail")

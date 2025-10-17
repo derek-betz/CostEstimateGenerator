@@ -73,3 +73,29 @@ def test_workflow_skips_notification_when_no_parsed(monkeypatch, memo_config, me
     assert result.parsed_count == 0
     assert result.notified is False
     assert not notifications["sent"]
+
+
+def test_workflow_reports_failed_parse(monkeypatch, memo_config, memo_state) -> None:
+    workflow = MemoWorkflow(memo_config, memo_state)
+
+    scraped = ScrapedMemo(memo_id="memo-fail", url="https://example.com/memo.pdf", filename="memo.pdf")
+    record = MemoRecord(
+        memo_id="memo-fail",
+        url="https://example.com/memo.pdf",
+        checksum="deadbeef",
+        downloaded_at="2024-01-01T00:00:00+0000",
+        filename="missing.pdf",
+    )
+
+    workflow.scraper.fetch_listing = lambda: [scraped]  # type: ignore[assignment]
+    workflow.scraper.download_new_memos = lambda memos: [record]  # type: ignore[assignment]
+
+    result = workflow.run(notify=True)
+
+    assert result.fetched_count == 1
+    assert result.downloaded_count == 1
+    assert result.parsed_count == 0
+    assert result.failed_parse_count == 1
+    assert result.notified is False
+    state_record = memo_state.memos[record.memo_id]
+    assert state_record.error

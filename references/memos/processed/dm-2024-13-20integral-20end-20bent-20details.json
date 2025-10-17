@@ -1,0 +1,26 @@
+{
+  "metadata": {
+    "memo_id": "dm-2024-13-20integral-20end-20bent-20details",
+    "source_pdf": "references/memos/raw/DM%2024-13%20Integral%20End%20Bent%20Details.pdf",
+    "checksum": "c8f63e39c1929207897c6dc6359dbba65f6b65a5acc1b6341b041a1b776a6014",
+    "extracted_at": "2025-10-16T17:24:23-0600",
+    "character_count": "1356",
+    "title": "Design Memo No. 24-13",
+    "affected_spec_sections": [
+      "409"
+    ]
+  },
+  "highlights": {
+    "pay_items": [],
+    "spec_sections": [
+      "409"
+    ],
+    "dollar_amounts": [],
+    "keywords_present": [
+      "change"
+    ]
+  },
+  "snippets": [
+    "t cap, is now the sole detail to be used for bridges that utilize integral end bents.  \n \nThe referenced figures and section of IDM Chapter 409 have been revised to reflect these \nchanges.  \n For questions related to this design memo, please contact the Bridge Engineering Division at \nBridgedesignoffice@indot.in.gov"
+  ]
+}

@@ -9,12 +9,12 @@
   "index_file": "references/memos/index.json",
   "notification": {
     "enabled": true,
-    "sender": "noreply@example.com",
+    "sender": "DesignMemoExtractor@gmail.com",
     "recipients": [
       "dbetz@hanson-inc.com"
     ],
     "smtp": {
-      "host": "smtp.example.com",
+      "host": "smtp.gmail.com",
       "port": 587,
       "use_tls": true,
       "username": "",
@@ -25,7 +25,7 @@
     "method": "email-reply",
     "phrase_format": "Approved {memo_id}",
     "mailbox": {
-      "host": "imap.example.com",
+      "host": "imap.gmail.com",
       "port": 993,
       "username": "",
       "password": "",

@@ -1,0 +1,53 @@
+# Memo Summary
+
+**Memo ID:** 16-01-20ta-20bridge-20structure-20number-20attach
+**Checksum:** 66828eb5b4c42d6fdc63a84b3beaf6bd3719ba3c2edad093f0c80b2e2e518107
+**Extracted At:** 2025-10-16T17:24:32-0600
+
+## Highlights
+- **Pay Items**: 00086, 00569, 01179, 01610, 01677, 02000, 02546, 02612, 02623, 03235, 04088, 04526, 04558, 04559, 04631, 04771, 04813, 04814, 04820, 04993, 05259, 05262, 05466, 06948, 07101, 07206, 07222, 12001
+- **Spec Sections**: None detected
+- **Dollar Amounts**: None detected
+- **Keywords Present**: change
+
+## Notable Snippets
+- BER                           DESIGNATION  
+                                                                    
+P (469)24- 02-06948 AWBL 
+  
+ 
+  
+ 
+ 
+ 
+  
+Note:  W hen a road has changed routes, normally everything is shifted to the right, at the expense of part of the Structure Designati on.   
+           If the Routes are too long, then the left parenthes
+- (1)44 -21-00086 B                                       (I90)I69 -156-04820 A                                (I90)I80 -15-05262 BEBL        (I865)I465 -137-05259 JCEBL
+- (40)I70- 1-04814 AEBL                             41 -93-00569  NBL         Kentucky’s                I90-76-053-8 WBL
+- (62X)62 -10-04558  B                                 (231)75- 93-04088 A      Kentucky’s               (311)31W -22-01179 A EXAMPLES
+- (33)527- 01-01610                                      I90 -71-0083R                                                  I90-71-030-6.5NB
+- (11)31A-36-01677 E                                  (35)3 -18-05466  JA                                        I90-45-011-5 EBL                             (469)27- 02-07222 SBL
+- The 02000  series  of numbers are
+- (3)203 -72-03235 A                                     23-71-04993 BNWE                                      912-45-02546 RWN   912-45-02546 RWXA
+- 35-89-04526  DRC                                      I90 -45-BHX -B                                              P000 -49-BV600     P000 -66-02612
+- (5)I69 -72-04771 A                                     (25)38- 79-02623 J                                         I90-45-10-07RR  EBL         912-45-12001 RB
+- (3)203 -72-03235 A                                     23-71-04993 BNWE                                      912-45-02546 RWN   912-45-02546 RWXA
+- (62X)62 -10-04558  B                                 (231)75- 93-04088 A      Kentucky’s               (311)31W -22-01179 A EXAMPLES
+- 35-89-04526  DRC                                      I90 -45-BHX -B                                              P000 -49-BV600     P000 -66-02612
+- (62X)62 -10-04558  B                                 (231)75- 93-04088 A      Kentucky’s               (311)31W -22-01179 A EXAMPLES
+- (31)I65- 1-04813 NCC                                (41)I164- 21-07206 ADJ                                I90-45-030-1 SBL                       (31)I65- 1-04559 SCC
+- (66)460- 82-04631 AADJ                            I90 -45-002-1 EBL                                      P000 -07-07101  B
+- (5)I69 -72-04771 A                                     (25)38- 79-02623 J                                         I90-45-10-07RR  EBL         912-45-12001 RB
+- (31)I65- 1-04813 NCC                                (41)I164- 21-07206 ADJ                                I90-45-030-1 SBL                       (31)I65- 1-04559 SCC
+- (40)I70- 1-04814 AEBL                             41 -93-00569  NBL         Kentucky’s                I90-76-053-8 WBL
+- (1)44 -21-00086 B                                       (I90)I69 -156-04820 A                                (I90)I80 -15-05262 BEBL        (I865)I465 -137-05259 JCEBL
+- (3)203 -72-03235 A                                     23-71-04993 BNWE                                      912-45-02546 RWN   912-45-02546 RWXA
+- (1)44 -21-00086 B                                       (I90)I69 -156-04820 A                                (I90)I80 -15-05262 BEBL        (I865)I465 -137-05259 JCEBL
+- (1)44 -21-00086 B                                       (I90)I69 -156-04820 A                                (I90)I80 -15-05262 BEBL        (I865)I465 -137-05259 JCEBL
+- (11)31A-36-01677 E                                  (35)3 -18-05466  JA                                        I90-45-011-5 EBL                             (469)27- 02-07222 SBL
+- P (469)24- 02-06948 AWBL
+- (66)460- 82-04631 AADJ                            I90 -45-002-1 EBL                                      P000 -07-07101  B
+- (31)I65- 1-04813 NCC                                (41)I164- 21-07206 ADJ                                I90-45-030-1 SBL                       (31)I65- 1-04559 SCC
+- (11)31A-36-01677 E                                  (35)3 -18-05466  JA                                        I90-45-011-5 EBL                             (469)27- 02-07222 SBL
+- (5)I69 -72-04771 A                                     (25)38- 79-02623 J                                         I90-45-10-07RR  EBL         912-45-12001 RB

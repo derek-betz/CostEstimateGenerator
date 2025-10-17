@@ -1,4 +1,770 @@
 {
-  "last_checked": null,
-  "memos": {}
+  "last_checked": "2025-10-16T17:24:41-0600",
+  "memos": {
+    "0114ta": {
+      "checksum": "27d7bd3f8a89d55ef411f0e35db87eb0b712c5ef3707559e7c771b37acd77aee",
+      "downloaded_at": "2025-10-16T17:24:22-0600",
+      "filename": "0114ta.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:41-0600",
+      "summary_path": "references/memos/processed/0114ta.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2001/0114ta.pdf"
+    },
+    "0307-pc": {
+      "checksum": "e08303f885688a99efebe60bc495a44aad3c0e6e9d667fcc6a777aa9310f4b5d",
+      "downloaded_at": "2025-10-16T17:24:22-0600",
+      "filename": "0307-pc.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:41-0600",
+      "summary_path": "references/memos/processed/0307-pc.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2003/0307-pc.pdf"
+    },
+    "0534-attach": {
+      "checksum": "72b72a1f3a3eded9c8d819a8426c756dda90e12fa7ef1841ab6a4cdc4b9be26e",
+      "downloaded_at": "2025-10-16T17:24:22-0600",
+      "filename": "0534-attach.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:41-0600",
+      "summary_path": "references/memos/processed/0534-attach.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/deleted/2005/0534-attach.pdf"
+    },
+    "0534-ta": {
+      "checksum": "6d66e7882a2289bae787a9d86af17f379f347aa916518558ac5c037164397c1f",
+      "downloaded_at": "2025-10-16T17:24:21-0600",
+      "filename": "0534-ta.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:32-0600",
+      "summary_path": "references/memos/processed/0534-ta.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2005/0534-ta.pdf"
+    },
+    "1109-ta": {
+      "checksum": "87e69c2d9c2dd09a31924b8e20832943eb74bb3d61c5c4997fd34a6af321ba29",
+      "downloaded_at": "2025-10-16T17:24:21-0600",
+      "filename": "1109-ta.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:32-0600",
+      "summary_path": "references/memos/processed/1109-ta.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2011/1109-ta.pdf"
+    },
+    "13-09-20ta-20attachment-20rdg-202011": {
+      "checksum": "f205e19b4a8d5fc222326e124714e413b7798acf4e45a7414f6d9b7c3a9c9e21",
+      "downloaded_at": "2025-10-16T17:24:20-0600",
+      "filename": "13-09%20ta%20Attachment%20RDG%202011.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:32-0600",
+      "summary_path": "references/memos/processed/13-09-20ta-20attachment-20rdg-202011.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2013/13-09%20ta%20Attachment%20RDG%202011.pdf"
+    },
+    "13-09-20ta-20small-20structure-20replacement-2c-20guardrail-20runout-20length": {
+      "checksum": "3c71098bc969d40acad8846ae94f3e4dcce55d9f259c915800aca9ddc5bde06c",
+      "downloaded_at": "2025-10-16T17:24:20-0600",
+      "filename": "13-09%20ta%20Small%20Structure%20Replacement%2C%20Guardrail%20Runout%20Length.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:32-0600",
+      "summary_path": "references/memos/processed/13-09-20ta-20small-20structure-20replacement-2c-20guardrail-20runout-20length.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2013/13-09%20ta%20Small%20Structure%20Replacement%2C%20Guardrail%20Runout%20Length.pdf"
+    },
+    "13-12-20ta-20lighting-20attach-20fig78-5b-20-5c": {
+      "checksum": "4958020e24b88d2ddb60c8c1ca79eed3683899202accfe0d3410c4040335d5d9",
+      "downloaded_at": "2025-10-16T17:24:21-0600",
+      "filename": "13-12%20ta%20Lighting%20attach%20Fig78-5B%20-5C.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:32-0600",
+      "summary_path": "references/memos/processed/13-12-20ta-20lighting-20attach-20fig78-5b-20-5c.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2013/13-12%20ta%20Lighting%20attach%20Fig78-5B%20-5C.pdf"
+    },
+    "13-15-20ta-20hma": {
+      "checksum": "4f7f311d2abfa93d9d00e456d093063050ce51a701c8b108b1ac21d29ffd8a69",
+      "downloaded_at": "2025-10-16T17:24:20-0600",
+      "filename": "13-15%20ta%20HMA.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:32-0600",
+      "summary_path": "references/memos/processed/13-15-20ta-20hma.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2013/13-15%20ta%20HMA.pdf"
+    },
+    "15-16-20ta-20erms-20naming-20convention-20attach1": {
+      "checksum": "bc3828169df74972ce67c8c0b89da190f5be5248912df5121d2a4f656565b6d2",
+      "downloaded_at": "2025-10-16T17:24:20-0600",
+      "filename": "15-16%20ta%20ERMS%20Naming%20Convention%20attach1.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:32-0600",
+      "summary_path": "references/memos/processed/15-16-20ta-20erms-20naming-20convention-20attach1.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2015/15-16%20ta%20ERMS%20Naming%20Convention%20attach1.pdf"
+    },
+    "16-01-20ta-20bridge-20structure-20number": {
+      "checksum": "28dd3c027f2bd4930c3c957b1c2e061cdc10c0fa9c545c7bb93e50e9de8ed744",
+      "downloaded_at": "2025-10-16T17:24:20-0600",
+      "filename": "16-01%20ta%20Bridge%20Structure%20Number.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:32-0600",
+      "summary_path": "references/memos/processed/16-01-20ta-20bridge-20structure-20number.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2016/16-01%20ta%20Bridge%20Structure%20Number.pdf"
+    },
+    "16-01-20ta-20bridge-20structure-20number-20attach": {
+      "checksum": "66828eb5b4c42d6fdc63a84b3beaf6bd3719ba3c2edad093f0c80b2e2e518107",
+      "downloaded_at": "2025-10-16T17:24:20-0600",
+      "filename": "16-01%20ta%20Bridge%20Structure%20Number%20attach.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:32-0600",
+      "summary_path": "references/memos/processed/16-01-20ta-20bridge-20structure-20number-20attach.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2016/16-01%20ta%20Bridge%20Structure%20Number%20attach.pdf"
+    },
+    "16-10-20ta-20bundled-20projects": {
+      "checksum": "72f6bac4d2ae1414b1facda3246bebb9b3f18238630dd5206004baae8b49ce1a",
+      "downloaded_at": "2025-10-16T17:24:20-0600",
+      "filename": "16-10%20ta%20Bundled%20Projects.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:32-0600",
+      "summary_path": "references/memos/processed/16-10-20ta-20bundled-20projects.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2016/16-10%20ta%20Bundled%20Projects.pdf"
+    },
+    "16-10-20ta-20bundled-20projects-20attach": {
+      "checksum": "8b867fd80cf290f34af5ade39652ce110c0a3fe57195ce4633f1f5daf68ae37a",
+      "downloaded_at": "2025-10-16T17:24:20-0600",
+      "filename": "16-10%20ta%20Bundled%20Projects%20attach.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:32-0600",
+      "summary_path": "references/memos/processed/16-10-20ta-20bundled-20projects-20attach.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2016/16-10%20ta%20Bundled%20Projects%20attach.pdf"
+    },
+    "16-35-20ta-20undistributed-20quantities": {
+      "checksum": "661dec625cd8a17eaad00905de0adb439fb02217cd1f8b16c3c1bc74d26733ca",
+      "downloaded_at": "2025-10-16T17:24:19-0600",
+      "filename": "16-35%20ta%20Undistributed%20Quantities.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:32-0600",
+      "summary_path": "references/memos/processed/16-35-20ta-20undistributed-20quantities.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2016/16-35%20ta%20Undistributed%20Quantities.pdf"
+    },
+    "17-02-20pc-20rural-20interstate-20shoulder-20width": {
+      "checksum": "40f30663c98cc71e90a4d7e5c732ea3e097a99b9a195b33ddd522425292d0b90",
+      "downloaded_at": "2025-10-16T17:24:19-0600",
+      "filename": "17-02%20pc%20Rural%20Interstate%20Shoulder%20Width.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:32-0600",
+      "summary_path": "references/memos/processed/17-02-20pc-20rural-20interstate-20shoulder-20width.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2017/17-02%20pc%20Rural%20Interstate%20Shoulder%20Width.pdf"
+    },
+    "17-04-20rev-20ta-20culvert-20asset-20id": {
+      "checksum": "55f377f3b9a970ddb8e32acf37e67da2d2cfe945bd9a9a1caae5cbab07a3c2b4",
+      "downloaded_at": "2025-10-16T17:24:19-0600",
+      "filename": "17-04%20REV%20ta%20Culvert%20Asset%20ID.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:32-0600",
+      "summary_path": "references/memos/processed/17-04-20rev-20ta-20culvert-20asset-20id.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2017/17-04%20REV%20ta%20Culvert%20Asset%20ID.pdf"
+    },
+    "17-04-20rev-20ta-20culvert-20asset-20id-20attachments": {
+      "checksum": "e7485fbf7ba8c719cf06a7cdd41bb6ae79496e4145ba9e64ba83240447520d71",
+      "downloaded_at": "2025-10-16T17:24:19-0600",
+      "filename": "17-04%20REV%20ta%20Culvert%20Asset%20ID%20attachments.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:32-0600",
+      "summary_path": "references/memos/processed/17-04-20rev-20ta-20culvert-20asset-20id-20attachments.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2017/17-04%20REV%20ta%20Culvert%20Asset%20ID%20attachments.pdf"
+    },
+    "17-10-20mash-20implementation-20and-20guardrail": {
+      "checksum": "04592c5e4d7537295c898924f089ae8f58a801741e82f8f903b7017e744d02af",
+      "downloaded_at": "2025-10-16T17:24:18-0600",
+      "filename": "17-10%20MASH%20Implementation%20and%20Guardrail.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:28-0600",
+      "summary_path": "references/memos/processed/17-10-20mash-20implementation-20and-20guardrail.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2017/17-10%20MASH%20Implementation%20and%20Guardrail.pdf"
+    },
+    "17-10-20mash-20implementation-20and-20guardrail-20-20attach-202": {
+      "checksum": "a4950722c7b221274a0ced7a272c4a497229d426fd394a04beb9903484508d7c",
+      "downloaded_at": "2025-10-16T17:24:18-0600",
+      "filename": "17-10%20MASH%20Implementation%20and%20Guardrail%20%20attach%202.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:31-0600",
+      "summary_path": "references/memos/processed/17-10-20mash-20implementation-20and-20guardrail-20-20attach-202.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2017/17-10%20MASH%20Implementation%20and%20Guardrail%20%20attach%202.pdf"
+    },
+    "17-10-20mash-20implementation-20and-20guardrail-20attach-201": {
+      "checksum": "5bb6130a6962050fc1614dbb2b8daeb9e28fed9e1ca3b6aa9af1ccfa3e48b66c",
+      "downloaded_at": "2025-10-16T17:24:18-0600",
+      "filename": "17-10%20MASH%20Implementation%20and%20Guardrail%20attach%201.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:31-0600",
+      "summary_path": "references/memos/processed/17-10-20mash-20implementation-20and-20guardrail-20attach-201.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2017/17-10%20MASH%20Implementation%20and%20Guardrail%20attach%201.pdf"
+    },
+    "17-17-20ta-20mgs-20pay-20items-20attachment": {
+      "checksum": "2f099308d547f6615867b7600b271751abbf0c387b496a71990177a3122ab1e9",
+      "downloaded_at": "2025-10-16T17:24:18-0600",
+      "filename": "17-17%20ta%20MGS%20Pay%20Items%20Attachment.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:28-0600",
+      "summary_path": "references/memos/processed/17-17-20ta-20mgs-20pay-20items-20attachment.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2017/17-17%20ta%20MGS%20Pay%20Items%20Attachment.pdf"
+    },
+    "17-17-20ta-20mgs-20w-beam": {
+      "checksum": "510896e183628091eec9604eaad4a9bd746f758cc2884305db1cd06a658182f4",
+      "downloaded_at": "2025-10-16T17:24:18-0600",
+      "filename": "17-17%20ta%20MGS%20W-beam.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:28-0600",
+      "summary_path": "references/memos/processed/17-17-20ta-20mgs-20w-beam.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2017/17-17%20ta%20MGS%20W-beam.pdf"
+    },
+    "17-20-20ta-20complex-20bridge-20design-20requirements": {
+      "checksum": "6adb773bfd1776fd192cfa3996e55d722b46ee658e6c08b978628250b2ea3bf9",
+      "downloaded_at": "2025-10-16T17:24:18-0600",
+      "filename": "17-20%20ta%20Complex%20Bridge%20Design%20Requirements.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:28-0600",
+      "summary_path": "references/memos/processed/17-20-20ta-20complex-20bridge-20design-20requirements.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2017/17-20%20ta%20Complex%20Bridge%20Design%20Requirements.pdf"
+    },
+    "18-05-20ta-20plan-20note-20for-20tac-20approved-20ada-20inquiry": {
+      "checksum": "1019cde5cb7b6465584a11ac10b2505d3017d483837fa7cbedc5a55cf1ca6a79",
+      "downloaded_at": "2025-10-16T17:24:17-0600",
+      "filename": "18-05%20ta%20Plan%20Note%20for%20TAC%20Approved%20ADA%20Inquiry.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:28-0600",
+      "summary_path": "references/memos/processed/18-05-20ta-20plan-20note-20for-20tac-20approved-20ada-20inquiry.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2018/18-05%20ta%20Plan%20Note%20for%20TAC%20Approved%20ADA%20Inquiry.pdf"
+    },
+    "18-20-20ta-20bridge-20aesthetics-20policy": {
+      "checksum": "2abe8b3d8b3034a9077c94a8afc96cfceb04accd1da5e3ba69af376a621fbea7",
+      "downloaded_at": "2025-10-16T17:24:17-0600",
+      "filename": "18-20%20ta%20Bridge%20Aesthetics%20Policy.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:28-0600",
+      "summary_path": "references/memos/processed/18-20-20ta-20bridge-20aesthetics-20policy.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2018/18-20%20ta%20Bridge%20Aesthetics%20Policy.pdf"
+    },
+    "18-26-20ta-20pushbutton-20and-20ada-20details": {
+      "checksum": "4054eb0fb422f3f89603218daa3d35fb4216fa998882472e6737ec691c78b60a",
+      "downloaded_at": "2025-10-16T17:24:17-0600",
+      "filename": "18-26%20ta%20Pushbutton%20and%20ADA%20details.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:28-0600",
+      "summary_path": "references/memos/processed/18-26-20ta-20pushbutton-20and-20ada-20details.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2018/18-26%20ta%20Pushbutton%20and%20ADA%20details.pdf"
+    },
+    "20-14-20preventative-20maintenance-20and-203r-20design-20criteria": {
+      "checksum": "1e0194309b6838798364e787b5060df149008c88df4672d98563e0e6bfb9c6f2",
+      "downloaded_at": "2025-10-16T17:24:17-0600",
+      "filename": "20-14%20Preventative%20Maintenance%20and%203R%20Design%20Criteria.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:25-0600",
+      "summary_path": "references/memos/processed/20-14-20preventative-20maintenance-20and-203r-20design-20criteria.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2020/20-14%20Preventative%20Maintenance%20and%203R%20Design%20Criteria.pdf"
+    },
+    "21-18-20updating-20scour-20analysis-20requirements": {
+      "checksum": "5abdb930a6938308083ff4b05f630f0c6774ba018aaf836987917f2f11ada31e",
+      "downloaded_at": "2025-10-16T17:24:17-0600",
+      "filename": "21-18%20Updating%20Scour%20Analysis%20Requirements.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:25-0600",
+      "summary_path": "references/memos/processed/21-18-20updating-20scour-20analysis-20requirements.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2021/21-18%20Updating%20Scour%20Analysis%20Requirements.pdf"
+    },
+    "627-r-546": {
+      "checksum": "292ddc059d99a0745f8c7964ff32d7d19f8efcb916b7b17df41dfcc233e5a9ec",
+      "downloaded_at": "2025-10-16T17:24:21-0600",
+      "filename": "627-R-546.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:32-0600",
+      "summary_path": "references/memos/processed/627-r-546.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2011/627-R-546.pdf"
+    },
+    "627-r-546d": {
+      "checksum": "c6bda9db2f5a057ab647a85ff73954433fd7b3fdd4ecca302dc0232f14ea6853",
+      "downloaded_at": "2025-10-16T17:24:21-0600",
+      "filename": "627-R-546d.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:32-0600",
+      "summary_path": "references/memos/processed/627-r-546d.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2011/627-R-546d.pdf"
+    },
+    "design-memo-qa-aug-2020": {
+      "checksum": "1ea7def8328d18c7b6de35c31cd9959b0dba9f12c0b085f1882b5ba1090ff2a9",
+      "downloaded_at": "2025-10-16T17:24:17-0600",
+      "filename": "Design-Memo-QA-Aug-2020.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:25-0600",
+      "summary_path": "references/memos/processed/design-memo-qa-aug-2020.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2020/Design-Memo-QA-Aug-2020.pdf"
+    },
+    "dm-2021-04": {
+      "checksum": "1cb19a714c502d40f4080fd5ddf8f6e94dc808c15230f548fd9dc8d0bca73ace",
+      "downloaded_at": "2025-10-16T17:24:17-0600",
+      "filename": "DM%2021-04.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:25-0600",
+      "summary_path": "references/memos/processed/dm-2021-04.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2021/DM%2021-04.pdf"
+    },
+    "dm-2022-01-20stage-202-20document-20publication": {
+      "checksum": "c5a9f56a32bfea6b265d14bd8f321e78ae60777bb78277ea0961f3d072c27f23",
+      "downloaded_at": "2025-10-16T17:24:17-0600",
+      "filename": "DM%2022-01%20Stage%202%20Document%20Publication.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:25-0600",
+      "summary_path": "references/memos/processed/dm-2022-01-20stage-202-20document-20publication.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2022/DM%2022-01%20Stage%202%20Document%20Publication.pdf"
+    },
+    "dm-2022-05-20concrete-20median-20barriers": {
+      "checksum": "7e7a70f884799911e28f48c5c6237eb00fc3496dbbd876eacb16d3ac11d3897d",
+      "downloaded_at": "2025-10-16T17:24:17-0600",
+      "filename": "DM%2022-05%20Concrete%20Median%20Barriers.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:25-0600",
+      "summary_path": "references/memos/processed/dm-2022-05-20concrete-20median-20barriers.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2022/DM%2022-05%20Concrete%20Median%20Barriers.pdf"
+    },
+    "dm-2022-17-20aashto-20lrfd-20bridge-20design-20specifications": {
+      "checksum": "eb26014f3530fee4d6069ee0a15b952437a1c1ae817a41a03cd57e8a11035f9a",
+      "downloaded_at": "2025-10-16T17:24:17-0600",
+      "filename": "DM%2022-17%20AASHTO%20LRFD%20Bridge%20Design%20Specifications.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:25-0600",
+      "summary_path": "references/memos/processed/dm-2022-17-20aashto-20lrfd-20bridge-20design-20specifications.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2022/DM%2022-17%20AASHTO%20LRFD%20Bridge%20Design%20Specifications.pdf"
+    },
+    "dm-2022-22-20post-construction-20stormwater-20management": {
+      "checksum": "2b9bd8b16ea97ef0c454faad328f6d7968c837fda1f3f99883402c1803397368",
+      "downloaded_at": "2025-10-16T17:24:16-0600",
+      "filename": "DM%2022-22%20Post-construction%20Stormwater%20Management.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:25-0600",
+      "summary_path": "references/memos/processed/dm-2022-22-20post-construction-20stormwater-20management.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2022/DM%2022-22%20Post-construction%20Stormwater%20Management.pdf"
+    },
+    "dm-2023-02-20void-20reducing-20asphalt-20membrane-20for-20asphalt-20paving": {
+      "checksum": "e91724b3a0da958a218523f82d205807aef6e67d0c67baefd594eef955049966",
+      "downloaded_at": "2025-10-16T17:24:16-0600",
+      "filename": "DM%2023-02%20Void%20Reducing%20Asphalt%20Membrane%20for%20Asphalt%20Paving.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:24-0600",
+      "summary_path": "references/memos/processed/dm-2023-02-20void-20reducing-20asphalt-20membrane-20for-20asphalt-20paving.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2023/DM%2023-02%20Void%20Reducing%20Asphalt%20Membrane%20for%20Asphalt%20Paving.pdf"
+    },
+    "dm-2023-03-20stormwater-20revisions": {
+      "checksum": "b79b0c369c97c4d332f0ae03105122989e735797df1687826e9f4d28588f7dd1",
+      "downloaded_at": "2025-10-16T17:24:16-0600",
+      "filename": "DM%2023-03%20Stormwater%20Revisions.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:24-0600",
+      "summary_path": "references/memos/processed/dm-2023-03-20stormwater-20revisions.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2023/DM%2023-03%20Stormwater%20Revisions.pdf"
+    },
+    "dm-2023-07-20guardrail-20end-20treatments": {
+      "checksum": "6b5acc196823867eacbd4f0c7f1c082903df9bff4ca0e30ab3a99d92ff31ff5c",
+      "downloaded_at": "2025-10-16T17:24:16-0600",
+      "filename": "DM%2023-07%20Guardrail%20End%20Treatments.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:24-0600",
+      "summary_path": "references/memos/processed/dm-2023-07-20guardrail-20end-20treatments.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2023/DM%2023-07%20Guardrail%20End%20Treatments.pdf"
+    },
+    "dm-2023-08-20railroad-20flagging": {
+      "checksum": "c6219858b150fa050218e39edef4f73f151f79ef4a8d0f499e900d893aba6c1d",
+      "downloaded_at": "2025-10-16T17:24:16-0600",
+      "filename": "DM%2023-08%20Railroad%20Flagging.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:24-0600",
+      "summary_path": "references/memos/processed/dm-2023-08-20railroad-20flagging.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2023/DM%2023-08%20Railroad%20Flagging.pdf"
+    },
+    "dm-2023-10-20bridge-20painting": {
+      "checksum": "8903a98aa8a594d12577c00df473b9e0236f80bb8a25c74f3717339433c1b341",
+      "downloaded_at": "2025-10-16T17:24:16-0600",
+      "filename": "DM%2023-10%20Bridge%20Painting.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:24-0600",
+      "summary_path": "references/memos/processed/dm-2023-10-20bridge-20painting.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2023/DM%2023-10%20Bridge%20Painting.pdf"
+    },
+    "dm-2023-11-20payment-20for-20elastomeric-20bearing-20assemblies": {
+      "checksum": "7d89950acf3763dd133dd60287c253728a24549e8a5e4a461f95138fb3133c30",
+      "downloaded_at": "2025-10-16T17:24:16-0600",
+      "filename": "DM%2023-11%20Payment%20for%20Elastomeric%20Bearing%20Assemblies.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:24-0600",
+      "summary_path": "references/memos/processed/dm-2023-11-20payment-20for-20elastomeric-20bearing-20assemblies.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2023/DM%2023-11%20Payment%20for%20Elastomeric%20Bearing%20Assemblies.pdf"
+    },
+    "dm-2023-16-20public-20rights-of-way-20accessibility-20guidelines-20-28prowag-29": {
+      "checksum": "4aaae449c8c357a8952420cb7e9313bd7901f4d71cdf330634f87f8305f6519c",
+      "downloaded_at": "2025-10-16T17:24:16-0600",
+      "filename": "DM%2023-16%20Public%20Rights-of-Way%20Accessibility%20Guidelines%20%28PROWAG%29.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:24-0600",
+      "summary_path": "references/memos/processed/dm-2023-16-20public-20rights-of-way-20accessibility-20guidelines-20-28prowag-29.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2023/DM%2023-16%20Public%20Rights-of-Way%20Accessibility%20Guidelines%20%28PROWAG%29.pdf"
+    },
+    "dm-2023-17-20placing-20and-20terminating-20temporary-20traffic-20barrier": {
+      "checksum": "568943fd12b06cca8da4f624d07273cb052cc230d52a72282a774fe9f54b7465",
+      "downloaded_at": "2025-10-16T17:24:15-0600",
+      "filename": "DM%2023-17%20Placing%20and%20Terminating%20Temporary%20Traffic%20Barrier.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:24-0600",
+      "summary_path": "references/memos/processed/dm-2023-17-20placing-20and-20terminating-20temporary-20traffic-20barrier.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2023/DM%2023-17%20Placing%20and%20Terminating%20Temporary%20Traffic%20Barrier.pdf"
+    },
+    "dm-2023-18-20survey-20requirements": {
+      "checksum": "cbe8b2dd10e6b54412a15282521c9f9c1bb43e3b0219388513cdbf2746e9ee3a",
+      "downloaded_at": "2025-10-16T17:24:15-0600",
+      "filename": "DM%2023-18%20Survey%20Requirements.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:24-0600",
+      "summary_path": "references/memos/processed/dm-2023-18-20survey-20requirements.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2023/DM%2023-18%20Survey%20Requirements.pdf"
+    },
+    "dm-2023-19-20joint-20probability-20analysis": {
+      "checksum": "b88a175a42007681444032e3ad5c8568aca9abd26c63d387e64a727c5def0927",
+      "downloaded_at": "2025-10-16T17:24:15-0600",
+      "filename": "DM%2023-19%20Joint%20Probability%20Analysis.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:24-0600",
+      "summary_path": "references/memos/processed/dm-2023-19-20joint-20probability-20analysis.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2023/DM%2023-19%20Joint%20Probability%20Analysis.pdf"
+    },
+    "dm-2023-20-20extended-20pile-20bents-20and-20wall-20pier-20on-20single-20row-20of-20piles": {
+      "checksum": "47072d34db32575993aca59bd4cd60eb27295b6c6cfb1ed7bde61c949ff9d924",
+      "downloaded_at": "2025-10-16T17:24:15-0600",
+      "filename": "DM%2023-20%20Extended%20Pile%20Bents%20and%20Wall%20Pier%20on%20Single%20Row%20of%20Piles.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:24-0600",
+      "summary_path": "references/memos/processed/dm-2023-20-20extended-20pile-20bents-20and-20wall-20pier-20on-20single-20row-20of-20piles.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2023/DM%2023-20%20Extended%20Pile%20Bents%20and%20Wall%20Pier%20on%20Single%20Row%20of%20Piles.pdf"
+    },
+    "dm-2023-21-20mscr-20pg-20binder": {
+      "checksum": "a5c705193c160cc8d7e64c7022a176f0b2fb0e9b906ead1de33a8ff84488c00b",
+      "downloaded_at": "2025-10-16T17:24:15-0600",
+      "filename": "DM%2023-21%20MSCR%20PG%20Binder.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:24-0600",
+      "summary_path": "references/memos/processed/dm-2023-21-20mscr-20pg-20binder.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2023/DM%2023-21%20MSCR%20PG%20Binder.pdf"
+    },
+    "dm-2024-01-20subgrade-20treatment": {
+      "checksum": "335f4c2af865f3d1b82618b74327f9fc0f2687dbd0f69e55b83e207232256a90",
+      "downloaded_at": "2025-10-16T17:24:15-0600",
+      "filename": "DM%2024-01%20Subgrade%20Treatment.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:23-0600",
+      "summary_path": "references/memos/processed/dm-2024-01-20subgrade-20treatment.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2024/DM%2024-01%20Subgrade%20Treatment.pdf"
+    },
+    "dm-2024-02-20lightweight-20concrete-2c-20threaded-20tie-20bar-20assemblies-2c-20and-20concrete-20cover": {
+      "checksum": "c6ca6b91850596db76c14aa271b1e44799060446c3b4a4b62c5c1720eb8a5e2c",
+      "downloaded_at": "2025-10-16T17:24:15-0600",
+      "filename": "DM%2024-02%20Lightweight%20Concrete%2C%20Threaded%20Tie%20Bar%20Assemblies%2C%20and%20Concrete%20Cover.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:23-0600",
+      "summary_path": "references/memos/processed/dm-2024-02-20lightweight-20concrete-2c-20threaded-20tie-20bar-20assemblies-2c-20and-20concrete-20cover.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2024/DM%2024-02%20Lightweight%20Concrete%2C%20Threaded%20Tie%20Bar%20Assemblies%2C%20and%20Concrete%20Cover.pdf"
+    },
+    "dm-2024-03-20waterproofing-20membrane-20and-20partial-20coating-20limits": {
+      "checksum": "525434c10f7d748a666c52cb5b796c848888fed8e5bec4b3cbf86660a20c219f",
+      "downloaded_at": "2025-10-16T17:24:15-0600",
+      "filename": "DM%2024-03%20Waterproofing%20Membrane%20and%20Partial%20Coating%20Limits.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:23-0600",
+      "summary_path": "references/memos/processed/dm-2024-03-20waterproofing-20membrane-20and-20partial-20coating-20limits.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2024/DM%2024-03%20Waterproofing%20Membrane%20and%20Partial%20Coating%20Limits.pdf"
+    },
+    "dm-2024-04-20pavement-20design-20process": {
+      "checksum": "833f6193e1c5940b7490ed02cc86fcb3dad28e8110597c0a5967d4cfb863b903",
+      "downloaded_at": "2025-10-16T17:24:15-0600",
+      "filename": "DM%2024-04%20Pavement%20Design%20Process.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:23-0600",
+      "summary_path": "references/memos/processed/dm-2024-04-20pavement-20design-20process.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2024/DM%2024-04%20Pavement%20Design%20Process.pdf"
+    },
+    "dm-2024-05-20prowag-20elements-20phased-20implementation": {
+      "checksum": "1ff1917f0b480e455bd4c86a9a696e266303f31c28943c5b93e5e46d4e28e8fc",
+      "downloaded_at": "2025-10-16T17:24:14-0600",
+      "filename": "DM%2024-05%20PROWAG%20Elements%20Phased%20Implementation.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:23-0600",
+      "summary_path": "references/memos/processed/dm-2024-05-20prowag-20elements-20phased-20implementation.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2024/DM%2024-05%20PROWAG%20Elements%20Phased%20Implementation.pdf"
+    },
+    "dm-2024-06-20ihcp-20contract-20documents": {
+      "checksum": "0975fff86dd9ed7626149996af8c8570c9228c22ce0af7b040060664fd8d85b6",
+      "downloaded_at": "2025-10-16T17:24:14-0600",
+      "filename": "DM%2024-06%20IHCP%20Contract%20Documents.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:23-0600",
+      "summary_path": "references/memos/processed/dm-2024-06-20ihcp-20contract-20documents.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2024/DM%2024-06%20IHCP%20Contract%20Documents.pdf"
+    },
+    "dm-2024-07-202024-20indot-20standard-20drawings": {
+      "checksum": "20806881f40fb97bcf361d431d4e732c1a7ea3e20cc270a7fbba2c3271cc1f45",
+      "downloaded_at": "2025-10-16T17:24:14-0600",
+      "filename": "DM%2024-07%202024%20INDOT%20Standard%20Drawings.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:23-0600",
+      "summary_path": "references/memos/processed/dm-2024-07-202024-20indot-20standard-20drawings.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2024/DM%2024-07%202024%20INDOT%20Standard%20Drawings.pdf"
+    },
+    "dm-2024-08-20mot-20on-20high-volume-20interstate-20highways": {
+      "checksum": "857f13b5e1afbbb1b9afdbcd6a775d357da2766db80ce37e82a23c01b6830488",
+      "downloaded_at": "2025-10-16T17:24:14-0600",
+      "filename": "DM%2024-08%20MOT%20on%20High-Volume%20Interstate%20Highways.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:23-0600",
+      "summary_path": "references/memos/processed/dm-2024-08-20mot-20on-20high-volume-20interstate-20highways.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2024/DM%2024-08%20MOT%20on%20High-Volume%20Interstate%20Highways.pdf"
+    },
+    "dm-2024-09-20buy-20america-20certification-20procedures-20for-20utilities-20and-20railroads": {
+      "checksum": "93d7ab26a65a3799a8db12a33bd22f8f83f6e1b2b09906f53647443c3775978e",
+      "downloaded_at": "2025-10-16T17:24:14-0600",
+      "filename": "DM%2024-09%20Buy%20America%20Certification%20Procedures%20for%20utilities%20and%20Railroads.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:23-0600",
+      "summary_path": "references/memos/processed/dm-2024-09-20buy-20america-20certification-20procedures-20for-20utilities-20and-20railroads.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2024/DM%2024-09%20Buy%20America%20Certification%20Procedures%20for%20utilities%20and%20Railroads.pdf"
+    },
+    "dm-2024-10-20pavement-20patching-20tables": {
+      "checksum": "404ca8adcf7741decac6ff4b284c5af30ff5260bfad5d9b3ef4563a89de50f5d",
+      "downloaded_at": "2025-10-16T17:24:14-0600",
+      "filename": "DM%2024-10%20Pavement%20Patching%20Tables.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:23-0600",
+      "summary_path": "references/memos/processed/dm-2024-10-20pavement-20patching-20tables.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2024/DM%2024-10%20Pavement%20Patching%20Tables.pdf"
+    },
+    "dm-2024-11-20preliminary-20geometrics-20review-20for-20non-conventional-20intersections": {
+      "checksum": "4b4f1a4b731167f283216a05798b4017ddff92e665eb4cfffa3206c609f544ed",
+      "downloaded_at": "2025-10-16T17:24:14-0600",
+      "filename": "DM%2024-11%20Preliminary%20Geometrics%20Review%20for%20Non-Conventional%20Intersections.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:23-0600",
+      "summary_path": "references/memos/processed/dm-2024-11-20preliminary-20geometrics-20review-20for-20non-conventional-20intersections.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2024/DM%2024-11%20Preliminary%20Geometrics%20Review%20for%20Non-Conventional%20Intersections.pdf"
+    },
+    "dm-2024-12-20semi-integral-20end-20bent-20details": {
+      "checksum": "7ad41bbc8ca8c145016b8b2411c65704af86f9f9a2bec4aedf2e12c18eb9f7f1",
+      "downloaded_at": "2025-10-16T17:24:13-0600",
+      "filename": "DM%2024-12%20Semi-Integral%20End%20Bent%20Details.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:23-0600",
+      "summary_path": "references/memos/processed/dm-2024-12-20semi-integral-20end-20bent-20details.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2024/DM%2024-12%20Semi-Integral%20End%20Bent%20Details.pdf"
+    },
+    "dm-2024-13-20integral-20end-20bent-20details": {
+      "checksum": "c8f63e39c1929207897c6dc6359dbba65f6b65a5acc1b6341b041a1b776a6014",
+      "downloaded_at": "2025-10-16T17:24:13-0600",
+      "filename": "DM%2024-13%20Integral%20End%20Bent%20Details.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:23-0600",
+      "summary_path": "references/memos/processed/dm-2024-13-20integral-20end-20bent-20details.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2024/DM%2024-13%20Integral%20End%20Bent%20Details.pdf"
+    },
+    "dm-2024-14-20pavement-20ledge-20width": {
+      "checksum": "b6e0f0a0f2a402692883fe3fc6e963dcb1b670bf1e4e0321814bff7c9f1df981",
+      "downloaded_at": "2025-10-16T17:24:13-0600",
+      "filename": "DM%2024-14%20Pavement%20Ledge%20Width.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:23-0600",
+      "summary_path": "references/memos/processed/dm-2024-14-20pavement-20ledge-20width.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2024/DM%2024-14%20Pavement%20Ledge%20Width.pdf"
+    },
+    "dm-2024-15-20fhwa-indiana-20ps-26e-20checklist": {
+      "checksum": "979c22c1853c9d2bdd3d33393e7ae5cb25d6e5abd0451c35fc79db9f791077d8",
+      "downloaded_at": "2025-10-16T17:24:13-0600",
+      "filename": "DM%2024-15%20FHWA-Indiana%20PS%26E%20Checklist.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2024-15-20fhwa-indiana-20ps-26e-20checklist.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2024/DM%2024-15%20FHWA-Indiana%20PS%26E%20Checklist.pdf"
+    },
+    "dm-2024-16-20mse-20wall-20shop-20drawing-20checklist": {
+      "checksum": "84fc1eaf3cd49e076e04c3ea28829d2c151d4be7b4cd274a1a5ea6a83af0a7ae",
+      "downloaded_at": "2025-10-16T17:24:13-0600",
+      "filename": "DM%2024-16%20MSE%20wall%20shop%20drawing%20checklist.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2024-16-20mse-20wall-20shop-20drawing-20checklist.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2024/DM%2024-16%20MSE%20wall%20shop%20drawing%20checklist.pdf"
+    },
+    "dm-2024-17-20liquid-20asphalt-20sealant": {
+      "checksum": "72ba75c6ae9df09758158f4cdd0343a31fe8592f258a80ad2aa79fcb085e6ed1",
+      "downloaded_at": "2025-10-16T17:24:13-0600",
+      "filename": "DM%2024-17%20Liquid%20Asphalt%20Sealant.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2024-17-20liquid-20asphalt-20sealant.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2024/DM%2024-17%20Liquid%20Asphalt%20Sealant.pdf"
+    },
+    "dm-2025-01-20ihcp-20exception-20requests": {
+      "checksum": "182299668c0eff0ca33783a6cd63f5e2adfb2461e8b8514c0b6e5e5e196c20da",
+      "downloaded_at": "2025-10-16T17:24:13-0600",
+      "filename": "DM%2025-01%20IHCP%20Exception%20Requests.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2025-01-20ihcp-20exception-20requests.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2025/DM%2025-01%20IHCP%20Exception%20Requests.pdf"
+    },
+    "dm-2025-02-20various-20traffic-20design-20updates": {
+      "checksum": "b4356200b3fbec8d1876d9eb001d9cfcc02c47b3a2c7042f8231a67c29259271",
+      "downloaded_at": "2025-10-16T17:24:13-0600",
+      "filename": "DM%2025-02%20Various%20Traffic%20Design%20Updates.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2025-02-20various-20traffic-20design-20updates.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2025/DM%2025-02%20Various%20Traffic%20Design%20Updates.pdf"
+    },
+    "dm-2025-03-20maintenance-20of-20traffic-20updates": {
+      "checksum": "d59480a5873d8de702016fe4179de1501a6ca5ef56a7c975e8226385aca992d8",
+      "downloaded_at": "2025-10-16T17:24:12-0600",
+      "filename": "DM%2025-03%20Maintenance%20of%20Traffic%20Updates.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2025-03-20maintenance-20of-20traffic-20updates.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2025/DM%2025-03%20Maintenance%20of%20Traffic%20Updates.pdf"
+    },
+    "dm-2025-04-20next-20beams": {
+      "checksum": "b916991ca91ec033e6972e6c0e71d7dc4e95cebe8013c7f0eb82a67a544fee42",
+      "downloaded_at": "2025-10-16T17:24:12-0600",
+      "filename": "DM%2025-04%20NEXT%20Beams.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2025-04-20next-20beams.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2025/DM%2025-04%20NEXT%20Beams.pdf"
+    },
+    "dm-2025-05-20reinforcing-20bar-20support-20devices": {
+      "checksum": "c27f4c5d6159b6faf9203d01dab67f7ca09aeacb63bc391fc5530e48d929b9f7",
+      "downloaded_at": "2025-10-16T17:24:12-0600",
+      "filename": "DM%2025-05%20Reinforcing%20Bar%20Support%20Devices.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2025-05-20reinforcing-20bar-20support-20devices.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2025/DM%2025-05%20Reinforcing%20Bar%20Support%20Devices.pdf"
+    },
+    "dm-2025-06-20prestressing-20strands": {
+      "checksum": "640e2483e2fa7aa6946b00bc52f7e771633543c8a9d53d0070cf135905e93b64",
+      "downloaded_at": "2025-10-16T17:24:12-0600",
+      "filename": "DM%2025-06%20Prestressing%20Strands.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2025-06-20prestressing-20strands.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2025/DM%2025-06%20Prestressing%20Strands.pdf"
+    },
+    "dm-2025-07-20topsoil-20management": {
+      "checksum": "9118d351cd7ee17c83674017a8437ab35ae49a6cd9a43291d7002dc947d86d01",
+      "downloaded_at": "2025-10-16T17:24:12-0600",
+      "filename": "DM%2025-07%20Topsoil%20Management.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2025-07-20topsoil-20management.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2025/DM%2025-07%20Topsoil%20Management.pdf"
+    },
+    "dm-2025-08-20life-cycle-20pavement-20cost-20analysis-20update": {
+      "checksum": "268e605f5142ce00782bf21ab56ee9db86f4fbf9dfa254586570ced7f84aff4c",
+      "downloaded_at": "2025-10-16T17:24:12-0600",
+      "filename": "DM%2025-08%20Life-Cycle%20Pavement%20Cost%20Analysis%20Update.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2025-08-20life-cycle-20pavement-20cost-20analysis-20update.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2025/DM%2025-08%20Life-Cycle%20Pavement%20Cost%20Analysis%20Update.pdf"
+    },
+    "dm-2025-09-20horizontal-20alignment": {
+      "checksum": "b4e36ff6d81ec14927455232f5163174295889c4e22a2e4b565c730694782084",
+      "downloaded_at": "2025-10-16T17:24:11-0600",
+      "filename": "DM%2025-09%20Horizontal%20Alignment.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2025-09-20horizontal-20alignment.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2025/DM%2025-09%20Horizontal%20Alignment.pdf"
+    },
+    "dm-2025-10-20vram": {
+      "checksum": "469c3c7dbf596c844cee11b298816b1747f8b7713f1667bc4e2b56b00027a841",
+      "downloaded_at": "2025-10-16T17:24:11-0600",
+      "filename": "DM%2025-10%20VRAM.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2025-10-20vram.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2025/DM%2025-10%20VRAM.pdf"
+    },
+    "dm-2025-11-20lean-20concrete-20base": {
+      "checksum": "fa2a0a3c918d634d9ca314a3c2fa58f870cf07c3f322787b1a9e14be3304226f",
+      "downloaded_at": "2025-10-16T17:24:11-0600",
+      "filename": "DM%2025-11%20Lean%20Concrete%20Base.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2025-11-20lean-20concrete-20base.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2025/DM%2025-11%20Lean%20Concrete%20Base.pdf"
+    },
+    "dm-2025-12-20plan-20revisions-20after-20rfc": {
+      "checksum": "4a955f9a74f5df969bca2d35de6d6005fd4f39ccf06b656d5a6a40cd4d7323ea",
+      "downloaded_at": "2025-10-16T17:24:11-0600",
+      "filename": "DM%2025-12%20Plan%20Revisions%20after%20RFC.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2025-12-20plan-20revisions-20after-20rfc.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2025/DM%2025-12%20Plan%20Revisions%20after%20RFC.pdf"
+    },
+    "dm-2025-13-20indot-20standard-20drawings": {
+      "checksum": "1f9289f5454a95d0fe22112ad4b9366bf7a7b3b9b882e7fb088e48c8bf98e200",
+      "downloaded_at": "2025-10-16T17:24:11-0600",
+      "filename": "DM%2025-13%20INDOT%20Standard%20Drawings.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2025-13-20indot-20standard-20drawings.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2025/DM%2025-13%20INDOT%20Standard%20Drawings.pdf"
+    },
+    "dm-2025-14-20cad-20workspace-20updates": {
+      "checksum": "9ea8e3a058edba6b944be41181910982274ab5e4cae6301e9226fc2f6e45059c",
+      "downloaded_at": "2025-10-16T17:24:11-0600",
+      "filename": "DM%2025-14%20CAD%20Workspace%20Updates.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2025-14-20cad-20workspace-20updates.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2025/DM%2025-14%20CAD%20Workspace%20Updates.pdf"
+    },
+    "dm-2025-15-20bridge-20deck-20overlay": {
+      "checksum": "e288ccf40dc8509b66408446f9f87d7f33f9a05db6f5fd4859ab740a7f7bc0d1",
+      "downloaded_at": "2025-10-16T17:24:11-0600",
+      "filename": "DM%2025-15%20Bridge%20Deck%20Overlay.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2025-15-20bridge-20deck-20overlay.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2025/DM%2025-15%20Bridge%20Deck%20Overlay.pdf"
+    },
+    "dm-2025-16-20pavement-20type-20selection-20process": {
+      "checksum": "597b3891b51fea1a0e637ec93528dd5dee3be6197d44edc55d9b6e97ba8fca16",
+      "downloaded_at": "2025-10-16T17:24:11-0600",
+      "filename": "DM%2025-16%20Pavement%20Type%20Selection%20Process.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2025-16-20pavement-20type-20selection-20process.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2025/DM%2025-16%20Pavement%20Type%20Selection%20Process.pdf"
+    },
+    "dm-2025-17-20permanent-20seeding-20fertilizer-20rate": {
+      "checksum": "35458222674329abf0acbe34bac2fa35d7fc705fe2bfccba3f121a7d5283dbad",
+      "downloaded_at": "2025-10-16T17:24:11-0600",
+      "filename": "DM%2025-17%20Permanent%20Seeding%20Fertilizer%20Rate.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2025-17-20permanent-20seeding-20fertilizer-20rate.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2025/DM%2025-17%20Permanent%20Seeding%20Fertilizer%20Rate.pdf"
+    },
+    "dm-2025-18-20update-20to-20ihcp-20templates": {
+      "checksum": "d4b1e0d617d0d854a5a5f5fac9135771c2fd5848b362ede8d9ad6f245d9f62b3",
+      "downloaded_at": "2025-10-16T17:24:10-0600",
+      "filename": "DM%2025-18%20Update%20to%20IHCP%20Templates.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2025-18-20update-20to-20ihcp-20templates.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2025/DM%2025-18%20Update%20to%20IHCP%20Templates.pdf"
+    },
+    "dm-2025-19-20traffic-20signal-20preemption-light-20trespass": {
+      "checksum": "ac76a530221a7048320174d6dd8148bf4d2e7ccf00e40b5050ea8e91e7e9a4bf",
+      "downloaded_at": "2025-10-16T17:24:10-0600",
+      "filename": "DM%2025-19%20Traffic%20Signal%20Preemption_Light%20Trespass.pdf",
+      "processed": true,
+      "processed_at": "2025-10-16T17:24:22-0600",
+      "summary_path": "references/memos/processed/dm-2025-19-20traffic-20signal-20preemption-light-20trespass.json",
+      "url": "https://www.in.gov/dot/div/contracts/standards/memos/2025/DM%2025-19%20Traffic%20Signal%20Preemption_Light%20Trespass.pdf"
+    }
+  }
 }
