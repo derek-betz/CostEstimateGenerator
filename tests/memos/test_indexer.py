@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from memos.indexer import MemoIndexer
-from memos.state import MemoRecord
+from costest.memos.indexer import MemoIndexer
+from costest.memos.state import MemoRecord
 
 
 def test_indexer_updates(tmp_path: Path) -> None:

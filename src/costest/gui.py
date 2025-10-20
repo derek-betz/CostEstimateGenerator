@@ -38,6 +38,7 @@ except Exception:  # pragma: no cover - fallback path
     _DND_AVAILABLE = False
 
 from .cli import run as run_estimator
+from .config import load_config as load_runtime_config
 from .project_meta import DISTRICT_CHOICES, district_to_region, normalize_district
 
 
@@ -2830,28 +2831,23 @@ class EstimatorApp:
     ) -> None:
         stdout_buffer = io.StringIO()
         stderr_buffer = io.StringIO()
-        env_snapshot = {
-            "QUANTITIES_XLSX": os.environ.get("QUANTITIES_XLSX"),
-            "EXPECTED_TOTAL_CONTRACT_COST": os.environ.get("EXPECTED_TOTAL_CONTRACT_COST"),
-            "PROJECT_DISTRICT": os.environ.get("PROJECT_DISTRICT"),
-            "PROJECT_REGION": os.environ.get("PROJECT_REGION"),
-            "BIDTABS_CONTRACT_FILTER_PCT": os.environ.get("BIDTABS_CONTRACT_FILTER_PCT"),
-            "DISABLE_ALT_SEEK": os.environ.get("DISABLE_ALT_SEEK"),
-        }
+
+        env_overrides = dict(os.environ)
+        env_overrides["QUANTITIES_XLSX"] = str(path)
+        env_overrides["EXPECTED_TOTAL_CONTRACT_COST"] = f"{expected_cost:.2f}"
+        env_overrides["PROJECT_DISTRICT"] = district_name
+        env_overrides["PROJECT_REGION"] = str(region_id)
+        env_overrides["BIDTABS_CONTRACT_FILTER_PCT"] = f"{contract_filter_pct:.6f}"
+        if alt_seek_enabled:
+            env_overrides.pop("DISABLE_ALT_SEEK", None)
+        else:
+            env_overrides["DISABLE_ALT_SEEK"] = "1"
+
+        runtime_cfg = load_runtime_config(env_overrides, None)
 
         try:
-            os.environ["QUANTITIES_XLSX"] = str(path)
-            os.environ["EXPECTED_TOTAL_CONTRACT_COST"] = f"{expected_cost:.2f}"
-            os.environ["PROJECT_DISTRICT"] = district_name
-            os.environ["PROJECT_REGION"] = str(region_id)
-            os.environ["BIDTABS_CONTRACT_FILTER_PCT"] = f"{contract_filter_pct:.6f}"
-            if alt_seek_enabled:
-                os.environ.pop("DISABLE_ALT_SEEK", None)
-            else:
-                os.environ["DISABLE_ALT_SEEK"] = "1"
-            # Section surrogate env toggle removed
             with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
-                exit_code = run_estimator()
+                exit_code = run_estimator(runtime_config=runtime_cfg)
 
             output = stdout_buffer.getvalue().strip()
             errors = stderr_buffer.getvalue().strip()
@@ -2870,12 +2866,6 @@ class EstimatorApp:
                 traceback.format_exc(),
             ])
             self._queue.put(PipelineResult("error", f"Unexpected error: {exc}", details))
-        finally:
-            for key, previous in env_snapshot.items():
-                if previous is None:
-                    os.environ.pop(key, None)
-                else:
-                    os.environ[key] = previous
 
     # -------------------------------------------------------------- Queue --
     def _poll_queue(self) -> None:

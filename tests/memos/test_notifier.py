@@ -5,8 +5,8 @@ from typing import List
 
 import pytest
 
-from memos.config import MemoConfig
-from memos.notifier import MemoNotifier
+from costest.memos.config import MemoConfig
+from costest.memos.notifier import MemoNotifier
 
 
 class DummySMTP:
@@ -81,7 +81,7 @@ def test_notifier_retries(monkeypatch, notifier_config) -> None:
 
     smtp_instance = FlakySMTP("smtp.example.com", 587, 30)
     monkeypatch.setattr("smtplib.SMTP", lambda host, port, timeout=None: smtp_instance)
-    monkeypatch.setattr("memos.retry.time.sleep", lambda _: None)
+    monkeypatch.setattr("costest.memos.retry.time.sleep", lambda _: None)
     notifier_config.notification.smtp.retry.retries = 2
 
     notifier = MemoNotifier(notifier_config)

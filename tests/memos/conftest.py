@@ -8,8 +8,8 @@ from typing import Callable
 import pytest
 from reportlab.pdfgen import canvas
 
-from memos.config import MemoConfig
-from memos.state import MemoRecord, MemoState
+from costest.memos.config import MemoConfig
+from costest.memos.state import MemoRecord, MemoState
 
 
 @pytest.fixture

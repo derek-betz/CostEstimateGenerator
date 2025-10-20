@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from memos.config import MemoConfig
+from costest.memos.config import MemoConfig
 from pytest import MonkeyPatch
 
 

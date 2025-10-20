@@ -1,13 +1,16 @@
+import logging
 import os
 import sys
 import math
 import argparse
+from dataclasses import replace
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, TYPE_CHECKING
 
 import pandas as pd
 from dotenv import load_dotenv
 
+from .config import Config, load_config as load_runtime_config
 from .bidtabs_io import (
     load_bidtabs_files,
     load_quantities,
@@ -31,7 +34,7 @@ from .reporting import make_summary_text
 from . import reference_data, design_memos
 from .project_meta import DISTRICT_CHOICES, DISTRICT_REGION_MAP, normalize_district
 if TYPE_CHECKING:
-    from .config import CLIConfig
+    from .config import CLIConfig, Config
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 DEFAULT_DATA_DIR = BASE_DIR / "data_sample"
@@ -80,7 +83,7 @@ def _load_api_key_from_file() -> None:
                         os.environ["OPENAI_API_KEY"] = value
                 return
     except Exception as exc:  # pragma: no cover - defensive
-        print(f"Warning: unable to load API key: {exc}")
+        logger.warning("Warning: unable to load API key: %s", exc)
 
 
 def _resolve_path(value: Optional[str], default: Path) -> Path:
@@ -92,21 +95,22 @@ def _resolve_path(value: Optional[str], default: Path) -> Path:
 _load_api_key_from_file()
 load_dotenv(BASE_DIR / ".env")
 
-BIDFOLDER = _resolve_path(os.getenv("BIDTABS_DIR"), DEFAULT_BIDTABS_DIR)
-QTY_FILE_GLOB = os.getenv("QTY_FILE_GLOB", DEFAULT_QTY_GLOB)
-QTY_PATH = os.getenv("QUANTITIES_XLSX", "").strip()
-PROJECT_ATTRS_XLSX = _resolve_path(os.getenv("PROJECT_ATTRS_XLSX"), DEFAULT_PROJECT_ATTRS)
-LEGACY_EXPECTED_COST_XLSX = os.getenv("EXPECTED_COST_XLSX", "").strip()
-_region_map_env = os.getenv("REGION_MAP_XLSX", "").strip()
-LEGACY_REGION_MAP_XLSX = _region_map_env
-if not LEGACY_REGION_MAP_XLSX and DEFAULT_REGION_MAP.exists():
-    LEGACY_REGION_MAP_XLSX = str(DEFAULT_REGION_MAP.resolve())
-ALIASES_CSV = _resolve_path(os.getenv("ALIASES_CSV"), DEFAULT_ALIASES)
-OUTPUT_DIR = _resolve_path(os.getenv("OUTPUT_DIR"), DEFAULT_OUTPUT_DIR)
-OUT_XLSX = Path(os.getenv("OUTPUT_XLSX", str(OUTPUT_DIR / "Estimate_Draft.xlsx"))).expanduser().resolve()
-OUT_AUDIT = Path(os.getenv("OUTPUT_AUDIT", str(OUTPUT_DIR / "Estimate_Audit.csv"))).expanduser().resolve()
-OUT_PAYITEM_AUDIT = Path(os.getenv("OUTPUT_PAYITEM_AUDIT", str(OUTPUT_DIR / "PayItems_Audit.xlsx"))).expanduser().resolve()
-MIN_SAMPLE_TARGET = int(os.getenv("MIN_SAMPLE_TARGET", "50"))
+DEFAULT_CONFIG = load_runtime_config(os.environ, None)
+
+BIDFOLDER = DEFAULT_CONFIG.bidtabs_dir
+QTY_FILE_GLOB = DEFAULT_CONFIG.quantities_glob
+QTY_PATH = str(DEFAULT_CONFIG.quantities_path or "")
+PROJECT_ATTRS_XLSX = DEFAULT_CONFIG.project_attributes
+LEGACY_EXPECTED_COST_XLSX = DEFAULT_CONFIG.legacy_expected_cost_path
+LEGACY_REGION_MAP_XLSX = DEFAULT_CONFIG.region_map_path
+ALIASES_CSV = DEFAULT_CONFIG.aliases_csv
+OUTPUT_DIR = DEFAULT_CONFIG.output_dir
+OUT_XLSX = DEFAULT_CONFIG.output_xlsx
+OUT_AUDIT = DEFAULT_CONFIG.output_audit
+OUT_PAYITEM_AUDIT = DEFAULT_CONFIG.output_payitem_audit
+MIN_SAMPLE_TARGET = DEFAULT_CONFIG.min_sample_target
+
+logger = logging.getLogger(__name__)
 
 CATEGORY_LABELS: Sequence[str] = (
     "DIST_12M",
@@ -498,37 +502,28 @@ def _parse_expected_cost_value(raw: str) -> Optional[float]:
         return None
 
 
-def _project_inputs_from_env() -> tuple[
+def _project_inputs_from_config(cfg: Config) -> tuple[
     Optional[float],
     Optional[int],
     Optional[pd.DataFrame],
     Optional[str],
     bool,
 ]:
-    raw_cost = os.getenv("EXPECTED_TOTAL_CONTRACT_COST", "").strip()
-    raw_district = os.getenv("PROJECT_DISTRICT", "").strip()
-    raw_region = os.getenv("PROJECT_REGION", "").strip()
+    expected_cost = cfg.expected_contract_cost
+    district_name = normalize_district(cfg.project_district or "")
+    project_region = cfg.project_region
 
-    env_used = any((raw_cost, raw_district, raw_region))
+    env_used = any(value is not None and value != "" for value in (expected_cost, district_name, project_region))
     if not env_used:
         return None, None, None, None, False
 
-    expected_cost = _parse_expected_cost_value(raw_cost)
-    district_name = normalize_district(raw_district)
-
-    project_region = None
-    if district_name:
+    if district_name and project_region is None:
         project_region = DISTRICT_REGION_MAP.get(district_name)
-    elif raw_region:
-        try:
-            project_region = int(float(raw_region))
-        except ValueError:
-            project_region = None
 
     rows = [{"DISTRICT": name, "REGION": number} for number, name in DISTRICT_CHOICES]
     region_map_df = pd.DataFrame(rows)
 
-    return expected_cost, project_region, region_map_df, district_name, True
+    return expected_cost, project_region, region_map_df, district_name or None, True
 
 
 def _sanitize_bidtabs(df: pd.DataFrame) -> pd.DataFrame:
@@ -563,7 +558,7 @@ def load_project_attributes(
                 legacy_df = pd.read_excel(legacy_expected_path, engine="openpyxl")
                 expected_cost = _extract_expected_contract_cost(legacy_df)
             except Exception as exc:  # pragma: no cover - defensive
-                print(f"Warning: unable to migrate expected contract cost from {legacy_expected_path}: {exc}")
+                logger.warning("Warning: unable to migrate expected contract cost from %s: %s", legacy_expected_path, exc)
         region_map = pd.DataFrame(columns=["DISTRICT", "REGION"])
         path.parent.mkdir(parents=True, exist_ok=True)
         with pd.ExcelWriter(path, engine="openpyxl") as writer:
@@ -572,13 +567,13 @@ def load_project_attributes(
                 "PROJECT_REGION": [pd.NA],
             }).to_excel(writer, sheet_name="PROJECT", index=False)
             region_map.to_excel(writer, sheet_name="REGION_MAP", index=False)
-        print(f"Created project attributes workbook at {path}. Populate it and rerun.")
+        logger.info("Created project attributes workbook at %s. Populate it and rerun.", path)
         return expected_cost, None, region_map
 
     try:
         xls = pd.ExcelFile(path, engine="openpyxl")
     except Exception as exc:  # pragma: no cover - defensive
-        print(f"Warning: unable to read project attributes file {path}: {exc}")
+        logger.warning("Warning: unable to read project attributes file %s: %s", path, exc)
         return None, None, pd.DataFrame(columns=["DISTRICT", "REGION"])
 
     sheet_lookup = {name.strip().upper(): name for name in xls.sheet_names}
@@ -594,7 +589,7 @@ def load_project_attributes(
         try:
             region_map_df = load_region_map(legacy_region_map_path)
         except Exception as exc:  # pragma: no cover - defensive
-            print(f"Warning: unable to read region map from {legacy_region_map_path}: {exc}")
+            logger.warning("Warning: unable to read region map from %s: %s", legacy_region_map_path, exc)
             region_map_df = pd.DataFrame(columns=["DISTRICT", "REGION"])
     else:
         region_map_df = pd.DataFrame(columns=["DISTRICT", "REGION"])
@@ -602,45 +597,61 @@ def load_project_attributes(
     try:
         region_map_df = load_region_map(region_map_df)
     except Exception as exc:  # pragma: no cover - defensive
-        print(f"Warning: region map data in {path} is invalid: {exc}")
+        logger.warning("Warning: region map data in %s is invalid: %s", path, exc)
         region_map_df = pd.DataFrame(columns=["DISTRICT", "REGION"])
 
     return expected_cost, project_region, region_map_df
 
 
-def run(config: Optional["CLIConfig"] = None) -> int:
-    # If test-provided config is supplied, override output paths for this run only.
-    prev_output_dir = OUTPUT_DIR
-    prev_out_xlsx = OUT_XLSX
-    prev_out_audit = OUT_AUDIT
-    prev_out_pay_audit = OUT_PAYITEM_AUDIT
-
-    stage_counter = 0
-
-    def log_stage(message: str) -> None:
-        nonlocal stage_counter
-        stage_counter += 1
-        print(f"[pipeline:{stage_counter:02d}] {message}")
-
-    def log_detail(message: str) -> None:
-        print(f"           {message}")
+def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] = None) -> int:
+    runtime_cfg = runtime_config or DEFAULT_CONFIG
 
     if config is not None:
-        # Defer import to avoid circular at module import
         try:
             from .config import CLIConfig as _CLI
             assert isinstance(config, _CLI)
         except Exception:
             pass
-        # Point outputs to the temp folder provided by tests
-        globals()["OUTPUT_DIR"] = config.estimate_audit_csv.parent
-        globals()["OUT_AUDIT"] = config.estimate_audit_csv
-        globals()["OUT_XLSX"] = config.estimate_xlsx
-        globals()["OUT_PAYITEM_AUDIT"] = config.payitems_workbook
+        runtime_cfg = replace(
+            runtime_cfg,
+            output_dir=config.estimate_audit_csv.parent.resolve(),
+            output_audit=config.estimate_audit_csv,
+            output_xlsx=config.estimate_xlsx,
+            output_payitem_audit=config.payitems_workbook,
+            disable_ai=config.disable_ai,
+        )
+
+    stage_counter = 0
+
+    if not logging.getLogger().handlers:
+        logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+    def log_stage(message: str) -> None:
+        nonlocal stage_counter
+        stage_counter += 1
+        logger.info("[pipeline:%02d] %s", stage_counter, message)
+
+    def log_detail(message: str) -> None:
+        logger.info("           %s", message)
+
+    bidtabs_dir = runtime_cfg.bidtabs_dir
+    output_dir = runtime_cfg.output_dir
+    out_xlsx = runtime_cfg.output_xlsx
+    out_audit = runtime_cfg.output_audit
+    out_pay_audit = runtime_cfg.output_payitem_audit
+    quantities_glob = runtime_cfg.quantities_glob
+    quantities_override = runtime_cfg.quantities_path
+    project_attrs_path = runtime_cfg.project_attributes
+    aliases_path = runtime_cfg.aliases_csv
+    min_sample_target = runtime_cfg.min_sample_target
+    legacy_expected_path = runtime_cfg.legacy_expected_cost_path
+    legacy_region_map_path = runtime_cfg.region_map_path
+
+    contract_filter_pct = runtime_cfg.contract_filter_pct if runtime_cfg.contract_filter_pct is not None else 50.0
 
     log_stage("Bootstrapping estimator runtime context")
-    log_detail(f"output_dir={OUTPUT_DIR}")
-    log_detail(f"artifact_targets={OUT_XLSX.name},{OUT_AUDIT.name},{OUT_PAYITEM_AUDIT.name}")
+    log_detail(f"output_dir={output_dir}")
+    log_detail(f"artifact_targets={out_xlsx.name},{out_audit.name},{out_pay_audit.name}")
     if config is not None:
         log_detail("config_override=CLIConfig(test harness)")
     log_detail(f"python_version={sys.version.split()[0]} | cwd={Path.cwd()}")
@@ -652,10 +663,10 @@ def run(config: Optional["CLIConfig"] = None) -> int:
         env_region_map,
         env_district_name,
         env_used,
-    ) = _project_inputs_from_env()
+    ) = _project_inputs_from_config(runtime_cfg)
 
     project_district_name = env_district_name
-    project_attrs_display = str(PROJECT_ATTRS_XLSX)
+    project_attrs_display = str(project_attrs_path)
 
     log_stage("Inspecting execution environment for GUI overrides")
     if env_used:
@@ -675,9 +686,9 @@ def run(config: Optional["CLIConfig"] = None) -> int:
     else:
         log_detail("no GUI overrides detected; hydrating project attribute workbook inputs")
         expected_contract_cost, project_region, region_map = load_project_attributes(
-            PROJECT_ATTRS_XLSX,
-            legacy_expected_path=LEGACY_EXPECTED_COST_XLSX or None,
-            legacy_region_map_path=LEGACY_REGION_MAP_XLSX or None,
+            project_attrs_path,
+            legacy_expected_path=legacy_expected_path,
+            legacy_region_map_path=legacy_region_map_path,
         )
         project_district_name = None
         map_rows = len(region_map) if region_map is not None and not getattr(region_map, "empty", False) else 0
@@ -694,8 +705,8 @@ def run(config: Optional["CLIConfig"] = None) -> int:
         f"reference_cache_sizes => payitems={payitem_catalog_size:,} | unit_price_summary={unit_price_summary_size:,} | spec_sections={spec_section_size:,}"
     )
 
-    log_stage(f"Ingesting BidTabs corpus from {BIDFOLDER}")
-    bid = load_bidtabs_files(BIDFOLDER)
+    log_stage(f"Ingesting BidTabs corpus from {bidtabs_dir}")
+    bid = load_bidtabs_files(bidtabs_dir)
     log_detail(f"raw_bidtabs_rows={len(bid):,} | columns={len(bid.columns)}")
     bid = ensure_region_column(bid, region_map)
     log_detail("region dimensions normalized onto BidTabs frame")
@@ -718,22 +729,20 @@ def run(config: Optional["CLIConfig"] = None) -> int:
     bid = _sanitize_bidtabs(bid)
     log_detail(f"post-sanitize BidTabs footprint => rows={len(bid):,}")
 
-    # Allow runtime override of quantities workbook via environment variable
     log_stage("Resolving project quantities workbook")
-    _qty_override = os.getenv("QUANTITIES_XLSX", "").strip()
-    if _qty_override:
-        qty_path = Path(_qty_override).expanduser().resolve()
-        log_detail(f"env_override_quantities={qty_path}")
+    if quantities_override:
+        qty_path = Path(quantities_override).expanduser().resolve()
+        log_detail(f"config_override_quantities={qty_path}")
     else:
-        qty_path = Path(QTY_PATH).expanduser().resolve() if QTY_PATH else find_quantities_file(QTY_FILE_GLOB, base_dir=BASE_DIR)
+        qty_path = find_quantities_file(quantities_glob, base_dir=BASE_DIR)
         log_detail(f"auto_discovered_quantities={qty_path}")
     qty = load_quantities(qty_path)
     qty_rows = len(qty)
     unique_items = qty["ITEM_CODE"].nunique(dropna=True) if "ITEM_CODE" in qty.columns else qty_rows
     log_detail(f"project_quantities_rows={qty_rows:,} | distinct_item_codes={unique_items:,}")
 
-    if Path(ALIASES_CSV).exists():
-        alias = pd.read_csv(ALIASES_CSV, dtype=str)
+    if Path(aliases_path).exists():
+        alias = pd.read_csv(aliases_path, dtype=str)
         if not alias.empty:
             alias["PROJECT_CODE"] = alias["PROJECT_CODE"].astype(str).str.strip()
             alias["HIST_CODE"] = alias["HIST_CODE"].astype(str).str.strip()
@@ -741,11 +750,6 @@ def run(config: Optional["CLIConfig"] = None) -> int:
             qty["ITEM_CODE"] = qty["ITEM_CODE"].map(lambda c: amap.get(c, c))
             log_detail(f"code_alias_mapping_applied => entries={len(alias):,}")
 
-    filter_pct_raw = os.getenv("BIDTABS_CONTRACT_FILTER_PCT", "").strip()
-    try:
-        contract_filter_pct = abs(float(filter_pct_raw)) if filter_pct_raw else 50.0
-    except ValueError:
-        contract_filter_pct = 50.0
     contract_filter_pct = max(0.0, min(contract_filter_pct, 500.0))
 
     filtered_bounds = None
@@ -764,18 +768,23 @@ def run(config: Optional["CLIConfig"] = None) -> int:
             if contract_filter_pct.is_integer()
             else f"{contract_filter_pct:.2f}".rstrip("0").rstrip(".")
         )
-        print(
-            f"Filtered BidTabs to contracts between ${lower_bound:,.0f} and ${upper_bound:,.0f} (+/-{pct_display}% of expected ${expected_contract_cost:,.0f}); kept {after_rows} of {before_rows} rows."
+        logger.info(
+            "Filtered BidTabs to contracts between $%s and $%s (+/-%s%% of expected $%s); kept %s of %s rows.",
+            f"{lower_bound:,.0f}",
+            f"{upper_bound:,.0f}",
+            pct_display,
+            f"{expected_contract_cost:,.0f}",
+            after_rows,
+            before_rows,
         )
         if bid.empty:
-            print("WARNING: No BidTabs rows remained after contract cost filtering.")
+            logger.warning("No BidTabs rows remained after contract cost filtering.")
         else:
             log_detail(f"contract_filter => retained_rows={after_rows:,} of {before_rows:,}")
     else:
         log_detail("contract_filter bypassed (expected_contract_cost missing or JOB_SIZE unavailable)")
 
-    disable_alt_seek_env = os.getenv("DISABLE_ALT_SEEK", "").strip().lower()
-    alt_seek_enabled = disable_alt_seek_env not in {"1", "true", "yes", "on"}
+    alt_seek_enabled = not runtime_cfg.disable_alt_seek
     if not alt_seek_enabled:
         log_detail("alternate_seek disabled via runtime configuration")
 
@@ -793,7 +802,7 @@ def run(config: Optional["CLIConfig"] = None) -> int:
         desc_compact = " ".join(desc.split())
         if len(desc_compact) > 72:
             desc_compact = desc_compact[:69].rstrip() + "..."
-        print(f"[item] {code_display} :: qty={qty_val:,.3f} {unit} :: {desc_compact}")
+        logger.info("[item] %s :: qty=%s %s :: %s", code_display, f"{qty_val:,.3f}", unit, desc_compact)
 
         price, source_label, cat_data, detail_map, used_categories, combined_used = category_breakdown(
             bid,
@@ -812,12 +821,12 @@ def run(config: Optional["CLIConfig"] = None) -> int:
         used_category_set = set(used_categories)
         data_points_used = int(cat_data.get("TOTAL_USED_COUNT", len(combined_used)))
         category_display = ", ".join(used_categories) if used_categories else "none"
-        print(f"        data_points_used={data_points_used} | categories_used={category_display}")
+        logger.info("        data_points_used=%s | categories_used=%s", data_points_used, category_display)
 
         sampling_warning = False
-        if not note and 0 < data_points_used < MIN_SAMPLE_TARGET:
-            note = f"Only {data_points_used} data points found (target {MIN_SAMPLE_TARGET})."
-            print(f"        sampling_warning => {note}")
+        if not note and 0 < data_points_used < min_sample_target:
+            note = f"Only {data_points_used} data points found (target {min_sample_target})."
+            logger.info("        sampling_warning => %s", note)
             sampling_warning = True
 
         geometry = parse_geometry(desc)
@@ -825,9 +834,9 @@ def run(config: Optional["CLIConfig"] = None) -> int:
         unit_price_est = _round_unit_price(price)
         source_label = source_label or ("NO_DATA" if data_points_used == 0 else "")
         source_display = source_label or "historical_category_mix"
-        print(f"        provisional_unit_price=${unit_price_est:,.2f} | source={source_display}")
+        logger.info("        provisional_unit_price=$%s | source=%s", f"{unit_price_est:,.2f}", source_display)
         if note and not sampling_warning:
-            print(f"        note => {note}")
+            logger.info("        note => %s", note)
 
         row: Dict[str, object] = {
             "ITEM_CODE": code,
@@ -849,7 +858,7 @@ def run(config: Optional["CLIConfig"] = None) -> int:
 
         if alt_seek_enabled and data_points_used == 0 and geometry is not None:
             area_display = getattr(geometry, "area_sqft", float("nan"))
-            print(f"        alternate_seek activating => geometry_area={area_display:.2f} sqft")
+            logger.info("        alternate_seek activating => geometry_area=%s sqft", f"{area_display:.2f}")
             alt_result = find_alternate_price(
                 bid,
                 code,
@@ -890,9 +899,7 @@ def run(config: Optional["CLIConfig"] = None) -> int:
                     row["ALTERNATE_AI_NOTES"] = alt_result.ai_notes
                 row["NOTES"] = "AI weighted pricing" if method_label == "AI weighted alternates" else "Score-based alternate pricing"
                 note = row["NOTES"]
-                print(
-                    f"        alternate_seek resolved => selections={len(alt_result.selections)} | datapoints={data_points_used} | method={method_label}"
-                )
+                logger.info("        alternate_seek resolved => selections=%s | datapoints=%s | method=%s", len(alt_result.selections), data_points_used, method_label)
                 similarity_flags = []
                 for sel in alt_result.selections:
                     for note in sel.notes:
@@ -963,7 +970,7 @@ def run(config: Optional["CLIConfig"] = None) -> int:
                 combined_used = alt_result.combined_detail
                 row["SOURCE"] = "GEOMETRY_ALTERNATE"
             else:
-                print("        alternate_seek exhausted without a viable candidate; retaining NO_DATA baseline")
+                logger.info("        alternate_seek exhausted without a viable candidate; retaining NO_DATA baseline")
 
         for label in CATEGORY_LABELS:
             row[f"{label}_PRICE"] = cat_data.get(f"{label}_PRICE", float("nan"))
@@ -1094,13 +1101,13 @@ def run(config: Optional["CLIConfig"] = None) -> int:
 
     log_stage("Evaluating alternate-seek narrative generation pipeline")
     ai_report_path = None
-    ai_enabled = os.getenv("DISABLE_OPENAI", "0").strip().lower() not in ("1", "true", "yes")
+    ai_enabled = not runtime_cfg.disable_ai
     if alternate_reports and ai_enabled:
         try:
             ai_report_path = generate_alternate_seek_report(
                 df,
                 alternate_reports,
-                output_dir=OUTPUT_DIR,
+                output_dir=output_dir,
                 project_region=project_region,
                 expected_contract_cost=expected_contract_cost,
                 filtered_bounds=filtered_bounds,
@@ -1109,71 +1116,62 @@ def run(config: Optional["CLIConfig"] = None) -> int:
             if ai_report_path:
                 log_detail(f"alternate_seek_report_emitted => {ai_report_path}")
         except Exception as exc:  # pragma: no cover - defensive
-            print(f"Warning: unable to generate alternate-seek AI report: {exc}")
+            logger.warning("Warning: unable to generate alternate-seek AI report: %s", exc)
     elif alternate_reports and not ai_enabled:
-        print("AI reporting disabled; skipping alternate-seek narrative generation.")
+        logger.info("AI reporting disabled; skipping alternate-seek narrative generation.")
 
     log_stage("Persisting estimator outputs to disk")
-    write_outputs(df, str(OUT_XLSX), str(OUT_AUDIT), payitem_details, str(OUT_PAYITEM_AUDIT))
-    log_detail(f"outputs_written => {OUT_XLSX}, {OUT_AUDIT}, {OUT_PAYITEM_AUDIT}")
+    write_outputs(df, str(out_xlsx), str(out_audit), payitem_details, str(out_pay_audit))
+    log_detail(f"outputs_written => {out_xlsx}, {out_audit}, {out_pay_audit}")
 
-    # If running under tests, mirror mapping debug file to requested path
+    mapping_debug_path = None
     if config is not None:
+        mapping_debug_path = config.mapping_debug_csv
         try:
-            default_debug = OUTPUT_DIR / "payitem_mapping_debug.csv"
-            target_debug = config.mapping_debug_csv
+            default_debug = output_dir / "payitem_mapping_debug.csv"
             if default_debug.exists():
                 import shutil
-                target_debug.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy(default_debug, target_debug)
-        except Exception:
-            pass
+                mapping_debug_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(default_debug, mapping_debug_path)
+        except Exception:  # pragma: no cover - defensive
+            logger.debug("Suppressing debug file copy error", exc_info=True)
 
-    print("\n=== SUMMARY ===\n")
-    print(make_summary_text(df))
-    # Extra count for alternates
+    logger.info("\n=== SUMMARY ===\n")
+    logger.info("%s", make_summary_text(df))
     try:
-        alt_count = int(df.get("ALTERNATE_USED", pd.Series([False]*len(df))).fillna(False).astype(bool).sum())
-        print(f"Alternates used: {alt_count}")
-    except Exception:
-        pass
-    print("\nInputs used:")
-    print(" - BidTabs folder:", BIDFOLDER)
-    print(" - Quantities file:", Path(qty_path).resolve())
-    print(" - Project attributes:", project_attrs_display)
+        alt_count = int(df.get("ALTERNATE_USED", pd.Series([False] * len(df))).fillna(False).astype(bool).sum())
+        logger.info("Alternates used: %s", alt_count)
+    except Exception:  # pragma: no cover - defensive
+        logger.debug("Unable to compute alternate count", exc_info=True)
+    logger.info("\nInputs used:")
+    logger.info(" - BidTabs folder: %s", bidtabs_dir)
+    logger.info(" - Quantities file: %s", Path(qty_path).resolve())
+    logger.info(" - Project attributes: %s", project_attrs_display)
     if project_district_name:
         district_label = next((name for _, name in DISTRICT_CHOICES if name == project_district_name), project_district_name)
         if project_region is not None:
-            print(f"   Project district: {district_label} (region {project_region})")
+            logger.info("   Project district: %s (region %s)", district_label, project_region)
         else:
-            print(f"   Project district: {district_label}")
+            logger.info("   Project district: %s", district_label)
     elif project_region is not None:
-        print(f"   Project region: {project_region}")
+        logger.info("   Project region: %s", project_region)
     else:
-        print("   Project region: (not provided)")
+        logger.info("   Project region: (not provided)")
     if region_map is not None and not getattr(region_map, "empty", False):
-        print(f"   Region map rows: {len(region_map)}")
-    if Path(ALIASES_CSV).exists():
-        print(" - Code aliases:", ALIASES_CSV)
+        logger.info("   Region map rows: %s", len(region_map))
+    if Path(aliases_path).exists():
+        logger.info(" - Code aliases: %s", aliases_path)
     if expected_contract_cost is not None:
-        print(f" - Expected contract cost: ${expected_contract_cost:,.0f}")
+        logger.info(" - Expected contract cost: $%s", f"{expected_contract_cost:,.0f}")
         if filtered_bounds is not None:
             low, high = filtered_bounds
-            print(f"   Filter bounds applied: ${low:,.0f} to ${high:,.0f}")
-    print("\nOutputs written:")
-    print(" -", OUT_XLSX)
-    print(" -", OUT_AUDIT)
-    print(" -", OUT_PAYITEM_AUDIT)
+            logger.info("   Filter bounds applied: $%s to $%s", f"{low:,.0f}", f"{high:,.0f}")
+    logger.info("\nOutputs written:")
+    logger.info(" - %s", out_xlsx)
+    logger.info(" - %s", out_audit)
+    logger.info(" - %s", out_pay_audit)
     if ai_report_path:
-        print(" -", ai_report_path)
-
-    # Restore globals if we overrode them
-    if config is not None:
-        globals()["OUTPUT_DIR"] = prev_output_dir
-        globals()["OUT_XLSX"] = prev_out_xlsx
-        globals()["OUT_AUDIT"] = prev_out_audit
-        globals()["OUT_PAYITEM_AUDIT"] = prev_out_pay_audit
-
+        logger.info(" - %s", ai_report_path)
     return 0
 
 
@@ -1187,38 +1185,21 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser.add_argument("--output-dir", help="Directory for generated outputs")
     parser.add_argument("--disable-ai", action="store_true", help="Disable OpenAI usage for alternate-seek weighting")
     parser.add_argument("--min-sample-target", type=int, help="Override minimum data points target per item")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Increase logging verbosity")
     return parser.parse_args(argv)
 
 
-def apply_cli_overrides(args: argparse.Namespace) -> None:
-    global BIDFOLDER, QTY_PATH, PROJECT_ATTRS_XLSX, LEGACY_REGION_MAP_XLSX, ALIASES_CSV
-    global OUTPUT_DIR, OUT_XLSX, OUT_AUDIT, OUT_PAYITEM_AUDIT, MIN_SAMPLE_TARGET
-    if args.bidtabs_dir:
-        BIDFOLDER = Path(args.bidtabs_dir).expanduser().resolve()
-    if args.quantities_xlsx:
-        QTY_PATH = str(Path(args.quantities_xlsx).expanduser().resolve())
-    if args.project_attributes:
-        PROJECT_ATTRS_XLSX = Path(args.project_attributes).expanduser().resolve()
-    if args.region_map:
-        LEGACY_REGION_MAP_XLSX = str(Path(args.region_map).expanduser().resolve())
-    if args.aliases_csv:
-        ALIASES_CSV = Path(args.aliases_csv).expanduser().resolve()
-    if args.output_dir:
-        OUTPUT_DIR = Path(args.output_dir).expanduser().resolve()
-        global OUT_XLSX, OUT_AUDIT, OUT_PAYITEM_AUDIT
-        OUT_XLSX = OUTPUT_DIR / "Estimate_Draft.xlsx"
-        OUT_AUDIT = OUTPUT_DIR / "Estimate_Audit.csv"
-        OUT_PAYITEM_AUDIT = OUTPUT_DIR / "PayItems_Audit.xlsx"
-    if args.disable_ai:
-        os.environ["DISABLE_OPENAI"] = "1"
-    if args.min_sample_target:
-        MIN_SAMPLE_TARGET = max(1, int(args.min_sample_target))
-
-def main(argv: Optional[Sequence[str]] = None) -> None:
+def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parse_args(argv)
-    apply_cli_overrides(args)
-    run()
+    runtime_cfg = load_runtime_config(os.environ, args)
+    log_level = logging.DEBUG if runtime_cfg.verbose else logging.INFO
+    logging.basicConfig(level=log_level, format="%(message)s")
+    try:
+        return run(runtime_config=runtime_cfg)
+    except Exception:  # pragma: no cover - defensive
+        logger.exception("Fatal error during estimate generation")
+        return 1
 
 
 if __name__ == "__main__":  # pragma: no cover
-    main()
+    raise SystemExit(main())

@@ -23,7 +23,6 @@ The following packages are installed via `requirements.txt` or `pyproject.toml`:
 - `reportlab>=4.0.0,<5.0.0` - PDF generation
 - `PyPDF2==3.0.1` - PDF manipulation
 - `jsonschema>=4.19.0,<5.0.0` - Validation of memo summary payloads
-- `pytest==7.4.4` - Testing framework
 
 ### Optional Features
 - **OpenAI API**: To enable AI-assisted item mapping, you need:
@@ -101,17 +100,19 @@ to the mapping report.
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # PowerShell: .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-pip install -e .
+source .venv/bin/activate
+# PowerShell: .\.venv\Scripts\Activate.ps1
+pip install -e .[dev]
 ```
+Use `pip install -e .` if you only need the runtime dependencies or `pip install -r requirements.txt` to install the pinned production set without development tooling.
+Run `costest --help` to see the full command-line interface.
 
 ### Graphical drag-and-drop interface
 
 For a lightweight desktop launcher run:
 
 ```bash
-python -m costest.gui
+costest-gui
 ```
 
 An application window opens where you can drag and drop the
@@ -142,7 +143,7 @@ interactively.
 With those files in place, run the pipeline against the samples:
 
 ```bash
-python -m costest.cli \
+costest \
   --payitems-workbook outputs/PayItems_Audit.xlsx \
   --estimate-audit-csv outputs/Estimate_Audit.csv \
   --estimate-xlsx outputs/Estimate_Draft.xlsx
