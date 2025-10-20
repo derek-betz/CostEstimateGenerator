@@ -86,7 +86,7 @@ def test_pipeline_integration(monkeypatch, capsys, pipeline_setup):
             return ResponseStub(html_bytes, "https://example.com/listing")
         return ResponseStub(pdf_bytes, "https://example.com/memo-1.pdf")
 
-    monkeypatch.setattr("memos.scraper.urlopen", fake_urlopen)
+    monkeypatch.setattr("costest.memos.scraper.urlopen", fake_urlopen)
 
     call_log = []
 
@@ -94,7 +94,7 @@ def test_pipeline_integration(monkeypatch, capsys, pipeline_setup):
         call_log.append({"subject": subject, "force": force, "attachments": list(attachments)})
         return True
 
-    monkeypatch.setattr("memos.workflow.MemoNotifier.notify", fake_notify, raising=False)
+    monkeypatch.setattr("costest.memos.workflow.MemoNotifier.notify", fake_notify, raising=False)
 
     config_path = make_config(root, "state", notifications_enabled=True)
     state_path = Path(json.loads(config_path.read_text())["state_file"])

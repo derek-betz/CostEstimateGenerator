@@ -145,7 +145,7 @@ def memo_rollup_price(
     obsolete_codes: Sequence[str],
     project_region: Optional[int] = None,
     target_quantity: Optional[float] = None,
-) -> Tuple[float, int, str]:
+) -> tuple[float, int, str]:
     """
     Aggregate a pooled price for a replacement item by rolling up obsolete codes.
 
@@ -346,7 +346,14 @@ def category_breakdown(
     project_region: int | None = None,
     include_details: bool = False,
     target_quantity: float | None = None,
-):
+) -> tuple[float, str, dict[str, object]] | tuple[float, str, dict[str, object], dict[str, pd.DataFrame], list[str], pd.DataFrame]:
+    """Compute category-based pricing statistics for ``item_code``.
+
+    The input dataframe must contain the canonical BidTabs columns such as
+    ``ITEM_CODE``, ``UNIT_PRICE``, and category aggregates (``DIST_*``/``STATE_*``).
+    When ``include_details`` is ``True`` the function returns the supplemental
+    detail map and combined pool dataframe used to derive pricing.
+    """
     region = PROJECT_REGION if project_region is None else project_region
     price, source, cat_data, detail_map, used_categories, combined_detail = _compute_categories(
         bidtabs, item_code, region, collect_details=include_details, target_quantity=target_quantity

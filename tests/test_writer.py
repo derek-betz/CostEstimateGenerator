@@ -10,7 +10,7 @@ from openpyxl import load_workbook
 pd = pytest.importorskip("pandas")
 
 from costest.cli import run
-from costest.config import load_config
+from costest.config import load_cli_config
 from costest.sample_data import (
     DATA_SAMPLE_DIR,
     create_estimate_workbook_from_template,
@@ -54,7 +54,7 @@ def test_pipeline_updates_outputs(tmp_path):
         dry_run=False,
         log_level="INFO",
     )
-    config = load_config(args)
+    config = load_cli_config(args)
 
     first_run_status = run(config)
     assert first_run_status == 0

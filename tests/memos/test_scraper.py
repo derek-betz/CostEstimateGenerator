@@ -6,8 +6,8 @@ from typing import List
 
 import pytest
 
-from memos.scraper import MemoScraper, ScrapedMemo
-from memos.state import MemoRecord
+from costest.memos.scraper import MemoScraper, ScrapedMemo
+from costest.memos.state import MemoRecord
 
 
 class DummyResponse:
@@ -44,7 +44,7 @@ def test_fetch_listing_parses_links(monkeypatch, scraper) -> None:
     def fake_urlopen(request, timeout=0):
         return DummyResponse(html.encode("utf-8"), "https://example.com/memos/")
 
-    monkeypatch.setattr("memos.scraper.urlopen", fake_urlopen)
+    monkeypatch.setattr("costest.memos.scraper.urlopen", fake_urlopen)
 
     memos = scraper.fetch_listing()
     assert [m.memo_id for m in memos] == ["2024-01-adm", "2024-02-adm"]
@@ -57,7 +57,7 @@ def test_download_new_memos_saves_file(monkeypatch, scraper, memo_state) -> None
     def fake_urlopen(request, timeout=0):
         return DummyResponse(content, "https://example.com/docs/memo.pdf")
 
-    monkeypatch.setattr("memos.scraper.urlopen", fake_urlopen)
+    monkeypatch.setattr("costest.memos.scraper.urlopen", fake_urlopen)
 
     memo = ScrapedMemo(memo_id="abc-123", url="https://example.com/docs/memo.pdf", filename="memo.pdf")
     downloaded = scraper.download_new_memos([memo])
@@ -93,8 +93,8 @@ def test_fetch_listing_retries(monkeypatch, scraper) -> None:
             raise OSError("temporary failure")
         return DummyResponse(b"<a href='x.pdf'>Memo</a>", "https://example.com/memos/")
 
-    monkeypatch.setattr("memos.scraper.urlopen", flaky_urlopen)
-    monkeypatch.setattr("memos.retry.time.sleep", lambda _: None)
+    monkeypatch.setattr("costest.memos.scraper.urlopen", flaky_urlopen)
+    monkeypatch.setattr("costest.memos.retry.time.sleep", lambda _: None)
 
     scraper.config.http_retry.retries = 2
     scraper.config.http_retry.backoff_factor = 0.0
@@ -124,7 +124,7 @@ def test_download_handles_spaces(monkeypatch, scraper, memo_state, tmp_path) -> 
             return DummyResponse(listing.read_bytes(), listing.as_uri())
         return DummyResponse(content, pdf_local.as_uri())
 
-    monkeypatch.setattr("memos.scraper.urlopen", fake_urlopen)
+    monkeypatch.setattr("costest.memos.scraper.urlopen", fake_urlopen)
 
     scraper.config.memo_page_url = listing.as_uri()
     scraper.config.raw_directory = tmp_path / "raw"
@@ -145,7 +145,7 @@ def test_download_circuit_breaker(monkeypatch, scraper) -> None:
     def failing_urlopen(request, timeout=0):
         raise OSError("fail")
 
-    monkeypatch.setattr("memos.scraper.urlopen", failing_urlopen)
+    monkeypatch.setattr("costest.memos.scraper.urlopen", failing_urlopen)
     scraper.config.download_retry.retries = 0
     scraper.config.download_retry.circuit_breaker_failures = 1
     scraper._download_breaker.threshold = 1

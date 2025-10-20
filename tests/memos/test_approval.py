@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from memos.approval import ApprovalChecker
-from memos.config import MemoConfig
+from costest.memos.approval import ApprovalChecker
+from costest.memos.config import MemoConfig
 
 
 class DummyIMAP:
@@ -59,7 +59,7 @@ def approval_config(tmp_path: Path) -> MemoConfig:
 
 
 def test_approval_checker(monkeypatch, approval_config) -> None:
-    monkeypatch.setattr("memos.approval.imaplib.IMAP4_SSL", DummyIMAP)
+    monkeypatch.setattr("costest.memos.approval.imaplib.IMAP4_SSL", DummyIMAP)
     checker = ApprovalChecker(approval_config)
     results = checker.check(["memo-1"])
     assert results[0].approved
@@ -70,7 +70,7 @@ def test_approval_circuit_breaker(monkeypatch, approval_config) -> None:
     def failing_imap(*args, **kwargs):
         raise OSError("imap failure")
 
-    monkeypatch.setattr("memos.approval.imaplib.IMAP4_SSL", failing_imap)
+    monkeypatch.setattr("costest.memos.approval.imaplib.IMAP4_SSL", failing_imap)
     approval_config.approval.mailbox.retry.retries = 0
     approval_config.approval.mailbox.retry.circuit_breaker_failures = 1
     checker = ApprovalChecker(approval_config)
