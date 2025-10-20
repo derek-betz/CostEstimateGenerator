@@ -353,6 +353,12 @@ def write_outputs(
     payitem_details: dict[str, pd.DataFrame] | None = None,
     payitem_audit_path: str | None = None,
 ) -> None:
+    """Serialize pricing outputs to disk.
+
+    The input dataframe is expected to contain columns matching
+    :class:`costest.models.PayItem` fields alongside analytics columns
+    (e.g. CATEGORY_* aggregates and confidence metrics).
+    """
     # If payitem_details not provided, try to load from payitem_audit_path (existing workbook)
     if not payitem_details and payitem_audit_path:
         try:

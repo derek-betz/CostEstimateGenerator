@@ -43,5 +43,6 @@ API_KEY/
 *.log
 
 # Project-specific outputs
-outputs/*
 !outputs/.gitignore
+.ruff_cache/
+outputs/

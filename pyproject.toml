@@ -23,3 +23,30 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4,<8",
+    "ruff>=0.5",
+    "mypy>=1.9",
+    "types-PyYAML; python_version < '3.12'",
+]
+
+[project.scripts]
+costest = "costest.cli:main"
+costest-gui = "costest.gui:main"
+
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = []
+
+[tool.mypy]
+python_version = "3.9"
+ignore_missing_imports = true
+warn_return_any = false
+warn_unused_ignores = false

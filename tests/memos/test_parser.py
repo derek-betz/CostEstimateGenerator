@@ -9,8 +9,8 @@ import pytest
 jsonschema = pytest.importorskip("jsonschema")
 from jsonschema import ValidationError
 
-from memos.parser import MemoParser
-from memos.state import MemoRecord
+from costest.memos.parser import MemoParser
+from costest.memos.state import MemoRecord
 
 
 def test_parse_creates_outputs(memo_config, memo_state, memo_record_factory) -> None:
