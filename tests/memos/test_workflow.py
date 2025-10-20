@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from memos.config import SMTPConfig
-from memos.parser import ParsedMemo
-from memos.scraper import ScrapedMemo
-from memos.state import MemoRecord
-from memos.workflow import MemoWorkflow
+from costest.memos.config import SMTPConfig
+from costest.memos.parser import ParsedMemo
+from costest.memos.scraper import ScrapedMemo
+from costest.memos.state import MemoRecord
+from costest.memos.workflow import MemoWorkflow
 
 
 def test_workflow_metrics(monkeypatch, memo_config, memo_state) -> None:

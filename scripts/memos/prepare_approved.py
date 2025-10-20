@@ -12,9 +12,9 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from memos import MemoConfig, MemoState
-from memos.approval import ApprovalChecker
-from memos.indexer import MemoIndexer
+from costest.memos import MemoConfig, MemoState
+from costest.memos.approval import ApprovalChecker
+from costest.memos.indexer import MemoIndexer
 
 
 def setup_logging(verbose: bool = False) -> None:

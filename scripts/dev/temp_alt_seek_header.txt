@@ -1,3 +1,4 @@
+LEGACY ARTIFACT: Historical alternate-seek prompt notes.
 """Helpers for finding alternate pay items when direct BidTabs data is missing."""
 
 from __future__ import annotations
