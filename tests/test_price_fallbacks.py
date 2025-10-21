@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from costest import reference_data
+from costest import design_memo_prices, reference_data
 from costest.cli import CATEGORY_LABELS, apply_non_geometry_fallbacks
 from costest.estimate_writer import write_outputs
 
@@ -99,6 +99,44 @@ def test_design_memo_rollup_applies(monkeypatch):
     detail = payitem_details["401-11526"]
     assert "CATEGORY" in detail.columns
     assert detail["CATEGORY"].eq("DESIGN_MEMO_ROLLUP").all()
+
+
+def test_design_memo_price_guidance_applies(monkeypatch):
+    rows = [_blank_row("629-000150", 250.0)]
+
+    monkeypatch.setattr(reference_data, "load_unit_price_summary", lambda: {})
+
+    guidance = design_memo_prices.MemoPriceGuidance(
+        memo_id="25-07",
+        price=2.22,
+        unit="SYS",
+        context="unit price of $2.22 per SYS may be used until a bid history is established",
+        effective_date="September 1, 2025",
+        extracted_at="2025-10-16T17:24:22-0600",
+        source_path=None,
+    )
+    monkeypatch.setattr(
+        design_memo_prices,
+        "lookup_memo_price",
+        lambda code: guidance if code == "629-000150" else None,
+    )
+
+    bidtabs = pd.DataFrame(columns=["ITEM_CODE", "UNIT_PRICE", "QUANTITY", "REGION"])
+    payitem_details: dict[str, pd.DataFrame] = {}
+
+    apply_non_geometry_fallbacks(rows, bidtabs, project_region=None, payitem_details=payitem_details)
+    row = rows[0]
+
+    assert row["SOURCE"] == "DESIGN_MEMO_PRICE"
+    assert math.isclose(float(row["UNIT_PRICE_EST"]), 2.22, rel_tol=1e-6)
+    assert "DESIGN_MEMO_PRICE DM 25-07" in row["NOTES"]
+    assert "recommended $2.22" in row["NOTES"]
+    assert row["DATA_POINTS_USED"] == 0
+
+    detail = payitem_details["629-000150"]
+    assert detail["CATEGORY"].eq("DESIGN_MEMO_PRICE").all()
+    assert detail["MEMO_ID"].iloc[0] == "25-07"
+    assert math.isclose(detail["RECOMMENDED_PRICE"].iloc[0], 2.22, rel_tol=1e-6)
 
 
 def test_confidence_generated_for_fallback(tmp_path, monkeypatch):

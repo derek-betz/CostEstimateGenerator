@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Sequence
 import pandas as pd
 from dotenv import load_dotenv
 
-from . import design_memos, reference_data
+from . import design_memo_prices, design_memos, reference_data
 from .ai_reporter import generate_alternate_seek_report
 from .alternate_seek import find_alternate_price
 from .bidtabs_io import (
@@ -153,8 +153,8 @@ def apply_non_geometry_fallbacks(
     Apply non-geometry fallback pricing for items with no category data.
 
     Mutates ``rows`` in place, filling UNIT_PRICE_EST, SOURCE, NOTES, and
-    DATA_POINTS_USED when either the Unit Price Summary or design memo
-    rollup can provide pricing support.
+    DATA_POINTS_USED when either the Unit Price Summary, design memo
+    price guidance, or design memo rollup can provide pricing support.
     """
 
     if not rows:
@@ -181,12 +181,57 @@ def apply_non_geometry_fallbacks(
         changed = not math.isclose(clamped, value, rel_tol=1e-6, abs_tol=1e-6)
         return clamped, changed
 
+    def _apply_memo_price(
+        row_obj: Dict[str, object],
+        guidance: design_memo_prices.MemoPriceGuidance,
+        prior_note: str,
+    ) -> None:
+        precise_price = round(float(guidance.price), 2)
+        row_obj["UNIT_PRICE_EST"] = precise_price
+        row_obj["SOURCE"] = "DESIGN_MEMO_PRICE"
+        row_obj["DATA_POINTS_USED"] = 0
+        row_obj["STD_DEV"] = float("nan")
+        row_obj["COEF_VAR"] = float("nan")
+
+        memo_label = f"DESIGN_MEMO_PRICE DM {guidance.memo_id}"
+        if guidance.effective_date:
+            memo_label += f" (effective {guidance.effective_date})"
+        price_label = f"recommended ${guidance.price:,.2f}"
+        if guidance.unit:
+            price_label += f" per {guidance.unit}"
+        note_bits = [memo_label, price_label]
+        if guidance.context:
+            context = guidance.context.strip()
+            if len(context) > 180:
+                context = context[:177].rstrip() + "..."
+            if context:
+                note_bits.append(context)
+
+        row_obj["NOTES"] = " | ".join(part for part in (prior_note, "; ".join(note_bits)) if part)
+
+        payitem_details[row_obj.get("ITEM_CODE")] = pd.DataFrame(
+            [
+                {
+                    "ITEM_CODE": row_obj.get("ITEM_CODE"),
+                    "CATEGORY": "DESIGN_MEMO_PRICE",
+                    "USED_FOR_PRICING": True,
+                    "MEMO_ID": guidance.memo_id,
+                    "EFFECTIVE_DATE": guidance.effective_date or "",
+                    "EXTRACTED_AT": guidance.extracted_at or "",
+                    "RECOMMENDED_PRICE": guidance.price,
+                    "RECOMMENDED_UNIT": guidance.unit or "",
+                    "CONTEXT": guidance.context or "",
+                    "SOURCE_PATH": guidance.source_path.as_posix() if guidance.source_path else "",
+                }
+            ]
+        )
+
     for row in rows:
         current_price = float(row.get("UNIT_PRICE_EST", 0) or 0.0)
         counts_zero = all(int(row.get(f"{label}_COUNT", 0) or 0) == 0 for label in CATEGORY_LABELS)
         if current_price > 0 and not pd.isna(current_price):
             continue
-        if not counts_zero:
+        if not counts_zero and str(row.get("SOURCE", "") or "").upper() != "NO_DATA":
             continue
         if row.get("ALTERNATE_USED"):
             continue
@@ -217,6 +262,8 @@ def apply_non_geometry_fallbacks(
                 if _sum_contracts < 3:
                     reasons.append(f"contracts={_sum_contracts}")
                 summary_reason = ", ".join(reasons)
+
+        memo_guidance = design_memo_prices.lookup_memo_price(norm_code)
 
         # Try Design Memo Rollup first
         mapping = design_memos.get_obsolete_mapping(norm_code)
@@ -283,6 +330,9 @@ def apply_non_geometry_fallbacks(
                     notes_parts.append("clamped to summary range")
                 fallback_note = "; ".join(part for part in notes_parts if part)
                 row["NOTES"] = " | ".join(part for part in (existing_note, fallback_note) if part)
+                continue
+            if memo_guidance is not None:
+                _apply_memo_price(row, memo_guidance, existing_note)
                 continue
             else:
                 # Nothing worked: record insufficiency and keep NO_DATA
@@ -372,6 +422,9 @@ def apply_non_geometry_fallbacks(
                 if clamp_applied:
                     notes_parts.append("clamped to summary range")
                 row["NOTES"] = " | ".join(part for part in (existing_note, "; ".join(notes_parts)) if part)
+                continue
+            if memo_guidance is not None:
+                _apply_memo_price(row, memo_guidance, existing_note)
                 continue
             else:
                 memo_codes = "+".join(mapping["obsolete_codes"])
