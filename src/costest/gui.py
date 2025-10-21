@@ -1839,7 +1839,20 @@ class EstimatorApp:
                         )
 
         other = parsed["other"]
-        if other:
+        filtered_other: List[str] = []
+        skipping_summary_block = False
+        for line in other or []:
+            lowered = line.lower()
+            if not skipping_summary_block and lowered.startswith("summary"):
+                skipping_summary_block = True
+                continue
+            if skipping_summary_block:
+                if "=== summary ===" in lowered:
+                    skipping_summary_block = False
+                continue
+            filtered_other.append(line)
+
+        if filtered_other:
             notes_card = ttk.Frame(container, style="Glass.TFrame", padding=(18, 14))
             notes_card.pack(fill=tk.BOTH, expand=False, pady=(0, 16))
             ttk.Label(
@@ -1847,7 +1860,7 @@ class EstimatorApp:
                 text="Additional Notes",
                 style="SectionHeading.TLabel",
             ).pack(anchor=tk.W, pady=(0, 6))
-            for line in other:
+            for line in filtered_other:
                 ttk.Label(
                     notes_card,
                     text=line,
