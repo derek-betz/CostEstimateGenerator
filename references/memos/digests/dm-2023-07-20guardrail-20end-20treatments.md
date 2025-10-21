@@ -2,10 +2,10 @@
 
 **Memo ID:** dm-2023-07-20guardrail-20end-20treatments
 **Checksum:** 6b5acc196823867eacbd4f0c7f1c082903df9bff4ca0e30ab3a99d92ff31ff5c
-**Extracted At:** 2025-10-16T17:24:24-0600
+**Extracted At:** 2025-10-20T21:52:13-0600
 
 ## Highlights
-- **Pay Items**: 94689, 94690
+- **Pay Items**: 601-94689, 601-94690
 - **Spec Sections**: None detected
 - **Dollar Amounts**: None detected
 - **Keywords Present**: pay item, standard drawing

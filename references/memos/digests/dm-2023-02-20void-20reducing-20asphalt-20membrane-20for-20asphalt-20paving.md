@@ -2,10 +2,10 @@
 
 **Memo ID:** dm-2023-02-20void-20reducing-20asphalt-20membrane-20for-20asphalt-20paving
 **Checksum:** e91724b3a0da958a218523f82d205807aef6e67d0c67baefd594eef955049966
-**Extracted At:** 2025-10-16T17:24:24-0600
+**Extracted At:** 2025-10-20T21:52:04-0600
 
 ## Highlights
-- **Pay Items**: 12439, 12466
+- **Pay Items**: 401-12439, 410-12466
 - **Spec Sections**: 400, 602
 - **Dollar Amounts**: None detected
 - **Keywords Present**: pay item, specification

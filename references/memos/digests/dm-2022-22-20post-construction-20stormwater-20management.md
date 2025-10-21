@@ -2,13 +2,13 @@
 
 **Memo ID:** dm-2022-22-20post-construction-20stormwater-20management
 **Checksum:** 2b9bd8b16ea97ef0c454faad328f6d7968c837fda1f3f99883402c1803397368
-**Extracted At:** 2025-10-16T17:24:25-0600
+**Extracted At:** 2025-10-20T21:52:00-0600
 
 ## Highlights
 - **Pay Items**: None detected
-- **Spec Sections**: 203
+- **Spec Sections**: 203-5.0
 - **Dollar Amounts**: None detected
-- **Keywords Present**: pay item, change
+- **Keywords Present**: change, pay item
 
 ## Notable Snippets
 - Additional guidance for design calculation submittals and required supporting 

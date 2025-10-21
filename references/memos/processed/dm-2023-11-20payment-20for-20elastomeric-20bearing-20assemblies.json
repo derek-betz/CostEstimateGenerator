@@ -3,7 +3,7 @@
     "memo_id": "dm-2023-11-20payment-20for-20elastomeric-20bearing-20assemblies",
     "source_pdf": "references/memos/raw/DM%2023-11%20Payment%20for%20Elastomeric%20Bearing%20Assemblies.pdf",
     "checksum": "7d89950acf3763dd133dd60287c253728a24549e8a5e4a461f95138fb3133c30",
-    "extracted_at": "2025-10-16T17:24:24-0600",
+    "extracted_at": "2025-10-20T21:52:22-0600",
     "character_count": "1732",
     "title": "Design Memo  23-11 1 | Page",
     "affected_spec_sections": [
@@ -12,7 +12,7 @@
   },
   "highlights": {
     "pay_items": [
-      "92406"
+      "726-92406"
     ],
     "spec_sections": [
       "409"
@@ -21,10 +21,10 @@
       "2,300"
     ],
     "keywords_present": [
+      "change",
       "pay item",
-      "unit price",
       "specification",
-      "change"
+      "unit price"
     ]
   },
   "snippets": [

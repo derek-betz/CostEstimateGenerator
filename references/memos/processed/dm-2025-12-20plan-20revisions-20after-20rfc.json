@@ -3,7 +3,7 @@
     "memo_id": "dm-2025-12-20plan-20revisions-20after-20rfc",
     "source_pdf": "references/memos/raw/DM%2025-12%20Plan%20Revisions%20after%20RFC.pdf",
     "checksum": "4a955f9a74f5df969bca2d35de6d6005fd4f39ccf06b656d5a6a40cd4d7323ea",
-    "extracted_at": "2025-10-16T17:24:22-0600",
+    "extracted_at": "2025-10-20T21:54:51-0600",
     "character_count": "1782",
     "title": "Design Memo No. 25-12"
   },
@@ -12,7 +12,12 @@
     "spec_sections": [],
     "dollar_amounts": [],
     "keywords_present": [
+      "advertisement",
       "change",
+      "clarified",
+      "process",
+      "provisions",
+      "revisions",
       "update"
     ]
   },

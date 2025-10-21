@@ -2,7 +2,7 @@
 
 **Memo ID:** dm-2025-13-20indot-20standard-20drawings
 **Checksum:** 1f9289f5454a95d0fe22112ad4b9366bf7a7b3b9b882e7fb088e48c8bf98e200
-**Extracted At:** 2025-10-16T17:24:22-0600
+**Extracted At:** 2025-10-20T21:54:56-0600
 
 ## Highlights
 - **Pay Items**: None detected

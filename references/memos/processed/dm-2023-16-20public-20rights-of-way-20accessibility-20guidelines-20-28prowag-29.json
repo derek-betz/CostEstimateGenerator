@@ -3,7 +3,7 @@
     "memo_id": "dm-2023-16-20public-20rights-of-way-20accessibility-20guidelines-20-28prowag-29",
     "source_pdf": "references/memos/raw/DM%2023-16%20Public%20Rights-of-Way%20Accessibility%20Guidelines%20%28PROWAG%29.pdf",
     "checksum": "4aaae449c8c357a8952420cb7e9313bd7901f4d71cdf330634f87f8305f6519c",
-    "extracted_at": "2025-10-16T17:24:24-0600",
+    "extracted_at": "2025-10-20T21:52:25-0600",
     "character_count": "9579",
     "title": "Design Memo 23- 16 1 | Page"
   },
@@ -12,7 +12,10 @@
     "spec_sections": [],
     "dollar_amounts": [],
     "keywords_present": [
-      "change"
+      "accessibility",
+      "change",
+      "guidelines",
+      "requirements"
     ]
   },
   "snippets": [

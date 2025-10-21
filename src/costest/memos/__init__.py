@@ -8,6 +8,7 @@ from .notifier import MemoNotifier
 from .workflow import MemoWorkflow
 from .approval import ApprovalChecker
 from .indexer import MemoIndexer
+from .validator import MemoValidator
 
 __all__ = [
     "MemoConfig",
@@ -18,4 +19,5 @@ __all__ = [
     "MemoWorkflow",
     "ApprovalChecker",
     "MemoIndexer",
+    "MemoValidator",
 ]

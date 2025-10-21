@@ -3,26 +3,23 @@
     "memo_id": "0534-ta",
     "source_pdf": "references/memos/raw/0534-ta.pdf",
     "checksum": "6d66e7882a2289bae787a9d86af17f379f347aa916518558ac5c037164397c1f",
-    "extracted_at": "2025-10-16T17:24:32-0600",
+    "extracted_at": "2025-10-20T21:49:49-0600",
     "character_count": "8667",
     "title": "INDIANA DEPARTMENT OF TRANS PORTATION",
     "effective_date": "March 15, 2006"
   },
   "highlights": {
     "pay_items": [
-      "0534",
-      "08496",
-      "08497",
-      "08498",
-      "08499",
-      "08500",
-      "08501",
-      "08502",
-      "08503",
-      "08504",
-      "08505",
-      "2273",
-      "4000"
+      "706-08496",
+      "706-08497",
+      "706-08498",
+      "706-08499",
+      "706-08500",
+      "706-08501",
+      "706-08502",
+      "706-08503",
+      "706-08504",
+      "706-08505"
     ],
     "spec_sections": [],
     "dollar_amounts": [],
@@ -36,7 +33,6 @@
     "hould be specified. \n \nB. Specifications.   New Recurring Special Provision 706-R-504 has been developed to \ncomplement this work and is also attached he reto.  It includes a ne w pay item, Reinforced \nConcrete Moment Slab, with pa y unit square meter (square yard ).  The pay width should be \ntaken from the vertical front face of the concrete railing to the",
     "contract or will usually have an option to use either type of coping.  If \na pedestrian fence is warranted atop the MSE wall,  the cast-in-place copi ng should be specified. \n \nB. Specifications.   New Recurring Special Provision 706-R-504 has been developed to \ncomplement this work and is also attached he reto.  It includes a ne w pay item, Reinforced \nConc",
     "il, and end treatm ent in accordance with Indiana Design Manual  Section 49-5.04, or an \nimpact attenuator in accordance with Indiana Design Manual  Section 49-6.0, and the INDOT \nStandard Drawings . \n \n \nII. Standard Documents \n \nA. Details.  New Recurring Plan De tails series 706-R-504d has been developed showing details \nfor a concrete railing and moment",
-    "[F:\\Des\\Signed\\0534-ta]",
     "706-08496 Reinforced Concrete Mo ment Slab, 300 mm (or 12 in.)",
     "706-08497 Reinforced Concrete Mo ment Slab, 313 mm (or 12\u00bd in.)",
     "706-08498 Reinforced Concrete Mo ment Slab, 325 mm (or 13 in.)",
@@ -46,8 +42,6 @@
     "706-08502 Reinforced Concrete Mo ment Slab, 375 mm (or 15 in.)",
     "706-08503 Reinforced Concrete Mo ment Slab, 388 mm (or 15\u00bd in.)",
     "706-08504 Reinforced Concrete Mo ment Slab, 400 mm (or 16 in.)",
-    "706-08505 Reinforced Concrete Mo ment Slab, 450 mm (or 18 in.)",
-    "233-2273",
-    "Concrete compressive strength f\u2019c = 28,000 kPa (4000 psi)"
+    "706-08505 Reinforced Concrete Mo ment Slab, 450 mm (or 18 in.)"
   ]
 }

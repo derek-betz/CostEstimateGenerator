@@ -3,14 +3,12 @@
     "memo_id": "dm-2023-19-20joint-20probability-20analysis",
     "source_pdf": "references/memos/raw/DM%2023-19%20Joint%20Probability%20Analysis.pdf",
     "checksum": "b88a175a42007681444032e3ad5c8568aca9abd26c63d387e64a727c5def0927",
-    "extracted_at": "2025-10-16T17:24:24-0600",
+    "extracted_at": "2025-10-20T21:52:37-0600",
     "character_count": "1257",
     "title": "Design Memo 23- 19 1 | Page"
   },
   "highlights": {
-    "pay_items": [
-      "4430"
-    ],
+    "pay_items": [],
     "spec_sections": [],
     "dollar_amounts": [],
     "keywords_present": [
@@ -18,7 +16,6 @@
     ]
   },
   "snippets": [
-    "/IN/JTRP -2023/09 \u2013 SPR 4430), Development of a Multiple Water Course \nJoint Probability Analysis Procedure for Indiana Watersheds .  Revisions include additional \nfrequencies and updated values to be used for joint probability analysis.     \n \nThe revised  figure has been incorporated into IDM Chapter 203.  \n \nHydraulic designs submi tted or completed on or",
-    "Research Project (FHWA/IN/JTRP -2023/09 \u2013 SPR 4430), Development of a Multiple Water Course"
+    "/IN/JTRP -2023/09 \u2013 SPR 4430), Development of a Multiple Water Course \nJoint Probability Analysis Procedure for Indiana Watersheds .  Revisions include additional \nfrequencies and updated values to be used for joint probability analysis.     \n \nThe revised  figure has been incorporated into IDM Chapter 203.  \n \nHydraulic designs submi tted or completed on or"
   ]
 }

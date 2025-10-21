@@ -2,13 +2,13 @@
 
 **Memo ID:** dm-2023-20-20extended-20pile-20bents-20and-20wall-20pier-20on-20single-20row-20of-20piles
 **Checksum:** 47072d34db32575993aca59bd4cd60eb27295b6c6cfb1ed7bde61c949ff9d924
-**Extracted At:** 2025-10-16T17:24:24-0600
+**Extracted At:** 2025-10-20T21:52:40-0600
 
 ## Highlights
-- **Pay Items**: 4512
+- **Pay Items**: None detected
 - **Spec Sections**: None detected
 - **Dollar Amounts**: None detected
-- **Keywords Present**: update
+- **Keywords Present**: construction, guidance, maintenance, revisions, stability, update
 
 ## Notable Snippets
 - e  
@@ -23,4 +23,3 @@ added seismic zone parameters.
 Pile Bent  Preventive maintenance costs should 
 be included in life cycle cost.  
 Added
-- revised.  Revisions are a result of field observations and research findings  from JTRP 4512:  Pile

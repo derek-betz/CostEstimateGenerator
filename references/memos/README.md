@@ -17,6 +17,23 @@ memos, parsing them, and preparing notification artifacts. Summaries are only
 committed to the repository after explicit approval from the designated
 reviewer.
 
+## Validate digests vs PDFs
+
+Use `scripts/memos/validate_and_correct.py` to cross-check Markdown digests and
+JSON summaries against the source PDF text. By default it performs a
+deterministic re-parse and reports differences. With `--use-ai`, it also asks
+an AI model to flag potential omissions and proposes highlight fixes, which are
+locally verified against the PDF text before applying to avoid hallucinations.
+
+Examples:
+
+```
+poetry run python scripts/memos/validate_and_correct.py --verbose
+poetry run python scripts/memos/validate_and_correct.py --use-ai --apply --limit 5
+```
+
+The validator reads `OPENAI_API_KEY` from the environment or `API_KEY/API_KEY.txt`.
+
 ## Configuration overview
 
 `config.json` (or the YAML equivalent) controls the workflow.  The following
@@ -39,6 +56,10 @@ sections supplement the existing SMTP/IMAP credentials:
   (`pay_item_regex`, `spec_section_regex`, `dollar_regex`, `keywords`) along
   with `pay_item_limit` and `pay_item_frequency_guard` to control false
   positives.
+
+Note: Pay items are expected in strict INDOT format `xxx-xxxxx` or `xxx-xxxxxx`
+(three digits, hyphen, then five or six digits). The default `pay_item_regex`
+enforces this to avoid false positives from phone numbers or dates.
 
 Environment variables continue to supply credentials when preferred:
 

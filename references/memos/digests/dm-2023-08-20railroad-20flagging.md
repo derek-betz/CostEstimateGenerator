@@ -2,13 +2,13 @@
 
 **Memo ID:** dm-2023-08-20railroad-20flagging
 **Checksum:** c6219858b150fa050218e39edef4f73f151f79ef4a8d0f499e900d893aba6c1d
-**Extracted At:** 2025-10-16T17:24:24-0600
+**Extracted At:** 2025-10-20T21:52:15-0600
 
 ## Highlights
-- **Pay Items**: 12976
-- **Spec Sections**: 105
+- **Pay Items**: 107-12976
+- **Spec Sections**: 105-3.03
 - **Dollar Amounts**: 1.
-- **Keywords Present**: pay item, unit price, change
+- **Keywords Present**: change, pay item, unit price
 
 ## Notable Snippets
 - on a project-by-project basis when direct hire applie s.  

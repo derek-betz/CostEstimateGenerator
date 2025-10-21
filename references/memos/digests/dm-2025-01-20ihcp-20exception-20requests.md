@@ -2,7 +2,7 @@
 
 **Memo ID:** dm-2025-01-20ihcp-20exception-20requests
 **Checksum:** 182299668c0eff0ca33783a6cd63f5e2adfb2461e8b8514c0b6e5e5e196c20da
-**Extracted At:** 2025-10-16T17:24:22-0600
+**Extracted At:** 2025-10-20T21:54:05-0600
 
 ## Highlights
 - **Pay Items**: None detected

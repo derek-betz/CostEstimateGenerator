@@ -3,7 +3,7 @@
     "memo_id": "dm-2025-11-20lean-20concrete-20base",
     "source_pdf": "references/memos/raw/DM%2025-11%20Lean%20Concrete%20Base.pdf",
     "checksum": "fa2a0a3c918d634d9ca314a3c2fa58f870cf07c3f322787b1a9e14be3304226f",
-    "extracted_at": "2025-10-16T17:24:22-0600",
+    "extracted_at": "2025-10-20T21:54:48-0600",
     "character_count": "3174",
     "title": "Design Memo No. 25-11",
     "effective_date": "June  1, 2025",
@@ -13,17 +13,16 @@
   },
   "highlights": {
     "pay_items": [
-      "12695",
-      "2025"
+      "309-12695"
     ],
     "spec_sections": [
       "309"
     ],
     "dollar_amounts": [],
     "keywords_present": [
+      "change",
       "pay item",
       "specification",
-      "change",
       "update"
     ]
   },
@@ -32,7 +31,6 @@
     "VE:  Lettings on or after  June  1, 2025  \nThe Standards Committee approved RSP 309- R-793, Lean Concrete Base, at the January 2025  \nmeeting. The provision creates a new Standard Specification s section 309 and incorporates \nrequirements for lean concrete base (LCB) previously included in contracts as a unique special \nprovision. The RSP is available on the",
     "similar \nto Portland cement concrete (PCC) but contains less cement paste than a typical PCC mix, allowing \nthe pavement above to retain the ab ility to move due to environmental changes. It also provides \ngreater long -term support than an aggregate subbase to prevent the formation of any noticeable \nsettlement. \nPay Items  \n\u2022 New . Effective June  1, 2025",
     "ith the Final Tracings package. For contracts whose Final Tracings due date \nhas passed, please work with your project manager to ensure the Final Pavement Design file in \nERMS is updated.  \nContract Revisions  \nFor contracts that include lean concrete base, delete any previously submitted USPs and include \nRSP 309 -R793, Lean Concrete Base.  Ensure  plans,",
-    "309-12695  Lean Concrete Base, 9  in. SYS LCB will be identified  in the approved",
-    "Page | 1  of 2 April 16, 2025"
+    "309-12695  Lean Concrete Base, 9  in. SYS LCB will be identified  in the approved"
   ]
 }

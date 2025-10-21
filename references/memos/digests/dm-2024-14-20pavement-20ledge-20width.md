@@ -2,13 +2,13 @@
 
 **Memo ID:** dm-2024-14-20pavement-20ledge-20width
 **Checksum:** b6e0f0a0f2a402692883fe3fc6e963dcb1b670bf1e4e0321814bff7c9f1df981
-**Extracted At:** 2025-10-16T17:24:23-0600
+**Extracted At:** 2025-10-20T21:53:50-0600
 
 ## Highlights
 - **Pay Items**: None detected
 - **Spec Sections**: None detected
 - **Dollar Amounts**: None detected
-- **Keywords Present**: standard drawing, change
+- **Keywords Present**: change, standard drawing
 
 ## Notable Snippets
 - f settlement of the RCBA at the 

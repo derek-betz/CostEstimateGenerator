@@ -2,11 +2,11 @@
 
 **Memo ID:** 16-10-20ta-20bundled-20projects-20attach
 **Checksum:** 8b867fd80cf290f34af5ade39652ce110c0a3fe57195ce4633f1f5daf68ae37a
-**Extracted At:** 2025-10-16T17:24:32-0600
+**Extracted At:** 2025-10-20T21:50:31-0600
 
 ## Highlights
-- **Pay Items**: 51821
-- **Spec Sections**: 105, 106
+- **Pay Items**: None detected
+- **Spec Sections**: 105
 - **Dollar Amounts**: None detected
 - **Keywords Present**: specification, change
 
@@ -27,4 +27,3 @@ currently preparing for new specific consultation requirements for Indiana bat a
 long-eared bats.   
   
 Formal consultation is requir
-- o Use the State  Form 51821 individual permit application.

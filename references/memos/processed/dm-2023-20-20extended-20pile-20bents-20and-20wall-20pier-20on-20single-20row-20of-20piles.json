@@ -3,22 +3,24 @@
     "memo_id": "dm-2023-20-20extended-20pile-20bents-20and-20wall-20pier-20on-20single-20row-20of-20piles",
     "source_pdf": "references/memos/raw/DM%2023-20%20Extended%20Pile%20Bents%20and%20Wall%20Pier%20on%20Single%20Row%20of%20Piles.pdf",
     "checksum": "47072d34db32575993aca59bd4cd60eb27295b6c6cfb1ed7bde61c949ff9d924",
-    "extracted_at": "2025-10-16T17:24:24-0600",
+    "extracted_at": "2025-10-20T21:52:40-0600",
     "character_count": "4061",
     "title": "Design Memo 23- 20 1 | Page"
   },
   "highlights": {
-    "pay_items": [
-      "4512"
-    ],
+    "pay_items": [],
     "spec_sections": [],
     "dollar_amounts": [],
     "keywords_present": [
+      "construction",
+      "guidance",
+      "maintenance",
+      "revisions",
+      "stability",
       "update"
     ]
   },
   "snippets": [
-    "e  \n IDM Section  Revision  Notes  \n409-6.01(01) , 2a. \u2013 Wall  \nPier Increase d height recommendation for \nwall piers from 20 ft to 25 ft.   \n409-6.03(05) - Column \nReinforcement  Updated LRFD code references and \nadded seismic zone parameters.   \n409-6.04(01) - Extended \nPile Bent  Preventive maintenance costs should \nbe included in life cycle cost.  \nAdded",
-    "revised.  Revisions are a result of field observations and research findings  from JTRP 4512:  Pile"
+    "e  \n IDM Section  Revision  Notes  \n409-6.01(01) , 2a. \u2013 Wall  \nPier Increase d height recommendation for \nwall piers from 20 ft to 25 ft.   \n409-6.03(05) - Column \nReinforcement  Updated LRFD code references and \nadded seismic zone parameters.   \n409-6.04(01) - Extended \nPile Bent  Preventive maintenance costs should \nbe included in life cycle cost.  \nAdded"
   ]
 }

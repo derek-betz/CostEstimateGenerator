@@ -2,13 +2,13 @@
 
 **Memo ID:** dm-2025-15-20bridge-20deck-20overlay
 **Checksum:** e288ccf40dc8509b66408446f9f87d7f33f9a05db6f5fd4859ab740a7f7bc0d1
-**Extracted At:** 2025-10-16T17:24:22-0600
+**Extracted At:** 2025-10-20T21:55:01-0600
 
 ## Highlights
-- **Pay Items**: 000134, 000146, 000183, 12463, 12917, 2024, 2025
+- **Pay Items**: 722-000134, 722-000146, 722-000183
 - **Spec Sections**: 722
 - **Dollar Amounts**: None detected
-- **Keywords Present**: pay item, specification, change, update
+- **Keywords Present**: change, pay item, specification, update
 
 ## Notable Snippets
 - The Standards Committee approved revisions to Standard Specifications Section 722, Concrete 
@@ -40,7 +40,3 @@ Bridgedesignoffice@indot.in.gov .
 - 722-000134  BRIDGE DECK OVERLAY, RIGID  SYS
 - 722-000146  BRIDGE DECK, REMOVE POLYMER OVERLAY AND SURFACE  SYS
 - 722-000183  BRIDGE DECK, REMOVE CONCRETE OVERLAY AND SURFACE  SYS
-- a concrete overlay . Pay item 722- 12463, Bridge Deck, Remove Existing Concrete Overlay
-- Note that this pay item is different from 738- 12917, Bridge Deck, Remove Existing Polymer
-- Bridge Deck Overlays, at the October 2024 meeting ( item 3). The revisions include new pay items,
-- Page | 1  of 2 July 15, 2025

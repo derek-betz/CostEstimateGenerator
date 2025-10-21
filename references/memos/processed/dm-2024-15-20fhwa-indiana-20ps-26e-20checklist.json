@@ -3,7 +3,7 @@
     "memo_id": "dm-2024-15-20fhwa-indiana-20ps-26e-20checklist",
     "source_pdf": "references/memos/raw/DM%2024-15%20FHWA-Indiana%20PS%26E%20Checklist.pdf",
     "checksum": "979c22c1853c9d2bdd3d33393e7ae5cb25d6e5abd0451c35fc79db9f791077d8",
-    "extracted_at": "2025-10-16T17:24:22-0600",
+    "extracted_at": "2025-10-20T21:53:53-0600",
     "character_count": "2928",
     "title": "Design Memo No. 24-15"
   },
@@ -12,8 +12,8 @@
     "spec_sections": [],
     "dollar_amounts": [],
     "keywords_present": [
-      "pay item",
-      "change"
+      "change",
+      "pay item"
     ]
   },
   "snippets": [

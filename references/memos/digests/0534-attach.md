@@ -2,13 +2,13 @@
 
 **Memo ID:** 0534-attach
 **Checksum:** 72b72a1f3a3eded9c8d819a8426c756dda90e12fa7ef1841ab6a4cdc4b9be26e
-**Extracted At:** 2025-10-16T17:24:41-0600
+**Extracted At:** 2025-10-20T21:49:33-0600
 
 ## Highlights
-- **Pay Items**: None detected
+- **Pay Items**: 602-06000, 703-08496, 706-08496, 904-00000
 - **Spec Sections**: 706
 - **Dollar Amounts**: None detected
-- **Keywords Present**: pay item, unit price, specification
+- **Keywords Present**: pay item, specification, unit price
 
 ## Notable Snippets
 - concrete 

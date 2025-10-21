@@ -3,7 +3,7 @@
     "memo_id": "17-10-20mash-20implementation-20and-20guardrail",
     "source_pdf": "references/memos/raw/17-10%20MASH%20Implementation%20and%20Guardrail.pdf",
     "checksum": "04592c5e4d7537295c898924f089ae8f58a801741e82f8f903b7017e744d02af",
-    "extracted_at": "2025-10-16T17:24:28-0600",
+    "extracted_at": "2025-10-20T21:50:47-0600",
     "character_count": "12090",
     "title": "[P:\\Structural Services \\Design Memos \\SIGNED \\2017\\ 17-10pc  MASH Implementation and"
   },
@@ -12,9 +12,9 @@
     "spec_sections": [],
     "dollar_amounts": [],
     "keywords_present": [
+      "change",
       "pay item",
-      "standard drawing",
-      "change"
+      "standard drawing"
     ]
   },
   "snippets": [

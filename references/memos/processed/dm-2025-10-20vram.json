@@ -3,7 +3,7 @@
     "memo_id": "dm-2025-10-20vram",
     "source_pdf": "references/memos/raw/DM%2025-10%20VRAM.pdf",
     "checksum": "469c3c7dbf596c844cee11b298816b1747f8b7713f1667bc4e2b56b00027a841",
-    "extracted_at": "2025-10-16T17:24:22-0600",
+    "extracted_at": "2025-10-20T21:54:45-0600",
     "character_count": "3849",
     "title": "Design Memo No. 25-10",
     "effective_date": "September 1, 2025",
@@ -13,19 +13,18 @@
   },
   "highlights": {
     "pay_items": [
-      "10258",
-      "10259",
-      "11526",
-      "2025"
+      "401-10258",
+      "401-10259",
+      "401-11526"
     ],
     "spec_sections": [
       "602"
     ],
     "dollar_amounts": [],
     "keywords_present": [
+      "change",
       "pay item",
       "specification",
-      "change",
       "update"
     ]
   },
@@ -36,7 +35,6 @@
     "th the Final Tracings package.  For \ncontracts whose Final Tracings have been submitted, please work with your project manager to \nensure the Final Pavement Design file in ERMS is updated.  \nIDM Revisions  \nThe referenced section  of IDM Chapter 602 has been revised to reflect these changes.  \nQuestions regarding this design memo should be directed to the Of",
     "401-10258  Joint Adhesive, Surface  LFT",
     "401-10259  Joint Adhesive, Intermediate  LFT",
-    "401-11526  Joint Adhesive LFT The course type (surface or intermediate)",
-    "Page | 1  of 3 April 16, 2025"
+    "401-11526  Joint Adhesive LFT The course type (surface or intermediate)"
   ]
 }

@@ -3,7 +3,7 @@
     "memo_id": "dm-2022-22-20post-construction-20stormwater-20management",
     "source_pdf": "references/memos/raw/DM%2022-22%20Post-construction%20Stormwater%20Management.pdf",
     "checksum": "2b9bd8b16ea97ef0c454faad328f6d7968c837fda1f3f99883402c1803397368",
-    "extracted_at": "2025-10-16T17:24:25-0600",
+    "extracted_at": "2025-10-20T21:52:00-0600",
     "character_count": "14177",
     "title": "Design Memo 22- 22 1 | Page",
     "affected_spec_sections": [
@@ -13,12 +13,12 @@
   "highlights": {
     "pay_items": [],
     "spec_sections": [
-      "203"
+      "203-5.0"
     ],
     "dollar_amounts": [],
     "keywords_present": [
-      "pay item",
-      "change"
+      "change",
+      "pay item"
     ]
   },
   "snippets": [

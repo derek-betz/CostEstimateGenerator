@@ -2,13 +2,13 @@
 
 **Memo ID:** dm-2024-15-20fhwa-indiana-20ps-26e-20checklist
 **Checksum:** 979c22c1853c9d2bdd3d33393e7ae5cb25d6e5abd0451c35fc79db9f791077d8
-**Extracted At:** 2025-10-16T17:24:22-0600
+**Extracted At:** 2025-10-20T21:53:53-0600
 
 ## Highlights
 - **Pay Items**: None detected
 - **Spec Sections**: None detected
 - **Dollar Amounts**: None detected
-- **Keywords Present**: pay item, change
+- **Keywords Present**: change, pay item
 
 ## Notable Snippets
 - and roadside barrier was 

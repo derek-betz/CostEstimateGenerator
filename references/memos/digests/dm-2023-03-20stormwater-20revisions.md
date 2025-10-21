@@ -2,13 +2,13 @@
 
 **Memo ID:** dm-2023-03-20stormwater-20revisions
 **Checksum:** b79b0c369c97c4d332f0ae03105122989e735797df1687826e9f4d28588f7dd1
-**Extracted At:** 2025-10-16T17:24:24-0600
+**Extracted At:** 2025-10-20T21:52:07-0600
 
 ## Highlights
-- **Pay Items**: 1000, 12108, 12616, 12618, 1500
+- **Pay Items**: 205-12108, 205-12618
 - **Spec Sections**: 205
 - **Dollar Amounts**: 1., 1000, 1500, 5,000, 510
-- **Keywords Present**: pay item, unit price, specification, change, update
+- **Keywords Present**: change, pay item, specification, unit price, update
 
 ## Notable Snippets
 - ill be 
@@ -53,8 +53,6 @@ Pay Items Revision s
  
 Pay item revisions include updates to established unit  costs and  lump sum estimates for Stormwater Quality 
 Control Plan (SWQCP) P reparation and Stormwater M anagement Implementation  pay items . Pay item
-- SWQM  $1000 for SWQM Waterways
 - 1. Stormw ater  Management Budget [205-12108] (No ch ange from current practice)
-- 3. Stormwater Management Implementation  [205-12616]
 - 2. SWQCP Preparation [205-12618]
-- $1500 for SWQM CSGP  CSGP and
+- 3. Stormwater Management Implementation  [205-12616]

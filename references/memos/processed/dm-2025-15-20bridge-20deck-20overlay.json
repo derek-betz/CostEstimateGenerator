@@ -3,7 +3,7 @@
     "memo_id": "dm-2025-15-20bridge-20deck-20overlay",
     "source_pdf": "references/memos/raw/DM%2025-15%20Bridge%20Deck%20Overlay.pdf",
     "checksum": "e288ccf40dc8509b66408446f9f87d7f33f9a05db6f5fd4859ab740a7f7bc0d1",
-    "extracted_at": "2025-10-16T17:24:22-0600",
+    "extracted_at": "2025-10-20T21:55:01-0600",
     "character_count": "3134",
     "title": "Design Memo No. 25-15",
     "effective_date": "September 1, 2025",
@@ -13,22 +13,18 @@
   },
   "highlights": {
     "pay_items": [
-      "000134",
-      "000146",
-      "000183",
-      "12463",
-      "12917",
-      "2024",
-      "2025"
+      "722-000134",
+      "722-000146",
+      "722-000183"
     ],
     "spec_sections": [
       "722"
     ],
     "dollar_amounts": [],
     "keywords_present": [
+      "change",
       "pay item",
       "specification",
-      "change",
       "update"
     ]
   },
@@ -39,10 +35,6 @@
     "2 to 17- 5.12 \nFigure 17- 5M has been added to provide guidance on selecting pay items associated with a rigid \nbridge deck overlay.  Figure 412- 3C, Overlay Dam Details, has been updated.  \n \nFor questions related to this design memo, please contact the Bridge Engineering Division at \nBridgedesignoffice@indot.in.gov .",
     "722-000134  BRIDGE DECK OVERLAY, RIGID  SYS",
     "722-000146  BRIDGE DECK, REMOVE POLYMER OVERLAY AND SURFACE  SYS",
-    "722-000183  BRIDGE DECK, REMOVE CONCRETE OVERLAY AND SURFACE  SYS",
-    "a concrete overlay . Pay item 722- 12463, Bridge Deck, Remove Existing Concrete Overlay",
-    "Note that this pay item is different from 738- 12917, Bridge Deck, Remove Existing Polymer",
-    "Bridge Deck Overlays, at the October 2024 meeting ( item 3). The revisions include new pay items,",
-    "Page | 1  of 2 July 15, 2025"
+    "722-000183  BRIDGE DECK, REMOVE CONCRETE OVERLAY AND SURFACE  SYS"
   ]
 }

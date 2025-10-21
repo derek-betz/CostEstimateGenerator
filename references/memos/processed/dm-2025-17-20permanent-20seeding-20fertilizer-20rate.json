@@ -3,7 +3,7 @@
     "memo_id": "dm-2025-17-20permanent-20seeding-20fertilizer-20rate",
     "source_pdf": "references/memos/raw/DM%2025-17%20Permanent%20Seeding%20Fertilizer%20Rate.pdf",
     "checksum": "35458222674329abf0acbe34bac2fa35d7fc705fe2bfccba3f121a7d5283dbad",
-    "extracted_at": "2025-10-16T17:24:22-0600",
+    "extracted_at": "2025-10-20T21:55:09-0600",
     "character_count": "912",
     "title": "Design Memo No. 25-17",
     "affected_spec_sections": [
@@ -11,21 +11,19 @@
     ]
   },
   "highlights": {
-    "pay_items": [
-      "2025"
-    ],
+    "pay_items": [],
     "spec_sections": [
       "621"
     ],
     "dollar_amounts": [],
     "keywords_present": [
+      "fertilizer application rate",
       "specification",
       "update"
     ]
   },
   "snippets": [
     "EVISES:  Indiana Design Manual  Section s 17-4.10(01 ) and 17-4.10(03)  \nEFFECTIVE:  Lettings on or after December 1, 2025  \nThe Standards Committee approved revisions to Standard Specifications Section 621, Seeding and \nSodding , at the July 2025  meeting  (item 1), to u pdat e verification requirements for seed .  The \nfertilizer application rate for perma",
-    "uirements for seed .  The \nfertilizer application rate for permanent seeding was also reduced  from 800 lb/ac to 400 lb/ac.  \n \nThe referenced sections of IDM Chapter 17 have been updated to reflect the fertilizer application \nrate.  \nFor questions related to this design memo, please contact the Division of Standards and Policy at \nDesignManualInquiries@indo",
-    "Page | 1 of 1 August 13, 2025"
+    "uirements for seed .  The \nfertilizer application rate for permanent seeding was also reduced  from 800 lb/ac to 400 lb/ac.  \n \nThe referenced sections of IDM Chapter 17 have been updated to reflect the fertilizer application \nrate.  \nFor questions related to this design memo, please contact the Division of Standards and Policy at \nDesignManualInquiries@indo"
   ]
 }

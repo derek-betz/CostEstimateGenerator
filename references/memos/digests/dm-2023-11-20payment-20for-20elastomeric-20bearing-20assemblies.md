@@ -2,13 +2,13 @@
 
 **Memo ID:** dm-2023-11-20payment-20for-20elastomeric-20bearing-20assemblies
 **Checksum:** 7d89950acf3763dd133dd60287c253728a24549e8a5e4a461f95138fb3133c30
-**Extracted At:** 2025-10-16T17:24:24-0600
+**Extracted At:** 2025-10-20T21:52:22-0600
 
 ## Highlights
-- **Pay Items**: 92406
+- **Pay Items**: 726-92406
 - **Spec Sections**: 409
 - **Dollar Amounts**: 2,300
-- **Keywords Present**: pay item, unit price, specification, change
+- **Keywords Present**: change, pay item, specification, unit price
 
 ## Notable Snippets
 - port.   

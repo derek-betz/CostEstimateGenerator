@@ -2,13 +2,13 @@
 
 **Memo ID:** dm-2023-10-20bridge-20painting
 **Checksum:** 8903a98aa8a594d12577c00df473b9e0236f80bb8a25c74f3717339433c1b341
-**Extracted At:** 2025-10-16T17:24:24-0600
+**Extracted At:** 2025-10-20T21:52:19-0600
 
 ## Highlights
-- **Pay Items**: 12507, 51859, 51860, 95315
+- **Pay Items**: 619-12507, 619-51859, 619-51860, 619-95315
 - **Spec Sections**: 619
 - **Dollar Amounts**: None detected
-- **Keywords Present**: pay item, specification, standard drawing, change, update
+- **Keywords Present**: change, pay item, specification, standard drawing, update
 
 ## Notable Snippets
 - Design, Operations, and Di strict Personnel, and Consultants 

@@ -2,13 +2,13 @@
 
 **Memo ID:** dm-2024-17-20liquid-20asphalt-20sealant
 **Checksum:** 72ba75c6ae9df09758158f4cdd0343a31fe8592f258a80ad2aa79fcb085e6ed1
-**Extracted At:** 2025-10-16T17:24:22-0600
+**Extracted At:** 2025-10-20T21:54:00-0600
 
 ## Highlights
-- **Pay Items**: 11785, 12483
+- **Pay Items**: 401-11785, 401-12483
 - **Spec Sections**: 401
 - **Dollar Amounts**: None detected
-- **Keywords Present**: pay item, specification, change, update
+- **Keywords Present**: change, pay item, specification, update
 
 ## Notable Snippets
 - 02-3G, 

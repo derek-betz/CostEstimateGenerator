@@ -3,30 +3,26 @@
     "memo_id": "17-17-20ta-20mgs-20pay-20items-20attachment",
     "source_pdf": "references/memos/raw/17-17%20ta%20MGS%20Pay%20Items%20Attachment.pdf",
     "checksum": "2f099308d547f6615867b7600b271751abbf0c387b496a71990177a3122ab1e9",
-    "extracted_at": "2025-10-16T17:24:28-0600",
+    "extracted_at": "2025-10-20T21:51:06-0600",
     "character_count": "3381",
     "title": "Design\u00a0Memo\u00a017\u201017,\u00a0Attachment \u00a01,\u00a0Pay\u00a0Items\u00a0Associated \u00a0with\u00a0MGS\u00a0W\u2010Beam\u00a0Guardrail \u00a0and\u00a0Related\u00a0Systems"
   },
   "highlights": {
     "pay_items": [
-      "12281",
-      "12282",
-      "12283",
-      "12284",
-      "12286",
-      "12287",
-      "12288",
-      "12289",
-      "12291",
-      "12292",
-      "12293",
-      "12294",
-      "2500",
-      "2600",
-      "2700",
-      "3100",
-      "94689",
-      "94690"
+      "601-12281",
+      "601-12282",
+      "601-12283",
+      "601-12284",
+      "601-12286",
+      "601-12287",
+      "601-12288",
+      "601-12289",
+      "601-12291",
+      "601-12292",
+      "601-12293",
+      "601-12294",
+      "601-94689",
+      "601-94690"
     ],
     "spec_sections": [],
     "dollar_amounts": [
@@ -45,24 +41,5 @@
     ],
     "keywords_present": []
   },
-  "snippets": [
-    "601\u201012281\u00a0GUARDRAIL \u00a0MGS\u00a0W\u2010BEAM,\u00a06\u00a0FT\u00a03\u00a0IN\u00a0SPACING\u00a0 LFT\u00a0 $20\u00a0per\u00a0LFT\u00a0 Sheets\u00a02\u20105",
-    "601\u201012282\u00a0GUARDRAIL, \u00a0MGS\u00a0W\u2010BEAM,\u00a03\u00a0FT\u00a01.5\u00a0IN\u00a0SPACING\u00a0LFT\u00a0 $40\u00a0per\u00a0LFT\u00a0 Sheets\u00a02\u20105",
-    "601\u201012283\u00a0GUARDRAIL, \u00a0MGS\u00a0W\u2010BEAM,\u00a01\u00a0FT\u00a06.75\u00a0IN",
-    "601\u201012284\u00a0GUARDRAIL, \u00a0MGS\u00a0W\u2010BEAM,\u00a0DOUBLE\u00a0FACED\u00a06\u00a0FT",
-    "601\u201012286\u00a0GUARDRAIL, \u00a0MGS\u00a0W\u2010BEAM,\u00a0SHOP\u00a0CURVED,\u00a06\u00a0FT",
-    "601\u201012287\u00a0GUARDRAIL, \u00a0MGS,\u00a0LONG\u00a0SPAN,\u00a0TYPE\u00a01\u00a0 EACH\u00a0$2700\u00a0per\u00a0EACH\u00a0Sheets\u00a02\u20104,\u00a0&\u00a08\u20109\u00a0Type\u00a01\u00a0is\u00a0for\u00a0an\u00a018\u2019\u20109\u201d\u00a0w\u2010beam\u00a0span",
-    "601\u201012288\u00a0GUARDRAIL, \u00a0MGS,\u00a0LONG\u00a0SPAN,\u00a0TYPE\u00a02\u00a0 EACH\u00a0$3100\u00a0per\u00a0EACH\u00a0Sheets\u00a02\u20104,\u00a0&\u00a08\u20109\u00a0Type\u00a02\u00a0is\u00a0for\u00a0a\u00a025\u2019\u00a0w\u2010beam\u00a0span",
-    "601\u201012289\u00a0GUARDRAIL \u00a0MGS,\u00a0HEIGHT\u00a0TRANSITION \u00a0 EACH\u00a0$200\u00a0per\u00a0EACH\u00a0Sheet\u00a016",
-    "601\u201012291\u00a0GUARDRAIL, \u00a0MGS,\u00a0TRANSITION \u00a0WITH\u00a0CURB\u00a0 EACH\u00a0$2500\u00a0per\u00a0EACH\u00a0Sheet\u00a011,\u00a0&\u00a013\u201015",
-    "601\u201012292\u00a0GUARDRAIL, \u00a0MGS,\u00a0TRANSITION \u00a0WITHOUT \u00a0CURB\u00a0EACH\u00a0$2600\u00a0per\u00a0EACH\u00a0Sheets\u00a012\u201015",
-    "601\u201012293\u00a0GUARDRAIL, \u00a0MGS,\u00a0STRUCTURE, \u00a0TOP\u2010MOUNTED",
-    "601\u201012294\u00a0GUARDRAIL, \u00a0MGS,\u00a0W\u2010BEAM,\u00a0CABLE\u00a0TERMINAL",
-    "601\u201012291\u00a0GUARDRAIL, \u00a0MGS,\u00a0TRANSITION \u00a0WITH\u00a0CURB\u00a0 EACH\u00a0$2500\u00a0per\u00a0EACH\u00a0Sheet\u00a011,\u00a0&\u00a013\u201015",
-    "601\u201012292\u00a0GUARDRAIL, \u00a0MGS,\u00a0TRANSITION \u00a0WITHOUT \u00a0CURB\u00a0EACH\u00a0$2600\u00a0per\u00a0EACH\u00a0Sheets\u00a012\u201015",
-    "601\u201012287\u00a0GUARDRAIL, \u00a0MGS,\u00a0LONG\u00a0SPAN,\u00a0TYPE\u00a01\u00a0 EACH\u00a0$2700\u00a0per\u00a0EACH\u00a0Sheets\u00a02\u20104,\u00a0&\u00a08\u20109\u00a0Type\u00a01\u00a0is\u00a0for\u00a0an\u00a018\u2019\u20109\u201d\u00a0w\u2010beam\u00a0span",
-    "601\u201012288\u00a0GUARDRAIL, \u00a0MGS,\u00a0LONG\u00a0SPAN,\u00a0TYPE\u00a02\u00a0 EACH\u00a0$3100\u00a0per\u00a0EACH\u00a0Sheets\u00a02\u20104,\u00a0&\u00a08\u20109\u00a0Type\u00a02\u00a0is\u00a0for\u00a0a\u00a025\u2019\u00a0w\u2010beam\u00a0span",
-    "601\u201094689\u00a0\u00a0\u00a0\u00a0GUARDRAIL, \u00a0END\u00a0TREATMENT, \u00a0OS\u00a0\u00a0 EACH\u00a0Bid\u00a0history\u00a0 Continue\u00a0to\u00a0use\u00a0existing\u00a0pay\u00a0item,\u00a0but\u00a0must\u00a0include\u00a0a",
-    "Transition \u00a0will\u00a0connect\u00a0to\u00a0the\u00a0end\u00a0treatment, \u00a0use\u00a031\u201d\u00a0601\u201094690\u00a0\u00a0\u00a0\u00a0GUARDRAIL, \u00a0END\u00a0TREATMENT, \u00a0MS\u00a0\u00a0 EACH\u00a0Bid\u00a0history"
-  ]
+  "snippets": []
 }

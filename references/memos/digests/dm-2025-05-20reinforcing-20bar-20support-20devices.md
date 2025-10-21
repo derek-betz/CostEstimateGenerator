@@ -2,13 +2,13 @@
 
 **Memo ID:** dm-2025-05-20reinforcing-20bar-20support-20devices
 **Checksum:** c27f4c5d6159b6faf9203d01dab67f7ca09aeacb63bc391fc5530e48d929b9f7
-**Extracted At:** 2025-10-16T17:24:22-0600
+**Extracted At:** 2025-10-20T21:54:24-0600
 
 ## Highlights
-- **Pay Items**: None detected
-- **Spec Sections**: 406, 703
+- **Pay Items**: 703-08496
+- **Spec Sections**: 703
 - **Dollar Amounts**: None detected
-- **Keywords Present**: specification, change, update
+- **Keywords Present**: change, specification, update
 
 ## Notable Snippets
 - 05-3D and 405 -3E, Section 406-12.03(03) , 

@@ -198,8 +198,9 @@ class MemoParser:
         # Additional snippets around pay items
         for item in highlights.get("pay_items", []):
             pattern = re.compile(rf"(.{{0,{window}}}{re.escape(item)}.{{0,{window}}})", re.IGNORECASE)
-            if match := pattern.search(text):
-                snippets.append(match.group(1).strip())
+            for m in pattern.finditer(text):
+                snippets.append(m.group(1).strip())
+                break
         return snippets
 
     def _render_digest(self, payload: Dict[str, object]) -> str:
@@ -229,58 +230,36 @@ class MemoParser:
         return "\n".join(text_parts)
 
     def _extract_pay_items(self, text: str) -> List[str]:
-        matches: List[tuple[str, bool]] = []
+        items: List[str] = []
         for match in self._pay_item_pattern.finditer(text):
-            groups = match.groupdict() if match.groupdict() else {}
-            item = groups.get("item") or match.group(0)
-            item = item.strip()
+            item = (match.groupdict().get("item") or match.group(0)).strip()
             if not item:
                 continue
-            context = text[max(0, match.start() - 25) : min(len(text), match.end() + 25)].lower()
-            if self._is_false_positive_pay_item(item, context):
-                continue
-            has_keyword = any(keyword in context for keyword in self._keywords)
-            matches.append((item, has_keyword))
+            items.append(item)
 
-        if not matches:
-            return []
+        # Fallback: capture numbers referenced explicitly as "pay item <digits>"
+        # to support legacy memos or test content that omit the hyphenated code.
+        if not items:
+            fallback = re.compile(
+                r"\b(?:pay\s*item(?:\s*code)?\s*[:\-]?\s*)(?P<num>\d{4,6})\b",
+                re.IGNORECASE,
+            )
+            for m in fallback.finditer(text):
+                num = m.group("num").strip()
+                if num:
+                    items.append(num)
+            if not items:
+                return []
 
-        unique_items = {item for item, _ in matches}
-        if len(matches) <= self.config.patterns.pay_item_frequency_guard:
-            return sorted(unique_items)
-
+        # Deduplicate and cap according to config
+        unique_items = list(dict.fromkeys(items))
         limit = max(1, self.config.patterns.pay_item_limit)
-        prioritized: List[str] = []
-        seen: set[str] = set()
-        for item, has_keyword in matches:
-            if has_keyword and item not in seen:
-                prioritized.append(item)
-                seen.add(item)
-                if len(prioritized) >= limit:
-                    break
-
-        if len(prioritized) < limit:
-            for item, _ in Counter(item for item, _ in matches).most_common():
-                if item not in seen:
-                    prioritized.append(item)
-                    seen.add(item)
-                    if len(prioritized) >= limit:
-                        break
-
-        return prioritized
+        return unique_items[:limit]
 
     @staticmethod
     def _is_false_positive_pay_item(item: str, context: str) -> bool:
-        digits = re.sub(r"\D", "", item)
-        if not digits:
-            return True
-        if len(digits) <= 3:
-            return True
-        if len(digits) >= 7 and "item" not in context:
-            return True
-        year = int(digits[:4]) if len(digits) >= 4 else None
-        if year and 1900 <= year <= 2099 and "item" not in context:
-            return True
+        # With strict xxx-xxxxx/xxxxxx pattern, false positives are unlikely.
+        # Keep hook for future heuristics; currently accept all matches.
         return False
 
     def _build_metadata(

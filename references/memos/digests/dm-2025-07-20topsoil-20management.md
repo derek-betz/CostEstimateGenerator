@@ -2,13 +2,13 @@
 
 **Memo ID:** dm-2025-07-20topsoil-20management
 **Checksum:** 9118d351cd7ee17c83674017a8437ab35ae49a6cd9a43291d7002dc947d86d01
-**Extracted At:** 2025-10-16T17:24:22-0600
+**Extracted At:** 2025-10-20T21:54:31-0600
 
 ## Highlights
-- **Pay Items**: 000149, 000150, 06545, 12029, 2025
+- **Pay Items**: 629-000149, 629-000150, 629-12029
 - **Spec Sections**: None detected
 - **Dollar Amounts**: 1., 2.00, 2.22
-- **Keywords Present**: pay item, unit price, change
+- **Keywords Present**: change, pay item, unit price
 
 ## Notable Snippets
 - ce of Termination (NOT). 
@@ -31,8 +31,6 @@ requirements . Section 17 -4.10(09)  Topsoil Management  has been added.
  
 Questions  
 For questions related to this design memo , please contact the Const
-- 629-000149  Topsoil Processing and Distribution  SYS
-- 629-000150  Topsoil Amendment Budget  DOL
-- lettings,  the 621- 06545 Fertilizer pay item description will be revised  to Fertilizer for
 - 629-12029  Plant Growth Layer  SYS Until the sunset date, use RSP 629-R-630
-- Page | 1 of 3  February 13 , 2025
+- 629-000150  Topsoil Amendment Budget  DOL
+- 629-000149  Topsoil Processing and Distribution  SYS

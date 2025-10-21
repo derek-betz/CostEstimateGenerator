@@ -2,7 +2,7 @@
 
 **Memo ID:** dm-2024-12-20semi-integral-20end-20bent-20details
 **Checksum:** 7ad41bbc8ca8c145016b8b2411c65704af86f9f9a2bec4aedf2e12c18eb9f7f1
-**Extracted At:** 2025-10-16T17:24:23-0600
+**Extracted At:** 2025-10-20T21:53:44-0600
 
 ## Highlights
 - **Pay Items**: None detected

@@ -2,13 +2,13 @@
 
 **Memo ID:** 17-10-20mash-20implementation-20and-20guardrail-20attach-201
 **Checksum:** 5bb6130a6962050fc1614dbb2b8daeb9e28fed9e1ca3b6aa9af1ccfa3e48b66c
-**Extracted At:** 2025-10-16T17:24:31-0600
+**Extracted At:** 2025-10-20T21:51:01-0600
 
 ## Highlights
-- **Pay Items**: 0744, 11121, 12111, 1511, 164243, 28753
+- **Pay Items**: None detected
 - **Spec Sections**: None detected
 - **Dollar Amounts**: None detected
-- **Keywords Present**: change, update
+- **Keywords Present**: MASH, NCHRP 350, change, implementation, safety hardware, update
 
 ## Notable Snippets
 - ide hardware?   
@@ -32,9 +32,3 @@ continue to apply after implementation dates?
 Yes. However, State s should review and update their policies and 3R agreements, as 
 necessary, to provide clear guidance on exactly what types of projects and/or impacts will 
 trigger the need for guardrail upgrades (e.
-- at (202) 366-0744.
-- mo 11121 SD indicatin g that al I modifi cations to NCHRP 350-tested devices will requir e
-- On Nove mber 12111, 2015, FI-I WA issued a memorandum
-- (https: //www.federalreuister.uov /articles/20 1511 II 13/2015-28753 /manual-for- assessing­
-- Walls ,” at http://www.trb.org/Publications/Blurbs/164243.aspx
-- (https: //www.federalreuister.uov /articles/20 1511 II 13/2015-28753 /manual-for- assessing­

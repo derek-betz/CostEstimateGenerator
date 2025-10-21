@@ -3,7 +3,7 @@
     "memo_id": "dm-2023-08-20railroad-20flagging",
     "source_pdf": "references/memos/raw/DM%2023-08%20Railroad%20Flagging.pdf",
     "checksum": "c6219858b150fa050218e39edef4f73f151f79ef4a8d0f499e900d893aba6c1d",
-    "extracted_at": "2025-10-16T17:24:24-0600",
+    "extracted_at": "2025-10-20T21:52:15-0600",
     "character_count": "4879",
     "title": "Design Memo 23-08 1 | PageX",
     "affected_spec_sections": [
@@ -12,18 +12,18 @@
   },
   "highlights": {
     "pay_items": [
-      "12976"
+      "107-12976"
     ],
     "spec_sections": [
-      "105"
+      "105-3.03"
     ],
     "dollar_amounts": [
       "1."
     ],
     "keywords_present": [
+      "change",
       "pay item",
-      "unit price",
-      "change"
+      "unit price"
     ]
   },
   "snippets": [

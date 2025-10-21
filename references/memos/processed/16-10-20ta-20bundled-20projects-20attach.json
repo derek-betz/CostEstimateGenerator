@@ -3,7 +3,7 @@
     "memo_id": "16-10-20ta-20bundled-20projects-20attach",
     "source_pdf": "references/memos/raw/16-10%20ta%20Bundled%20Projects%20attach.pdf",
     "checksum": "8b867fd80cf290f34af5ade39652ce110c0a3fe57195ce4633f1f5daf68ae37a",
-    "extracted_at": "2025-10-16T17:24:32-0600",
+    "extracted_at": "2025-10-20T21:50:31-0600",
     "character_count": "11935",
     "title": "www.in.gov/dot/",
     "affected_spec_sections": [
@@ -12,12 +12,9 @@
     ]
   },
   "highlights": {
-    "pay_items": [
-      "51821"
-    ],
+    "pay_items": [],
     "spec_sections": [
-      "105",
-      "106"
+      "105"
     ],
     "dollar_amounts": [],
     "keywords_present": [
@@ -27,7 +24,6 @@
   },
   "snippets": [
     "projec t area. \nThe assigned EWPO permit specialist is responsible for making the permit d etermination.  \n \nRule 5  Permit  \n\uf0b7 All projects must follow the current INDOT Standard Specifications Section 105 for \ntemporary erosion and sediment control ( TESC ). \n\uf0b7 An individual project that has < 1 acre of distur bance does not require a Rule 5 Notice of \nInt",
-    "ions listed in the Interim Policy into the NEPA \ndocument and Section 7 requirements will be considered fulfilled.  \n \nProject Managers should be aware that Section 7 requirements change regularly, and that we are \ncurrently preparing for new specific consultation requirements for Indiana bat and Northern \nlong-eared bats.   \n  \nFormal consultation is requir",
-    "o Use the State  Form 51821 individual permit application."
+    "ions listed in the Interim Policy into the NEPA \ndocument and Section 7 requirements will be considered fulfilled.  \n \nProject Managers should be aware that Section 7 requirements change regularly, and that we are \ncurrently preparing for new specific consultation requirements for Indiana bat and Northern \nlong-eared bats.   \n  \nFormal consultation is requir"
   ]
 }

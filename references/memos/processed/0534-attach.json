@@ -3,7 +3,7 @@
     "memo_id": "0534-attach",
     "source_pdf": "references/memos/raw/0534-attach.pdf",
     "checksum": "72b72a1f3a3eded9c8d819a8426c756dda90e12fa7ef1841ab6a4cdc4b9be26e",
-    "extracted_at": "2025-10-16T17:24:41-0600",
+    "extracted_at": "2025-10-20T21:49:33-0600",
     "character_count": "6453",
     "title": "1 of 3 REINFORCED CONCRETE MOMENT SLABS",
     "affected_spec_sections": [
@@ -11,15 +11,20 @@
     ]
   },
   "highlights": {
-    "pay_items": [],
+    "pay_items": [
+      "602-06000",
+      "703-08496",
+      "706-08496",
+      "904-00000"
+    ],
     "spec_sections": [
       "706"
     ],
     "dollar_amounts": [],
     "keywords_present": [
       "pay item",
-      "unit price",
-      "specification"
+      "specification",
+      "unit price"
     ]
   },
   "snippets": [

@@ -2,13 +2,13 @@
 
 **Memo ID:** dm-2025-12-20plan-20revisions-20after-20rfc
 **Checksum:** 4a955f9a74f5df969bca2d35de6d6005fd4f39ccf06b656d5a6a40cd4d7323ea
-**Extracted At:** 2025-10-16T17:24:22-0600
+**Extracted At:** 2025-10-20T21:54:51-0600
 
 ## Highlights
 - **Pay Items**: None detected
 - **Spec Sections**: None detected
 - **Dollar Amounts**: None detected
-- **Keywords Present**: change, update
+- **Keywords Present**: advertisement, change, clarified, process, provisions, revisions, update
 
 ## Notable Snippets
 - sions to be 

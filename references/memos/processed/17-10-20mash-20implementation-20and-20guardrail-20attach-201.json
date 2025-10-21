@@ -3,34 +3,25 @@
     "memo_id": "17-10-20mash-20implementation-20and-20guardrail-20attach-201",
     "source_pdf": "references/memos/raw/17-10%20MASH%20Implementation%20and%20Guardrail%20attach%201.pdf",
     "checksum": "5bb6130a6962050fc1614dbb2b8daeb9e28fed9e1ca3b6aa9af1ccfa3e48b66c",
-    "extracted_at": "2025-10-16T17:24:31-0600",
+    "extracted_at": "2025-10-20T21:51:01-0600",
     "character_count": "22867",
     "title": "US. Dep::ir lmenf Memorandum ofTransportation"
   },
   "highlights": {
-    "pay_items": [
-      "0744",
-      "11121",
-      "12111",
-      "1511",
-      "164243",
-      "28753"
-    ],
+    "pay_items": [],
     "spec_sections": [],
     "dollar_amounts": [],
     "keywords_present": [
+      "MASH",
+      "NCHRP 350",
       "change",
+      "implementation",
+      "safety hardware",
       "update"
     ]
   },
   "snippets": [
     "ide hardware?   \nSee the AASHTO/FHWA joint agreement.  \n \n \n1-7-2016 \n3 \n 7) Which  category /date appl ies to the following:  \n \na) Permanent moveable barrier (e.g., barrier that changes lane direction by time of \nday):  \nThis system is in the category of \u201call other longitudinal barriers\u201d with a sunset date of  \nDecember 31, 2019.  \n \n \nb) Precast barrier f",
-    "lays: will \ncurrent State  guidelines o n guardrail replacement for those type of projects \ncontinue to apply after implementation dates?  \nYes. However, State s should review and update their policies and 3R agreements, as \nnecessary, to provide clear guidance on exactly what types of projects and/or impacts will \ntrigger the need for guardrail upgrades (e.",
-    "at (202) 366-0744.",
-    "mo 11121 SD indicatin g that al I modifi cations to NCHRP 350-tested devices will requir e",
-    "On Nove mber 12111, 2015, FI-I WA issued a memorandum",
-    "(https: //www.federalreuister.uov /articles/20 1511 II 13/2015-28753 /manual-for- assessing\u00ad",
-    "Walls ,\u201d at http://www.trb.org/Publications/Blurbs/164243.aspx",
-    "(https: //www.federalreuister.uov /articles/20 1511 II 13/2015-28753 /manual-for- assessing\u00ad"
+    "lays: will \ncurrent State  guidelines o n guardrail replacement for those type of projects \ncontinue to apply after implementation dates?  \nYes. However, State s should review and update their policies and 3R agreements, as \nnecessary, to provide clear guidance on exactly what types of projects and/or impacts will \ntrigger the need for guardrail upgrades (e."
   ]
 }

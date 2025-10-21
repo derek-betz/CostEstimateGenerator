@@ -3,7 +3,7 @@
     "memo_id": "dm-2024-14-20pavement-20ledge-20width",
     "source_pdf": "references/memos/raw/DM%2024-14%20Pavement%20Ledge%20Width.pdf",
     "checksum": "b6e0f0a0f2a402692883fe3fc6e963dcb1b670bf1e4e0321814bff7c9f1df981",
-    "extracted_at": "2025-10-16T17:24:23-0600",
+    "extracted_at": "2025-10-20T21:53:50-0600",
     "character_count": "1313",
     "title": "Design Memo No . 24-14"
   },
@@ -12,8 +12,8 @@
     "spec_sections": [],
     "dollar_amounts": [],
     "keywords_present": [
-      "standard drawing",
-      "change"
+      "change",
+      "standard drawing"
     ]
   },
   "snippets": [

@@ -3,7 +3,7 @@
     "memo_id": "dm-2024-17-20liquid-20asphalt-20sealant",
     "source_pdf": "references/memos/raw/DM%2024-17%20Liquid%20Asphalt%20Sealant.pdf",
     "checksum": "72ba75c6ae9df09758158f4cdd0343a31fe8592f258a80ad2aa79fcb085e6ed1",
-    "extracted_at": "2025-10-16T17:24:22-0600",
+    "extracted_at": "2025-10-20T21:54:00-0600",
     "character_count": "2454",
     "title": "Design Memo No. 24-17",
     "affected_spec_sections": [
@@ -12,17 +12,17 @@
   },
   "highlights": {
     "pay_items": [
-      "11785",
-      "12483"
+      "401-11785",
+      "401-12483"
     ],
     "spec_sections": [
       "401"
     ],
     "dollar_amounts": [],
     "keywords_present": [
+      "change",
       "pay item",
       "specification",
-      "change",
       "update"
     ]
   },

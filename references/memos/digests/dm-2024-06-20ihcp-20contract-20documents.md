@@ -2,13 +2,13 @@
 
 **Memo ID:** dm-2024-06-20ihcp-20contract-20documents
 **Checksum:** 0975fff86dd9ed7626149996af8c8570c9228c22ce0af7b040060664fd8d85b6
-**Extracted At:** 2025-10-16T17:24:23-0600
+**Extracted At:** 2025-10-20T21:53:24-0600
 
 ## Highlights
-- **Pay Items**: 8620, 8626
+- **Pay Items**: 801-11642, 801-12324, 801-12421, 801-12652, 801-12832, 801-97643
 - **Spec Sections**: None detected
 - **Dollar Amounts**: 7
-- **Keywords Present**: specification, change
+- **Keywords Present**: change, specification
 
 ## Notable Snippets
 - proved IHCP exception. 
@@ -33,5 +33,3 @@ MessageSignINDOTGuidelines 
 forPortable
 Changeable 
 MessageSig
-- 8620 East 21st StreetIndianapolis, Indiana 46219PHONE: (317) 899-8626
-- 8620 East 21st StreetIndianapolis, Indiana 46219PHONE: (317) 899-8626

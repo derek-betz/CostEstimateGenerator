@@ -2,13 +2,13 @@
 
 **Memo ID:** dm-2025-11-20lean-20concrete-20base
 **Checksum:** fa2a0a3c918d634d9ca314a3c2fa58f870cf07c3f322787b1a9e14be3304226f
-**Extracted At:** 2025-10-16T17:24:22-0600
+**Extracted At:** 2025-10-20T21:54:48-0600
 
 ## Highlights
-- **Pay Items**: 12695, 2025
+- **Pay Items**: 309-12695
 - **Spec Sections**: 309
 - **Dollar Amounts**: None detected
-- **Keywords Present**: pay item, specification, change, update
+- **Keywords Present**: change, pay item, specification, update
 
 ## Notable Snippets
 - the ab ility to move due to environmental changes. It also provides 
@@ -37,4 +37,3 @@ Contract Revisions
 For contracts that include lean concrete base, delete any previously submitted USPs and include 
 RSP 309 -R793, Lean Concrete Base.  Ensure  plans,
 - 309-12695  Lean Concrete Base, 9  in. SYS LCB will be identified  in the approved
-- Page | 1  of 2 April 16, 2025

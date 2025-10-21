@@ -3,19 +3,15 @@
     "memo_id": "15-16-20ta-20erms-20naming-20convention-20attach1",
     "source_pdf": "references/memos/raw/15-16%20ta%20ERMS%20Naming%20Convention%20attach1.pdf",
     "checksum": "bc3828169df74972ce67c8c0b89da190f5be5248912df5121d2a4f656565b6d2",
-    "extracted_at": "2025-10-16T17:24:32-0600",
+    "extracted_at": "2025-10-20T21:50:09-0600",
     "character_count": "1792",
     "title": "1From:"
   },
   "highlights": {
-    "pay_items": [
-      "46168"
-    ],
+    "pay_items": [],
     "spec_sections": [],
     "dollar_amounts": [],
     "keywords_present": []
   },
-  "snippets": [
-    "Indianapolis, \u00a0IN\u00a046168"
-  ]
+  "snippets": []
 }

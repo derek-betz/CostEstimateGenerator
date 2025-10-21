@@ -29,7 +29,8 @@ class RetryPolicy:
 class PatternConfig:
     """Configurable parsing patterns for memo extraction."""
 
-    pay_item_regex: str = r"\b(?P<item>\d{4,6})\b"
+    # Strict INDOT pay item format: three digits, hyphen, five or six digits (e.g., 706-08496)
+    pay_item_regex: str = r"\b(?P<item>\d{3}-\d{5,6})\b"
     spec_section_regex: str = r"Section\s+(?P<section>\d{3})"
     dollar_regex: str = r"\$\s?(?P<amount>[0-9,.]+)"
     keywords: List[str] = field(

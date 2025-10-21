@@ -3,7 +3,7 @@
     "memo_id": "dm-2023-10-20bridge-20painting",
     "source_pdf": "references/memos/raw/DM%2023-10%20Bridge%20Painting.pdf",
     "checksum": "8903a98aa8a594d12577c00df473b9e0236f80bb8a25c74f3717339433c1b341",
-    "extracted_at": "2025-10-16T17:24:24-0600",
+    "extracted_at": "2025-10-20T21:52:19-0600",
     "character_count": "6123",
     "title": "Design Memo 23-10  1 | Page",
     "effective_date": "December 1, 2023",
@@ -13,20 +13,20 @@
   },
   "highlights": {
     "pay_items": [
-      "12507",
-      "51859",
-      "51860",
-      "95315"
+      "619-12507",
+      "619-51859",
+      "619-51860",
+      "619-95315"
     ],
     "spec_sections": [
       "619"
     ],
     "dollar_amounts": [],
     "keywords_present": [
+      "change",
       "pay item",
       "specification",
       "standard drawing",
-      "change",
       "update"
     ]
   },
