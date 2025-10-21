@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Mapping, Optional, Tuple
+from typing import Dict, List, Mapping, Optional, Tuple
 
 import pandas as pd
 
 from . import reference_data
+from .ai_selector import choose_alternates_via_ai
 from .geometry import GeometryInfo
-from .price_logic import category_breakdown, MIN_SAMPLE_TARGET
-from .ai_selector import choose_alternates_via_ai, AISelection
+from .price_logic import MIN_SAMPLE_TARGET, category_breakdown
 
 CATEGORY_LABELS = [
     "DIST_12M",
@@ -390,7 +390,10 @@ def _normalize_weights(
     total = sum(max(sel.weight, 0.0) for sel in selections)
     if total <= 0:
         total = sum(
-            candidate_map.get(sel.item_code, AlternateCandidate("", "", 0, 0, 0, 1, 0, {}, None, "")).similarity.get("overall_score", 0.0)
+            candidate_map.get(
+                sel.item_code,
+                AlternateCandidate("", "", 0, 0, 0, 1, 0, {}, None, ""),
+            ).similarity.get("overall_score", 0.0)
             for sel in selections
         )
     if total <= 0:
@@ -511,6 +514,7 @@ def find_alternate_price(
     project_region: int | None = None,
     target_description: Optional[str] = None,
     reference_bundle: Optional[Mapping[str, object]] = None,
+    allow_ai: bool = True,
 ) -> Optional[AlternateResult]:
     """Return an alternate-seek estimate enriched with reference datasets."""
 
@@ -539,7 +543,10 @@ def find_alternate_price(
 
     lower = target_area * (1 - area_tolerance)
     upper = target_area * (1 + area_tolerance)
-    candidates_df = candidates_df.loc[(candidates_df["GEOM_AREA_SQFT"] >= lower) & (candidates_df["GEOM_AREA_SQFT"] <= upper)]
+    candidates_df = candidates_df.loc[
+        (candidates_df["GEOM_AREA_SQFT"] >= lower)
+        & (candidates_df["GEOM_AREA_SQFT"] <= upper)
+    ]
 
     candidates: List[AlternateCandidate] = []
     candidate_payload: List[Dict[str, object]] = []
@@ -631,7 +638,12 @@ def find_alternate_price(
         )
 
     if unit_price_value > 0:
-        reference_candidate = _build_unit_price_candidate(target_area, unit_price_value, unit_price_contracts, reference_bundle)
+        reference_candidate = _build_unit_price_candidate(
+            target_area,
+            unit_price_value,
+            unit_price_contracts,
+            reference_bundle,
+        )
         candidates.append(reference_candidate)
         candidate_map[reference_candidate.item_code] = reference_candidate
         candidate_payload.append(
@@ -673,40 +685,43 @@ def find_alternate_price(
     ai_meta: Dict[str, object] = {}
     selections: List[SelectedAlternate] = []
 
-    candidate_payload_for_ai = []
-    for payload in candidate_payload:
-        payload_copy = dict(payload)
-        payload_copy["similarity_scores"] = dict(payload_copy.get("similarity_scores", {}))
-        candidate_payload_for_ai.append(payload_copy)
+    if allow_ai:
+        candidate_payload_for_ai = []
+        for payload in candidate_payload:
+            payload_copy = dict(payload)
+            payload_copy["similarity_scores"] = dict(payload_copy.get("similarity_scores", {}))
+            candidate_payload_for_ai.append(payload_copy)
 
-    try:
-        ai_selected, ai_notes, ai_meta = choose_alternates_via_ai(
-            target_info=target_info,
-            candidates=candidate_payload_for_ai,
-            references=reference_bundle,
-        )
-        for sel in ai_selected:
-            cand = candidate_map.get(sel.item_code)
-            if not cand:
-                continue
-            selections.append(
-                SelectedAlternate(
-                    item_code=cand.item_code,
-                    description=cand.description,
-                    area_sqft=cand.area_sqft,
-                    base_price=cand.base_price,
-                    adjusted_price=cand.adjusted_price,
-                    ratio=cand.ratio,
-                    data_points=cand.data_points,
-                    weight=sel.weight,
-                    reason=sel.reason,
-                    similarity=cand.similarity,
-                    source=cand.source,
-                    notes=cand.notes,
-                )
+        try:
+            ai_selected, ai_notes, ai_meta = choose_alternates_via_ai(
+                target_info=target_info,
+                candidates=candidate_payload_for_ai,
+                references=reference_bundle,
             )
-    except Exception as exc:  # noqa: BLE001
-        ai_notes = f"AI selection failed: {exc}"
+            for sel in ai_selected:
+                cand = candidate_map.get(sel.item_code)
+                if not cand:
+                    continue
+                selections.append(
+                    SelectedAlternate(
+                        item_code=cand.item_code,
+                        description=cand.description,
+                        area_sqft=cand.area_sqft,
+                        base_price=cand.base_price,
+                        adjusted_price=cand.adjusted_price,
+                        ratio=cand.ratio,
+                        data_points=cand.data_points,
+                        weight=sel.weight,
+                        reason=sel.reason,
+                        similarity=cand.similarity,
+                        source=cand.source,
+                        notes=cand.notes,
+                    )
+                )
+        except Exception as exc:  # noqa: BLE001
+            ai_notes = f"AI selection failed: {exc}"
+    else:
+        ai_notes = "AI selection skipped: disabled via configuration."
 
     if selections:
         selections = _stabilize_ai_selections(selections, candidate_map)
@@ -839,5 +854,9 @@ def find_alternate_price(
         reference_bundle=reference_bundle,
         ai_system=system_meta,
         show_work_method=str(ai_meta.get("show_work_method")) if ai_meta.get("show_work_method") is not None else None,
-        process_improvements=str(ai_meta.get("process_improvements")) if ai_meta.get("process_improvements") is not None else None,
+        process_improvements=(
+            str(ai_meta.get("process_improvements"))
+            if ai_meta.get("process_improvements") is not None
+            else None
+        ),
     )

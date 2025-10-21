@@ -1,24 +1,30 @@
+import argparse
 import logging
+import math
 import os
 import sys
-import math
-import argparse
 from dataclasses import replace
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List, Optional, Sequence
 
 import pandas as pd
 from dotenv import load_dotenv
 
-from .config import Config, load_config as load_runtime_config
+from . import design_memos, reference_data
+from .ai_reporter import generate_alternate_seek_report
+from .alternate_seek import find_alternate_price
 from .bidtabs_io import (
+    ensure_region_column,
+    find_quantities_file,
     load_bidtabs_files,
     load_quantities,
     load_region_map,
-    ensure_region_column,
-    find_quantities_file,
     normalize_item_code,
 )
+from .config import Config
+from .config import load_config as load_runtime_config
+from .estimate_writer import write_outputs
+from .geometry import parse_geometry
 from .price_logic import (
     category_breakdown,
     compute_recency_factor,
@@ -26,13 +32,9 @@ from .price_logic import (
     memo_rollup_price,
     prepare_memo_rollup_pool,
 )
-from .alternate_seek import find_alternate_price
-from .estimate_writer import write_outputs
-from .geometry import parse_geometry
-from .ai_reporter import generate_alternate_seek_report
-from .reporting import make_summary_text
-from . import reference_data, design_memos
 from .project_meta import DISTRICT_CHOICES, DISTRICT_REGION_MAP, normalize_district
+from .reporting import make_summary_text
+
 if TYPE_CHECKING:
     from .config import CLIConfig, Config
 
@@ -539,7 +541,11 @@ def _sanitize_bidtabs(df: pd.DataFrame) -> pd.DataFrame:
     if "QUANTITY" in cleaned.columns:
         cleaned["QUANTITY"] = pd.to_numeric(cleaned["QUANTITY"], errors="coerce")
 
-    subset = [col for col in ["ITEM_CODE", "LETTING_DATE", "UNIT_PRICE", "QUANTITY", "BIDDER"] if col in cleaned.columns]
+    subset = [
+        col
+        for col in ["ITEM_CODE", "LETTING_DATE", "UNIT_PRICE", "QUANTITY", "BIDDER"]
+        if col in cleaned.columns
+    ]
     if subset:
         cleaned = cleaned.drop_duplicates(subset=subset, keep="first")
 
@@ -558,7 +564,11 @@ def load_project_attributes(
                 legacy_df = pd.read_excel(legacy_expected_path, engine="openpyxl")
                 expected_cost = _extract_expected_contract_cost(legacy_df)
             except Exception as exc:  # pragma: no cover - defensive
-                logger.warning("Warning: unable to migrate expected contract cost from %s: %s", legacy_expected_path, exc)
+                logger.warning(
+                    "Warning: unable to migrate expected contract cost from %s: %s",
+                    legacy_expected_path,
+                    exc,
+                )
         region_map = pd.DataFrame(columns=["DISTRICT", "REGION"])
         path.parent.mkdir(parents=True, exist_ok=True)
         with pd.ExcelWriter(path, engine="openpyxl") as writer:
@@ -674,7 +684,8 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
         region_display = env_project_region if env_project_region is not None else "(unspecified)"
         district_display = env_district_name or "(unspecified)"
         log_detail(
-            f"gui_runtime_inputs => expected_cost={env_cost_display} | project_region={region_display} | district={district_display}"
+            "gui_runtime_inputs => expected_cost=%s | project_region=%s | district=%s"
+            % (env_cost_display, region_display, district_display)
         )
         if env_region_map is not None and not getattr(env_region_map, "empty", False):
             log_detail(f"region_map_override_rows={len(env_region_map)}")
@@ -695,14 +706,20 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
         expected_display = f"${expected_contract_cost:,.2f}" if expected_contract_cost else "(unset)"
         region_display = project_region if project_region is not None else "(unspecified)"
         log_detail(
-            f"project_attributes => expected_cost={expected_display} | project_region={region_display} | region_map_rows={map_rows}"
+            "project_attributes => expected_cost=%s | project_region=%s | region_map_rows=%s"
+            % (expected_display, region_display, map_rows)
         )
     log_stage("Priming reference data caches")
     payitem_catalog_size = len(reference_data.load_payitem_catalog())
     unit_price_summary_size = len(reference_data.load_unit_price_summary())
     spec_section_size = len(reference_data.load_spec_sections())
     log_detail(
-        f"reference_cache_sizes => payitems={payitem_catalog_size:,} | unit_price_summary={unit_price_summary_size:,} | spec_sections={spec_section_size:,}"
+        "reference_cache_sizes => payitems=%s | unit_price_summary=%s | spec_sections=%s"
+        % (
+            f"{payitem_catalog_size:,}",
+            f"{unit_price_summary_size:,}",
+            f"{spec_section_size:,}",
+        )
     )
 
     log_stage(f"Ingesting BidTabs corpus from {bidtabs_dir}")
@@ -788,6 +805,8 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
     if not alt_seek_enabled:
         log_detail("alternate_seek disabled via runtime configuration")
 
+    ai_enabled = not runtime_cfg.disable_ai
+
     rows = []
     payitem_details: Dict[str, pd.DataFrame] = {}
     alternate_reports: Dict[str, Dict[str, object]] = {}
@@ -866,6 +885,7 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
                 project_region=project_region,
                 target_description=desc,
                 reference_bundle=reference_bundle,
+                allow_ai=ai_enabled,
             )
             if alt_result is not None:
                 price = alt_result.final_price
@@ -887,19 +907,35 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
                 row["ALT_SELECTED_COUNT"] = len(alt_result.selections)
                 similarity_summary = alt_result.similarity_summary or {}
                 for key, value in similarity_summary.items():
-                    col = 'ALT_SCORE_OVERALL' if key == 'overall_score' else f"ALT_SCORE_{key.replace('_score', '').upper()}"
-                    row[col] = round(float(value), 4)
+                    score_col = (
+                        "ALT_SCORE_OVERALL"
+                        if key == "overall_score"
+                        else f"ALT_SCORE_{key.replace('_score', '').upper()}"
+                    )
+                    row[score_col] = round(float(value), 4)
                 method_label = "AI weighted alternates"
-                if alt_result.ai_notes and 'failed' in str(alt_result.ai_notes).lower():
+                if alt_result.ai_notes and "failed" in str(alt_result.ai_notes).lower():
                     method_label = "Score-based fallback"
-                elif all(sel.reason and sel.reason.lower().startswith('fallback') for sel in alt_result.selections):
+                elif all(
+                    sel.reason and sel.reason.lower().startswith("fallback")
+                    for sel in alt_result.selections
+                ):
                     method_label = "Score-based fallback"
                 row["ALTERNATE_METHOD"] = method_label
                 if alt_result.ai_notes:
                     row["ALTERNATE_AI_NOTES"] = alt_result.ai_notes
-                row["NOTES"] = "AI weighted pricing" if method_label == "AI weighted alternates" else "Score-based alternate pricing"
+                row["NOTES"] = (
+                    "AI weighted pricing"
+                    if method_label == "AI weighted alternates"
+                    else "Score-based alternate pricing"
+                )
                 note = row["NOTES"]
-                logger.info("        alternate_seek resolved => selections=%s | datapoints=%s | method=%s", len(alt_result.selections), data_points_used, method_label)
+                logger.info(
+                    "        alternate_seek resolved => selections=%s | datapoints=%s | method=%s",
+                    len(alt_result.selections),
+                    data_points_used,
+                    method_label,
+                )
                 similarity_flags = []
                 for sel in alt_result.selections:
                     for note in sel.notes:
@@ -1088,7 +1124,16 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
             columns=detail_columns,
         )
         log_detail(
-            f"contract_percent applied => code={code} | percent={percent * 100:.1f}% | target_amount=${rounded_amount:,.0f} | unit_price=${unit_price:,.2f}"
+            (
+                "contract_percent applied => code=%s | percent=%.1f%% | "
+                "target_amount=$%s | unit_price=$%s"
+            )
+            % (
+                code,
+                percent * 100,
+                f"{rounded_amount:,.0f}",
+                f"{unit_price:,.2f}",
+            )
         )
 
     log_stage("Applying contract percent adjustments per IDM Chapter 20 guidance")
@@ -1101,7 +1146,6 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
 
     log_stage("Evaluating alternate-seek narrative generation pipeline")
     ai_report_path = None
-    ai_enabled = not runtime_cfg.disable_ai
     if alternate_reports and ai_enabled:
         try:
             ai_report_path = generate_alternate_seek_report(
@@ -1148,7 +1192,10 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
     logger.info(" - Quantities file: %s", Path(qty_path).resolve())
     logger.info(" - Project attributes: %s", project_attrs_display)
     if project_district_name:
-        district_label = next((name for _, name in DISTRICT_CHOICES if name == project_district_name), project_district_name)
+        district_label = next(
+            (name for _, name in DISTRICT_CHOICES if name == project_district_name),
+            project_district_name,
+        )
         if project_region is not None:
             logger.info("   Project district: %s (region %s)", district_label, project_region)
         else:
