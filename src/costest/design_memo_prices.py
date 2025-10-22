@@ -51,6 +51,9 @@ UNIT_TOKENS = {
     "SF",
 }
 
+# When scanning memo text, use a wider window to associate pay-item descriptions.
+DESCRIPTION_WINDOW = 600
+
 
 # Expand window size so codes in memo tables that appear a few hundred
 # characters away from the price reference are still captured.
@@ -68,7 +71,6 @@ class MemoPriceGuidance:
     effective_date: Optional[str]
     extracted_at: Optional[str]
     source_path: Optional[Path]
-
 
 MANUAL_GUIDANCE_OVERRIDES: Dict[str, MemoPriceGuidance] = {
     "629-000149": MemoPriceGuidance(
@@ -93,6 +95,28 @@ MANUAL_GUIDANCE_OVERRIDES: Dict[str, MemoPriceGuidance] = {
         source_path=Path("references/memos/digests/dm-2025-07-20topsoil-20management.md"),
     ),
 }
+
+@dataclass(frozen=True)
+class CodeMetadata:
+    """Holds memo-specific context for a pay item code."""
+
+    positions: Tuple[int, ...]
+    unit: Optional[str]
+    description: Optional[str]
+    keywords: Tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class GuidanceMatch:
+    """Captures a guidance candidate alongside scoring metadata."""
+
+    guidance: MemoPriceGuidance
+    distance: int
+    code_unit: Optional[str]
+    keyword_pre: int
+    keyword_post: int
+    desc_pre: bool
+    desc_post: bool
 
 
 def lookup_memo_price(item_code: str, processed_dir: Path | None = None) -> Optional[MemoPriceGuidance]:
@@ -132,7 +156,7 @@ def _load_guidance_cache(processed_dir: Path | None) -> Dict[str, MemoPriceGuida
     if not directory.exists():
         return {}
 
-    guidance_map: Dict[str, MemoPriceGuidance] = {}
+    guidance_map: Dict[str, GuidanceMatch] = {}
     for json_path in sorted(directory.glob("*.json")):
         try:
             with json_path.open("r", encoding="utf-8") as handle:
@@ -169,24 +193,24 @@ def _load_guidance_cache(processed_dir: Path | None) -> Dict[str, MemoPriceGuida
 
         found_any = False
         for text, src in texts_to_scan:
-            for normalized_code, price_entry in _extract_guidance_entries(
+            for normalized_code, candidate in _extract_guidance_entries(
                 text,
                 memo_id=memo_id,
                 effective_date=effective_date,
                 extracted_at=extracted_at,
                 source_path=src,
             ):
-                if math.isnan(price_entry.price) or price_entry.price <= 0:
+                if math.isnan(candidate.guidance.price) or candidate.guidance.price <= 0:
                     continue
                 existing = guidance_map.get(normalized_code)
-                if existing is None or _is_candidate_newer(price_entry, existing):
-                    guidance_map[normalized_code] = price_entry
+                if existing is None or _prefer_candidate(candidate, existing):
+                    guidance_map[normalized_code] = candidate
                     found_any = True
             # If we found guidance from the stronger source (PDF), we can skip fallback
             if found_any:
                 break
 
-    return guidance_map
+    return {code: match.guidance for code, match in guidance_map.items()}
 
 
 def _extract_guidance_entries(
@@ -196,11 +220,12 @@ def _extract_guidance_entries(
     effective_date: Optional[str],
     extracted_at: Optional[str],
     source_path: Path,
-) -> Iterable[Tuple[str, MemoPriceGuidance]]:
+) -> Iterable[Tuple[str, GuidanceMatch]]:
     if not text:
         return []
 
-    results: List[Tuple[str, MemoPriceGuidance]] = []
+    results: List[Tuple[str, GuidanceMatch]] = []
+    code_meta = _build_code_metadata(text)
     # Pass 1: Strong phrasing matches like "unit price $X"
     for match in PRICE_PATTERN.finditer(text):
         raw_value = match.group("value")
@@ -211,41 +236,63 @@ def _extract_guidance_entries(
         except ValueError:
             continue
 
-        window = text[max(0, match.start() - WINDOW_RADIUS) : match.end() + WINDOW_RADIUS]
-        codes = {normalize_item_code(code) for code in CODE_PATTERN.findall(window)}
-        codes.discard("")
-        if not codes:
+        start = max(0, match.start() - WINDOW_RADIUS)
+        end = min(len(text), match.end() + WINDOW_RADIUS)
+        window = text[start:end]
+        cleaned_context = " ".join(window.split())
+        unit_match = UNIT_PATTERN.search(window)
+        price_unit = unit_match.group(1).upper() if unit_match else None
+        pre_segment = text[max(0, match.start() - DESCRIPTION_WINDOW) : match.start()].upper()
+        post_segment = text[match.end() : match.end() + DESCRIPTION_WINDOW].upper()
+
+        code_scores: Dict[str, GuidanceMatch] = {}
+        for code, meta in code_meta.items():
+            if not meta.positions:
+                continue
+            distance = min(abs(pos - match.start()) for pos in meta.positions)
+            if distance > WINDOW_RADIUS:
+                continue
+            if price_unit and meta.unit and price_unit != meta.unit:
+                continue
+            guidance = MemoPriceGuidance(
+                memo_id=memo_id,
+                price=price_value,
+                unit=price_unit,
+                context=cleaned_context[:300],
+                effective_date=effective_date,
+                extracted_at=extracted_at,
+                source_path=source_path,
+            )
+            keyword_pre = sum(1 for kw in meta.keywords if kw in pre_segment)
+            keyword_post = sum(1 for kw in meta.keywords if kw in post_segment)
+            description_upper = (meta.description or "").upper()
+            desc_pre = bool(description_upper and description_upper in pre_segment)
+            desc_post = bool(description_upper and description_upper in post_segment)
+            code_scores[code] = GuidanceMatch(
+                guidance=guidance,
+                distance=distance,
+                code_unit=meta.unit,
+                keyword_pre=keyword_pre,
+                keyword_post=keyword_post,
+                desc_pre=desc_pre,
+                desc_post=desc_post,
+            )
+
+        if not code_scores:
             continue
 
-        unit_match = UNIT_PATTERN.search(window)
-        unit = unit_match.group(1).upper() if unit_match else None
-        cleaned_context = " ".join(window.split())
-        for code in codes:
-            results.append(
-                (
-                    code,
-                    MemoPriceGuidance(
-                        memo_id=memo_id,
-                        price=price_value,
-                        unit=unit,
-                        context=cleaned_context[:300],
-                        effective_date=effective_date,
-                        extracted_at=extracted_at,
-                        source_path=source_path,
-                    ),
-                )
-            )
+        results.extend(code_scores.items())
 
     # Pass 2: Fallback proximity scan around each pay item code when strong phrasing is absent.
     # For each code occurrence, search a nearby window for a $value and a unit cue.
     # This helps capture table-style memos where the column label provides the semantics.
     if not results:
-        for code_match in CODE_PATTERN.finditer(text):
-            code_text = normalize_item_code(code_match.group(0))
-            if not code_text:
+        for code, meta in code_meta.items():
+            if not meta.positions:
                 continue
-            start = max(0, code_match.start() - WINDOW_RADIUS)
-            end = min(len(text), code_match.end() + WINDOW_RADIUS)
+            code_pos = meta.positions[0]
+            start = max(0, code_pos - WINDOW_RADIUS)
+            end = min(len(text), code_pos + WINDOW_RADIUS)
             window = text[start:end]
 
             # Look for the closest $ to the code occurrence
@@ -279,7 +326,7 @@ def _extract_guidance_entries(
                     if not header_cue:
                         continue
                 # Compute distance from code to this $ value within the window
-                dist = abs((start + m.start()) - code_match.start())
+                dist = abs((start + m.start()) - code_pos)
                 if closest_dist is None or dist < closest_dist:
                     closest_dist = dist
                     closest_price = price_value
@@ -287,17 +334,34 @@ def _extract_guidance_entries(
 
             if closest_price is not None and closest_price > 0:
                 cleaned_context = " ".join(window.split())
+                if unit and meta.unit and unit != meta.unit:
+                    continue
+                pre_segment = text[max(0, code_pos - DESCRIPTION_WINDOW) : code_pos].upper()
+                post_segment = text[code_pos : code_pos + DESCRIPTION_WINDOW].upper()
+                keyword_pre = sum(1 for kw in meta.keywords if kw in pre_segment)
+                keyword_post = sum(1 for kw in meta.keywords if kw in post_segment)
+                description_upper = (meta.description or "").upper()
+                desc_pre = bool(description_upper and description_upper in pre_segment)
+                desc_post = bool(description_upper and description_upper in post_segment)
                 results.append(
                     (
-                        code_text,
-                        MemoPriceGuidance(
-                            memo_id=memo_id,
-                            price=closest_price,
-                            unit=unit,
-                            context=cleaned_context[:300],
-                            effective_date=effective_date,
-                            extracted_at=extracted_at,
-                            source_path=source_path,
+                        code,
+                        GuidanceMatch(
+                            guidance=MemoPriceGuidance(
+                                memo_id=memo_id,
+                                price=closest_price,
+                                unit=unit,
+                                context=cleaned_context[:300],
+                                effective_date=effective_date,
+                                extracted_at=extracted_at,
+                                source_path=source_path,
+                            ),
+                            distance=closest_dist if closest_dist is not None else WINDOW_RADIUS,
+                            code_unit=meta.unit,
+                            keyword_pre=keyword_pre,
+                            keyword_post=keyword_post,
+                            desc_pre=desc_pre,
+                            desc_post=desc_post,
                         ),
                     )
                 )
@@ -408,6 +472,109 @@ def _try_parse_extracted(value: str) -> Optional[datetime]:
         return datetime.fromisoformat(value)
     except ValueError:
         return None
+
+
+_STOPWORDS = {
+    "THE",
+    "AND",
+    "THIS",
+    "THAT",
+    "WITH",
+    "FROM",
+    "FOR",
+    "ITEM",
+    "PAY",
+    "UNIT",
+    "NOTE",
+}
+
+
+def _build_code_metadata(text: str) -> Dict[str, CodeMetadata]:
+    """Index pay item occurrences, units, and keywords for scoring."""
+
+    metadata: Dict[str, Dict[str, object]] = {}
+    for match in CODE_PATTERN.finditer(text):
+        code = normalize_item_code(match.group(0))
+        if not code:
+            continue
+        entry = metadata.setdefault(
+            code,
+            {
+                "positions": [],
+                "unit": None,
+                "description": None,
+                "keywords": set(),
+            },
+        )
+        entry["positions"].append(match.start())
+        if entry["description"] is None:
+            line_start = text.rfind("\n", 0, match.start())
+            if line_start == -1:
+                line_start = 0
+            else:
+                line_start += 1
+            line_end = text.find("\n", match.start())
+            if line_end == -1:
+                line_end = len(text)
+            line = text[line_start:line_end]
+            parts = [part.strip() for part in re.split(r"\s{2,}", line) if part.strip()]
+            if len(parts) >= 2:
+                entry["description"] = parts[1]
+                entry["keywords"] = {
+                    token.upper()
+                    for token in re.findall(r"[A-Za-z]{4,}", parts[1])
+                    if token and token.upper() not in _STOPWORDS
+                }
+            if len(parts) >= 3 and entry["unit"] is None:
+                candidate = re.sub(r"[^A-Za-z]", "", parts[2]).upper()
+                if candidate in UNIT_TOKENS:
+                    entry["unit"] = candidate
+
+    cooked: Dict[str, CodeMetadata] = {}
+    for code, payload in metadata.items():
+        cooked[code] = CodeMetadata(
+            positions=tuple(payload["positions"]),
+            unit=payload["unit"],
+            description=payload["description"],
+            keywords=tuple(sorted(payload["keywords"])),
+        )
+    return cooked
+
+
+def _prefer_candidate(candidate: GuidanceMatch, existing: GuidanceMatch) -> bool:
+    """Decide whether to keep a new guidance candidate over an existing one."""
+
+    if candidate.keyword_pre != existing.keyword_pre:
+        return candidate.keyword_pre > existing.keyword_pre
+    if candidate.desc_pre != existing.desc_pre:
+        return candidate.desc_pre and not existing.desc_pre
+    if candidate.keyword_post != existing.keyword_post:
+        return candidate.keyword_post > existing.keyword_post
+    if candidate.desc_post != existing.desc_post:
+        return candidate.desc_post and not existing.desc_post
+
+    candidate_matches_unit = _unit_matches(candidate)
+    existing_matches_unit = _unit_matches(existing)
+    if candidate_matches_unit != existing_matches_unit:
+        return candidate_matches_unit and not existing_matches_unit
+
+    if candidate.distance != existing.distance:
+        return candidate.distance < existing.distance
+
+    if candidate.guidance.unit and not existing.guidance.unit:
+        return True
+    if existing.guidance.unit and not candidate.guidance.unit:
+        return False
+
+    return _is_candidate_newer(candidate.guidance, existing.guidance)
+
+
+def _unit_matches(entry: GuidanceMatch) -> bool:
+    """Return True when the guidance unit matches the code's expected unit."""
+
+    if not entry.guidance.unit or not entry.code_unit:
+        return False
+    return entry.guidance.unit.upper() == entry.code_unit.upper()
 
 
 __all__ = ["MemoPriceGuidance", "lookup_memo_price"]
