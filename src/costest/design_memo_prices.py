@@ -70,6 +70,31 @@ class MemoPriceGuidance:
     source_path: Optional[Path]
 
 
+MANUAL_GUIDANCE_OVERRIDES: Dict[str, MemoPriceGuidance] = {
+    "629-000149": MemoPriceGuidance(
+        memo_id="dm-2025-07-20topsoil-20management",
+        price=2.22,
+        unit="SYS",
+        context=(
+            "DM 25-07 Topsoil Management: For estimating purposes, a unit price of $2.22 per SYS "
+            "should be used until a bid history is established."
+        ),
+        effective_date="September 1, 2025",
+        extracted_at="2025-10-20T21:54:31-0600",
+        source_path=Path("references/memos/digests/dm-2025-07-20topsoil-20management.md"),
+    ),
+    "629-000150": MemoPriceGuidance(
+        memo_id="dm-2025-07-20topsoil-20management",
+        price=1.00,
+        unit="DOL",
+        context="DM 25-07 Topsoil Management: Topsoil Amendment Budget is set at $1.00 per DOL.",
+        effective_date="September 1, 2025",
+        extracted_at="2025-10-20T21:54:31-0600",
+        source_path=Path("references/memos/digests/dm-2025-07-20topsoil-20management.md"),
+    ),
+}
+
+
 def lookup_memo_price(item_code: str, processed_dir: Path | None = None) -> Optional[MemoPriceGuidance]:
     """
     Return memo price guidance for ``item_code`` if available.
@@ -90,6 +115,9 @@ def lookup_memo_price(item_code: str, processed_dir: Path | None = None) -> Opti
     normalized = normalize_item_code(item_code)
     if not normalized:
         return None
+    override = MANUAL_GUIDANCE_OVERRIDES.get(normalized)
+    if override is not None:
+        return override
     guidance = _load_guidance_cache(processed_dir)
     return guidance.get(normalized)
 

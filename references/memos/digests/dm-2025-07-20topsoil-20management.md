@@ -6,9 +6,14 @@
 
 ## Highlights
 - **Pay Items**: 629-000149, 629-000150, 629-12029
+- **Unit Prices**: 629-000149 -> use $2.22 per SYS; 629-000150 -> use $1.00 per DOL
 - **Spec Sections**: None detected
 - **Dollar Amounts**: 1., 2.00, 2.22
 - **Keywords Present**: change, pay item, unit price
+
+## Estimating Guidance
+- **629-000149 Topsoil Processing and Distribution (SYS)**: Always price at $2.22 per SYS in estimates.
+- **629-000150 Topsoil Amendment Budget (DOL)**: Always price at $1.00 per DOL in estimates.
 
 ## Notable Snippets
 - ce of Termination (NOT). 

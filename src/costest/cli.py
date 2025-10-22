@@ -227,21 +227,29 @@ def apply_non_geometry_fallbacks(
         )
 
     for row in rows:
+        if row.get("ALTERNATE_USED"):
+            continue
+
+        code = str(row.get("ITEM_CODE") or "").strip()
+        norm_code = normalize_item_code(code)
+
+        existing_note = str(row.get("NOTES", "") or "").strip()
+        if existing_note.upper().startswith("NO DATA"):
+            existing_note = ""
+
+        memo_guidance = design_memo_prices.lookup_memo_price(norm_code)
+        if memo_guidance is not None:
+            _apply_memo_price(row, memo_guidance, existing_note)
+            continue
+
         current_price = float(row.get("UNIT_PRICE_EST", 0) or 0.0)
         counts_zero = all(int(row.get(f"{label}_COUNT", 0) or 0) == 0 for label in CATEGORY_LABELS)
         if current_price > 0 and not pd.isna(current_price):
             continue
         if not counts_zero and str(row.get("SOURCE", "") or "").upper() != "NO_DATA":
             continue
-        if row.get("ALTERNATE_USED"):
-            continue
 
-        code = str(row.get("ITEM_CODE") or "").strip()
-        norm_code = normalize_item_code(code)
         qty_val = float(row.get("QUANTITY", 0) or 0)
-        existing_note = str(row.get("NOTES", "") or "").strip()
-        if existing_note.upper().startswith("NO DATA"):
-            existing_note = ""
 
         # Precompute Unit Price Summary sufficiency (for notes and fallback), but do not apply yet
         summary_info = summary_lookup.get(norm_code)
@@ -262,8 +270,6 @@ def apply_non_geometry_fallbacks(
                 if _sum_contracts < 3:
                     reasons.append(f"contracts={_sum_contracts}")
                 summary_reason = ", ".join(reasons)
-
-        memo_guidance = design_memo_prices.lookup_memo_price(norm_code)
 
         # Try Design Memo Rollup first
         mapping = design_memos.get_obsolete_mapping(norm_code)
