@@ -973,12 +973,15 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
         if dm_mapping_rule and mapped_from_old:
             logger.info("        dm2321_mapping => %s -> %s", mapped_from_old, code_display)
 
+        target_quantity = qty_val if qty_val > 0 else None
+        if dm2321_enabled and dm_mapping_rule == "DM 23-21":
+            target_quantity = None
         price, source_label, cat_data, detail_map, used_categories, combined_used = category_breakdown(
             bid,
             code,
             project_region=project_region,
             include_details=True,
-            target_quantity=(qty_val if qty_val > 0 else None),
+            target_quantity=target_quantity,
         )
 
         note = ""
