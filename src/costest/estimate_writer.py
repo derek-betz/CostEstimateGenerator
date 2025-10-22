@@ -359,6 +359,35 @@ def write_outputs(
     :class:`costest.models.PayItem` fields alongside analytics columns
     (e.g. CATEGORY_* aggregates and confidence metrics).
     """
+    def _emit_dm2321_mapping_debug(frame: pd.DataFrame, output_path: str) -> None:
+        if not output_path:
+            return
+        try:
+            os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+            fieldnames = ["source_item", "mapped_item", "mapping_rule", "adder_applied", "evidence"]
+            rows: list[dict[str, object]] = []
+            if {"DM2321_MAPPING_RULE", "ITEM_CODE"}.issubset(frame.columns):
+                for _, rec in frame.iterrows():
+                    mapping_rule = rec.get("DM2321_MAPPING_RULE")
+                    if not mapping_rule:
+                        continue
+                    rows.append(
+                        {
+                            "source_item": rec.get("MappedFromOldItem") or rec.get("DM2321_SOURCE_ITEM") or "",
+                            "mapped_item": rec.get("ITEM_CODE"),
+                            "mapping_rule": mapping_rule,
+                            "adder_applied": bool(rec.get("DM2321_ADDER_APPLIED")),
+                            "evidence": "DM 23-21",
+                        }
+                    )
+            with open(output_path, "w", newline="", encoding="utf-8") as fh:
+                writer = csv.DictWriter(fh, fieldnames=fieldnames)
+                writer.writeheader()
+                for row in rows:
+                    writer.writerow(row)
+        except Exception:
+            pass
+
     # If payitem_details not provided, try to load from payitem_audit_path (existing workbook)
     if not payitem_details and payitem_audit_path:
         try:
@@ -563,24 +592,7 @@ def write_outputs(
 
     work['CONFIDENCE'] = work.apply(_compute_conf, axis=1)
 
-    # Write mapping debug file showing which stats key (if any) matched each item
-    try:
-        dbg_rows = []
-        for _, row in work[['ITEM_CODE', 'STD_DEV', 'COEF_VAR', 'N_FOR_CONF']].iterrows():
-            dbg_rows.append({
-                'ITEM_CODE': row.get('ITEM_CODE'),
-                'STD_DEV': None if pd.isna(row.get('STD_DEV')) else float(row.get('STD_DEV')),
-                'COEF_VAR': None if pd.isna(row.get('COEF_VAR')) or str(row.get('COEF_VAR')) in ('inf', 'nan') else float(row.get('COEF_VAR')),
-                'N_FOR_CONF': int(row.get('N_FOR_CONF') or 0),
-            })
-        import csv
-        with open(os.path.join('outputs', 'payitem_mapping_debug.csv'), 'w', newline='', encoding='utf-8') as fh:
-            writer = csv.DictWriter(fh, fieldnames=['ITEM_CODE', 'STD_DEV', 'COEF_VAR', 'N_FOR_CONF'])
-            writer.writeheader()
-            for r in dbg_rows:
-                writer.writerow(r)
-    except Exception:
-        pass
+    _emit_dm2321_mapping_debug(df, os.path.join('outputs', 'payitem_mapping_debug.csv'))
 
         # (debug prints removed)
 
@@ -687,7 +699,6 @@ def write_outputs(
         for col in ['DATA_POINTS_USED', 'MEAN_UNIT_PRICE', 'STD_DEV', 'COEF_VAR']:
             if col not in prev.columns:
                 prev[col] = ''
-        match_rows = []
         for idx, row in prev.iterrows():
             code = row.get('ITEM_CODE')
             sheet = _match_sheet_for_code(code)
@@ -706,16 +717,6 @@ def write_outputs(
             prev.at[idx, 'MEAN_UNIT_PRICE'] = float(summ.mean)
             prev.at[idx, 'STD_DEV'] = _num_or_nan(summ.std_dev)
             prev.at[idx, 'COEF_VAR'] = _num_or_nan(summ.coef_var)
-            # For debug mapping
-            match_rows.append({
-                'ITEM_CODE': code,
-                'MATCH_STATUS': 'matched',
-                'SOURCE_NAMES': ';'.join(meta.get('source_names') or []),
-                'SOURCE_KINDS': ';'.join(meta.get('source_kinds') or []),
-                'MATCHED_SOURCE_COUNT': int(meta.get('count') or 0),
-                'FALLBACK_USED': True,  # we aggregate across columns, so treat as fallback usage
-                'CONFIDENCE': float(summ.confidence),
-            })
 
         # Reorder: place STD_DEV and COEF_VAR after DATA_POINTS_USED
         cols = list(prev.columns)
@@ -728,18 +729,8 @@ def write_outputs(
         prev = prev[cols]
         prev.to_csv(audit_csv_path, index=False)
 
-        # Write mapping debug with required columns for tests
-        try:
-            dbg_fields = ['ITEM_CODE', 'MATCH_STATUS', 'SOURCE_NAMES', 'SOURCE_KINDS', 'MATCHED_SOURCE_COUNT', 'FALLBACK_USED', 'CONFIDENCE']
-            out_dir = os.path.dirname(audit_csv_path) or '.'
-            os.makedirs(out_dir, exist_ok=True)
-            with open(os.path.join(out_dir, 'payitem_mapping_debug.csv'), 'w', newline='', encoding='utf-8') as fh:
-                w = csv.DictWriter(fh, fieldnames=dbg_fields)
-                w.writeheader()
-                for r in match_rows:
-                    w.writerow(r)
-        except Exception:
-            pass
+        out_dir = os.path.dirname(audit_csv_path) or '.'
+        _emit_dm2321_mapping_debug(df, os.path.join(out_dir, 'payitem_mapping_debug.csv'))
     else:
         # Fallback: no existing CSV to update; write the computed work DataFrame similar to previous behavior
         csv_df = work.drop(columns=CATEGORY_INCLUDED_COLS + ['N_FOR_CONF'], errors='ignore')
@@ -758,16 +749,8 @@ def write_outputs(
         if 'COEF_VAR' in csv_df.columns:
             csv_df['COEF_VAR'] = pd.to_numeric(csv_df['COEF_VAR'], errors='coerce')
         csv_df.to_csv(audit_csv_path, index=False)
-        # Also emit an empty mapping debug with the expected headers so tests can find it
-        try:
-            dbg_fields = ['ITEM_CODE', 'MATCH_STATUS', 'SOURCE_NAMES', 'SOURCE_KINDS', 'MATCHED_SOURCE_COUNT', 'FALLBACK_USED', 'CONFIDENCE']
-            out_dir = os.path.dirname(audit_csv_path) or '.'
-            os.makedirs(out_dir, exist_ok=True)
-            with open(os.path.join(out_dir, 'payitem_mapping_debug.csv'), 'w', newline='', encoding='utf-8') as fh:
-                w = csv.DictWriter(fh, fieldnames=dbg_fields)
-                w.writeheader()
-        except Exception:
-            pass
+        out_dir = os.path.dirname(audit_csv_path) or '.'
+        _emit_dm2321_mapping_debug(df, os.path.join(out_dir, 'payitem_mapping_debug.csv'))
 
     if payitem_audit_path:
         _write_payitem_audit(payitem_details or {}, payitem_audit_path)

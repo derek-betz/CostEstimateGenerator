@@ -33,6 +33,7 @@ class Config:
     project_region: Optional[int]
     project_district: Optional[str]
     legacy_expected_cost_path: Optional[Path]
+    apply_dm23_21: bool = False
     verbose: bool = False
 
 
@@ -116,6 +117,7 @@ def load_config(env: Mapping[str, str], cli_args: object | None = None) -> Confi
     min_sample_target = _to_int(env.get("MIN_SAMPLE_TARGET")) or 50
     disable_ai = _flag(env.get("DISABLE_OPENAI"))
     disable_alt_seek = _flag(env.get("DISABLE_ALT_SEEK"))
+    apply_dm23_21 = _flag(env.get("APPLY_DM23_21"))
     contract_filter_pct = _to_float(env.get("BIDTABS_CONTRACT_FILTER_PCT"))
     expected_contract_cost = _to_float(env.get("EXPECTED_TOTAL_CONTRACT_COST"))
     project_region = _to_int(env.get("PROJECT_REGION"))
@@ -145,6 +147,8 @@ def load_config(env: Mapping[str, str], cli_args: object | None = None) -> Confi
         min_sample_target = max(1, int(cli_ns.min_sample_target))
     if getattr(cli_ns, "verbose", False):
         verbose = bool(cli_ns.verbose)
+    if getattr(cli_ns, "apply_dm23_21", False):
+        apply_dm23_21 = True
 
     return Config(
         base_dir=base_dir,
@@ -166,6 +170,7 @@ def load_config(env: Mapping[str, str], cli_args: object | None = None) -> Confi
         project_region=project_region,
         project_district=project_district,
         legacy_expected_cost_path=legacy_expected_cost_path,
+        apply_dm23_21=apply_dm23_21,
         verbose=verbose,
     )
 

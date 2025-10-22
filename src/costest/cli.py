@@ -25,6 +25,7 @@ from .config import Config
 from .config import load_config as load_runtime_config
 from .estimate_writer import write_outputs
 from .geometry import parse_geometry
+from .hma_dm2321 import CrosswalkRow, load_crosswalk, maybe_apply_dm2321_adder, remap_item
 from .price_logic import (
     category_breakdown,
     compute_recency_factor,
@@ -710,6 +711,30 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
     legacy_expected_path = runtime_cfg.legacy_expected_cost_path
     legacy_region_map_path = runtime_cfg.region_map_path
 
+    dm2321_enabled = runtime_cfg.apply_dm23_21
+    dm2321_crosswalk: dict[str, CrosswalkRow] = {}
+    dm2321_reverse_meta: dict[str, dict[str, object]] = {}
+    dm2321_desc_by_new: dict[str, str] = {}
+
+    if dm2321_enabled:
+        log_stage("Loading DM 23-21 HMA crosswalk data")
+        dm2321_path = runtime_cfg.base_dir / "data_reference" / "hma_crosswalk_dm23_21.csv"
+        dm2321_crosswalk = load_crosswalk(dm2321_path)
+        for row in dm2321_crosswalk.values():
+            if getattr(row, "new_pay_item", None):
+                dm2321_reverse_meta.setdefault(
+                    row.new_pay_item,
+                    {
+                        "course": row.course,
+                        "esal_cat": row.esal_cat,
+                        "binder_class": row.binder_class,
+                        "new_desc": row.new_desc,
+                    },
+                )
+                if row.new_desc:
+                    dm2321_desc_by_new[row.new_pay_item] = row.new_desc
+        log_detail(f"dm2321_crosswalk_rows={len(dm2321_crosswalk):,}")
+
     contract_filter_pct = runtime_cfg.contract_filter_pct if runtime_cfg.contract_filter_pct is not None else 50.0
 
     log_stage("Bootstrapping estimator runtime context")
@@ -778,6 +803,47 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
     log_stage(f"Ingesting BidTabs corpus from {bidtabs_dir}")
     bid = load_bidtabs_files(bidtabs_dir)
     log_detail(f"raw_bidtabs_rows={len(bid):,} | columns={len(bid.columns)}")
+
+    if dm2321_enabled and "ITEM_CODE" in bid.columns:
+        deleted_rows = 0
+        keep_indices: list[int] = []
+        mapped_codes: list[str] = []
+        mapped_rules: list[str | None] = []
+        mapped_sources: list[str | None] = []
+        mapped_courses: list[str | None] = []
+        mapped_esals: list[str | None] = []
+        mapped_binders: list[str | None] = []
+
+        codes = bid["ITEM_CODE"].astype(str)
+        for idx, item_code in enumerate(codes):
+            new_code, meta = remap_item(item_code, dm2321_crosswalk)
+            if meta.get("deleted") and new_code is None:
+                deleted_rows += 1
+                continue
+            mapped = new_code or item_code
+            reverse_meta = dm2321_reverse_meta.get(mapped, {})
+            keep_indices.append(idx)
+            mapped_codes.append(mapped)
+            mapped_rules.append(meta.get("mapping_rule") or ("DM 23-21" if reverse_meta else None))
+            mapped_sources.append(meta.get("source_item") if meta.get("mapping_rule") else None)
+            mapped_courses.append(meta.get("course") or reverse_meta.get("course"))
+            mapped_esals.append(meta.get("esal_cat") or reverse_meta.get("esal_cat"))
+            mapped_binders.append(meta.get("binder_class") or reverse_meta.get("binder_class"))
+
+        if keep_indices:
+            bid = bid.iloc[keep_indices].copy()
+            bid.reset_index(drop=True, inplace=True)
+            bid["ITEM_CODE"] = mapped_codes
+            bid["DM2321_MAPPING_RULE"] = mapped_rules
+            bid["DM2321_SOURCE_ITEM"] = mapped_sources
+            bid["DM2321_COURSE"] = mapped_courses
+            bid["DM2321_ESAL_CAT"] = mapped_esals
+            bid["DM2321_BINDER_CLASS"] = mapped_binders
+        else:
+            bid = bid.iloc[0:0].copy()
+        if deleted_rows:
+            log_detail(f"dm2321_deleted_bidtab_rows={deleted_rows:,}")
+
     bid = ensure_region_column(bid, region_map)
     log_detail("region dimensions normalized onto BidTabs frame")
 
@@ -861,6 +927,7 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
     ai_enabled = not runtime_cfg.disable_ai
 
     rows = []
+    dm2321_deleted_items: list[str] = []
     payitem_details: Dict[str, pd.DataFrame] = {}
     alternate_reports: Dict[str, Dict[str, object]] = {}
 
@@ -870,11 +937,41 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
         desc = str(r.get("DESCRIPTION", "")).strip()
         unit = str(r.get("UNIT", "")).strip()
         qty_val = float(r.get("QUANTITY", 0) or 0)
+        original_code = code
+
+        mapped_from_old: str | None = None
+        dm_mapping_rule: str | None = None
+        dm_course: str | None = None
+        dm_esal: str | None = None
+        dm_binder: str | None = None
+        dm_new_desc: str | None = None
+        dm_adder_applied = False
+
+        if dm2321_enabled:
+            new_code, meta = remap_item(code, dm2321_crosswalk)
+            if meta.get("deleted") and new_code is None:
+                logger.info("[item] %s :: skipped (DM 23-21 deleted)", code or "(blank)")
+                dm2321_deleted_items.append(code)
+                continue
+            mapped_code = new_code or code
+            reverse_meta = dm2321_reverse_meta.get(mapped_code, {})
+            mapped_from_old = meta.get("source_item") if meta.get("mapping_rule") else None
+            dm_course = meta.get("course") or reverse_meta.get("course")
+            dm_esal = meta.get("esal_cat") or reverse_meta.get("esal_cat")
+            dm_binder = meta.get("binder_class") or reverse_meta.get("binder_class")
+            dm_mapping_rule = meta.get("mapping_rule") or ("DM 23-21" if reverse_meta else None)
+            dm_new_desc = meta.get("new_desc") or reverse_meta.get("new_desc") or dm2321_desc_by_new.get(mapped_code)
+            code = mapped_code
+            if dm_new_desc:
+                desc = dm_new_desc
+
         code_display = code or "(blank)"
         desc_compact = " ".join(desc.split())
         if len(desc_compact) > 72:
             desc_compact = desc_compact[:69].rstrip() + "..."
         logger.info("[item] %s :: qty=%s %s :: %s", code_display, f"{qty_val:,.3f}", unit, desc_compact)
+        if dm_mapping_rule and mapped_from_old:
+            logger.info("        dm2321_mapping => %s -> %s", mapped_from_old, code_display)
 
         price, source_label, cat_data, detail_map, used_categories, combined_used = category_breakdown(
             bid,
@@ -903,6 +1000,23 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
 
         geometry = parse_geometry(desc)
         reference_bundle = reference_data.build_reference_bundle(code)
+        if dm2321_enabled and dm_mapping_rule == "DM 23-21" and not pd.isna(price):
+            history_sufficient = data_points_used >= min_sample_target
+            adjusted_price, adder_flag = maybe_apply_dm2321_adder(
+                dm_course,
+                float(price),
+                enabled=True,
+                sufficient_history=history_sufficient,
+            )
+            if adder_flag:
+                logger.info(
+                    "        dm2321_adder_applied => course=%s | +$%.2f/ton",
+                    dm_course or "(unknown)",
+                    adjusted_price - float(price),
+                )
+            price = adjusted_price
+            dm_adder_applied = adder_flag
+
         unit_price_est = _round_unit_price(price)
         source_label = source_label or ("NO_DATA" if data_points_used == 0 else "")
         source_display = source_label or "historical_category_mix"
@@ -921,6 +1035,26 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
             "ALTERNATE_USED": False,
             "SOURCE": source_label,
         }
+
+        if dm_mapping_rule:
+            if mapped_from_old:
+                row["MappedFromOldItem"] = mapped_from_old
+            elif original_code != code:
+                row["MappedFromOldItem"] = original_code
+            else:
+                row["MappedFromOldItem"] = None
+            row["DM2321_MAPPING_RULE"] = dm_mapping_rule
+            row["DM2321_COURSE"] = dm_course
+            row["DM2321_ESAL_CAT"] = dm_esal
+            row["DM2321_BINDER_CLASS"] = dm_binder
+            row["DM2321_ADDER_APPLIED"] = dm_adder_applied
+        else:
+            row.setdefault("MappedFromOldItem", None)
+            row.setdefault("DM2321_MAPPING_RULE", None)
+            row.setdefault("DM2321_COURSE", None)
+            row.setdefault("DM2321_ESAL_CAT", None)
+            row.setdefault("DM2321_BINDER_CLASS", None)
+            row.setdefault("DM2321_ADDER_APPLIED", False)
 
         if geometry is not None:
             row["GEOM_SHAPE"] = geometry.shape
@@ -1193,6 +1327,9 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
     _apply_contract_percent("105-06845", 0.02, {"105-06845", "110-01001"}, "Per IDM Chapter 20:")
     _apply_contract_percent("110-01001", 0.05, {"105-06845", "110-01001"}, "Per IDM Chapter 20:")
 
+    if dm2321_deleted_items:
+        log_detail(f"dm2321_deleted_items_skipped={len(dm2321_deleted_items):,}")
+
     log_stage("Compiling estimator dataframe for export")
     df = pd.DataFrame(rows)
     log_detail(f"estimate_dataframe_shape => rows={len(df):,} | columns={len(df.columns)}")
@@ -1285,6 +1422,11 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser.add_argument("--output-dir", help="Directory for generated outputs")
     parser.add_argument("--disable-ai", action="store_true", help="Disable OpenAI usage for alternate-seek weighting")
     parser.add_argument("--min-sample-target", type=int, help="Override minimum data points target per item")
+    parser.add_argument(
+        "--apply-dm23-21",
+        action="store_true",
+        help="Enable HMA remapping + transitional adders per INDOT DM 23-21.",
+    )
     parser.add_argument("-v", "--verbose", action="store_true", help="Increase logging verbosity")
     return parser.parse_args(argv)
 

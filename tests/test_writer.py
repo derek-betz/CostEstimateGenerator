@@ -99,10 +99,10 @@ def test_pipeline_updates_outputs(tmp_path):
     debug_path = outputs / "payitem_mapping_debug.csv"
     assert debug_path.exists()
     debug_df = pd.read_csv(debug_path)
-    assert set(["ITEM_CODE", "MATCH_STATUS", "SOURCE_NAMES"]).issubset(debug_df.columns)
-    assert {"SOURCE_KINDS", "MATCHED_SOURCE_COUNT", "FALLBACK_USED"}.issubset(debug_df.columns)
-    assert (debug_df["CONFIDENCE"] <= 1.0).all()
-    assert (debug_df["MATCHED_SOURCE_COUNT"] >= 0).all()
+    expected_cols = {"source_item", "mapped_item", "mapping_rule", "adder_applied", "evidence"}
+    assert expected_cols.issubset(debug_df.columns)
+    if not debug_df.empty:
+        assert (debug_df["evidence"] == "DM 23-21").all()
 
     audit_df_first = audit_df.copy()
     excel_rows_first = excel_rows
