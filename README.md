@@ -21,7 +21,7 @@ The following packages are installed via `requirements.txt` or `pyproject.toml`:
 - `xlrd==2.0.1` - Legacy Excel file reading
 - `openai>=1.0.0,<2.0.0` - AI assistance (optional, can be disabled)
 - `reportlab>=4.0.0,<5.0.0` - PDF generation
-- `PyPDF2==3.0.1` - PDF manipulation
+- `pypdf>=3.1.0,<5.0.0` - PDF parsing/manipulation
 - `jsonschema>=4.19.0,<5.0.0` - Validation of memo summary payloads
 
 ### Optional Features

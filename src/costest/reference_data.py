@@ -11,10 +11,10 @@ from typing import Dict, Iterable, List, Optional, Mapping
 import pandas as pd
 
 try:
-    from PyPDF2 import PdfReader  # type: ignore
+    from pypdf import PdfReader  # type: ignore
 except ImportError as exc:  # pragma: no cover - runtime guard
     raise RuntimeError(
-        "PyPDF2 must be installed to parse the Standard Specifications PDF"
+        "pypdf must be installed to parse the Standard Specifications PDF"
     ) from exc
 
 from .bidtabs_io import normalize_item_code

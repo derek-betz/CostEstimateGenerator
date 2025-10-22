@@ -394,10 +394,10 @@ def _extract_pdf_text(pdf_path: Path, *, max_pages: int = 40, max_chars: int = 2
     """Extract a bounded amount of text from a PDF for guidance scanning.
 
     Limits the number of pages and characters to avoid excessive memory/time.
-    Uses PyPDF2 if available; otherwise returns an empty string.
+    Uses pypdf if available; otherwise returns an empty string.
     """
     try:
-        from PyPDF2 import PdfReader  # type: ignore
+        from pypdf import PdfReader  # type: ignore
     except Exception:
         return ""
 

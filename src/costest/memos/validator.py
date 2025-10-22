@@ -349,11 +349,11 @@ class MemoValidator:
     def _extract_text_for_ai(self, pdf_path: Path, *, max_chars: int = 120_000, page_limit: int = 30) -> str:
         """Extract up to max_chars of text from up to page_limit pages, optimized for AI checks.
 
-        Falls back to the full parser extraction if PyPDF2 fast-path fails.
+        Falls back to the full parser extraction if pypdf fast-path fails.
         """
         try:
             # Lazy import to avoid hard dependency
-            from PyPDF2 import PdfReader  # type: ignore
+            from pypdf import PdfReader  # type: ignore
         except Exception:
             # Fallback to existing full extraction
             return self.parser._extract_text(pdf_path)

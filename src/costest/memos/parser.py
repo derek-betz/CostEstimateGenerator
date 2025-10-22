@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence
 
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 
 from .config import MemoConfig
 from .state import ISO_FORMAT, MemoRecord, MemoState
