@@ -1421,8 +1421,6 @@ class EstimatorApp:
 
         button_bar = ttk.Frame(container, style="Glass.TFrame", padding=(12, 12))
         button_bar.grid(row=1, column=0, sticky="ew", pady=(20, 16))
-        for column in range(3):
-            button_bar.columnconfigure(column, weight=1)
 
         explanation_sections: List[tuple[str, str, str]] = [
             (
@@ -1457,6 +1455,15 @@ class EstimatorApp:
                 ).strip(),
             ),
             (
+                "quantity_filter",
+                "Quantity Filtering",
+                textwrap.dedent(
+                    """
+                    Quantity comparisons begin with a +/-50% window around each pay item's project quantity so the estimator focuses on similar construction scales. If that first pass produces fewer than 10 BidTabs data points, the tool widens only the upper bound out to +100% while keeping the lower side pinned at -50%. That rerun collects larger (but still comparable) jobs without letting undersized quantities dilute the analysis. Pay items that already meet the 10-sample bar stay with the tighter band.
+                    """
+                ).strip(),
+            ),
+            (
                 "technical",
                 "Deep Technical Dive",
                 textwrap.dedent(
@@ -1474,6 +1481,8 @@ class EstimatorApp:
                 ).strip(),
             ),
         ]
+        for column in range(len(explanation_sections)):
+            button_bar.columnconfigure(column, weight=1)
 
         text_container = ttk.Frame(container, style="Glass.TFrame")
         text_container.grid(row=2, column=0, sticky="nsew")
