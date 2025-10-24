@@ -732,16 +732,20 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
     legacy_expected_path = runtime_cfg.legacy_expected_cost_path
     legacy_region_map_path = runtime_cfg.region_map_path
 
-    dm2321_enabled = runtime_cfg.apply_dm23_21
+    dm2321_requested = runtime_cfg.apply_dm23_21
+    dm2321_enabled = dm2321_requested
+    dm2321_path = runtime_cfg.base_dir / "data_reference" / "hma_crosswalk_dm23_21.csv"
     dm2321_crosswalk: dict[str, CrosswalkRow] = {}
     dm2321_reverse_meta: dict[str, dict[str, object]] = {}
     dm2321_desc_by_new: dict[str, str] = {}
+    dm2321_candidate_codes: set[str] = set()
+    dm2321_auto_enabled = False
+    dm2321_auto_matches: list[str] = []
 
-    if dm2321_enabled:
-        log_stage("Loading DM 23-21 HMA crosswalk data")
-        dm2321_path = runtime_cfg.base_dir / "data_reference" / "hma_crosswalk_dm23_21.csv"
+    try:
         dm2321_crosswalk = load_crosswalk(dm2321_path)
         for row in dm2321_crosswalk.values():
+            dm2321_candidate_codes.add(row.old_pay_item)
             if getattr(row, "new_pay_item", None):
                 dm2321_reverse_meta.setdefault(
                     row.new_pay_item,
@@ -752,9 +756,12 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
                         "new_desc": row.new_desc,
                     },
                 )
+                dm2321_candidate_codes.add(row.new_pay_item)
                 if row.new_desc:
                     dm2321_desc_by_new[row.new_pay_item] = row.new_desc
-        log_detail(f"dm2321_crosswalk_rows={len(dm2321_crosswalk):,}")
+    except FileNotFoundError:
+        if dm2321_enabled:
+            logger.warning("DM 23-21 crosswalk requested but not found at %s", dm2321_path)
 
     contract_filter_pct = runtime_cfg.contract_filter_pct if runtime_cfg.contract_filter_pct is not None else 50.0
 
@@ -825,46 +832,6 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
     bid = load_bidtabs_files(bidtabs_dir)
     log_detail(f"raw_bidtabs_rows={len(bid):,} | columns={len(bid.columns)}")
 
-    if dm2321_enabled and "ITEM_CODE" in bid.columns:
-        deleted_rows = 0
-        keep_indices: list[int] = []
-        mapped_codes: list[str] = []
-        mapped_rules: list[str | None] = []
-        mapped_sources: list[str | None] = []
-        mapped_courses: list[str | None] = []
-        mapped_esals: list[str | None] = []
-        mapped_binders: list[str | None] = []
-
-        codes = bid["ITEM_CODE"].astype(str)
-        for idx, item_code in enumerate(codes):
-            new_code, meta = remap_item(item_code, dm2321_crosswalk)
-            if meta.get("deleted") and new_code is None:
-                deleted_rows += 1
-                continue
-            mapped = new_code or item_code
-            reverse_meta = dm2321_reverse_meta.get(mapped, {})
-            keep_indices.append(idx)
-            mapped_codes.append(mapped)
-            mapped_rules.append(meta.get("mapping_rule") or ("DM 23-21" if reverse_meta else None))
-            mapped_sources.append(meta.get("source_item") if meta.get("mapping_rule") else None)
-            mapped_courses.append(meta.get("course") or reverse_meta.get("course"))
-            mapped_esals.append(meta.get("esal_cat") or reverse_meta.get("esal_cat"))
-            mapped_binders.append(meta.get("binder_class") or reverse_meta.get("binder_class"))
-
-        if keep_indices:
-            bid = bid.iloc[keep_indices].copy()
-            bid.reset_index(drop=True, inplace=True)
-            bid["ITEM_CODE"] = mapped_codes
-            bid["DM2321_MAPPING_RULE"] = mapped_rules
-            bid["DM2321_SOURCE_ITEM"] = mapped_sources
-            bid["DM2321_COURSE"] = mapped_courses
-            bid["DM2321_ESAL_CAT"] = mapped_esals
-            bid["DM2321_BINDER_CLASS"] = mapped_binders
-        else:
-            bid = bid.iloc[0:0].copy()
-        if deleted_rows:
-            log_detail(f"dm2321_deleted_bidtab_rows={deleted_rows:,}")
-
     bid = ensure_region_column(bid, region_map)
     log_detail("region dimensions normalized onto BidTabs frame")
 
@@ -906,6 +873,74 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
             amap = dict(zip(alias["PROJECT_CODE"], alias["HIST_CODE"]))
             qty["ITEM_CODE"] = qty["ITEM_CODE"].map(lambda c: amap.get(c, c))
             log_detail(f"code_alias_mapping_applied => entries={len(alias):,}")
+
+    if (
+        not dm2321_enabled
+        and dm2321_candidate_codes
+        and "ITEM_CODE" in qty.columns
+    ):
+        qty_codes = {
+            normalize_item_code(str(code))
+            for code in qty["ITEM_CODE"]
+            if pd.notna(code) and str(code).strip()
+        }
+        auto_matches = sorted(c for c in qty_codes if c in dm2321_candidate_codes)
+        if auto_matches and dm2321_crosswalk:
+            dm2321_enabled = True
+            dm2321_auto_enabled = True
+            dm2321_auto_matches = auto_matches
+            preview = ", ".join(auto_matches[:5])
+            remainder = len(auto_matches) - 5
+            suffix = "" if remainder <= 0 else f" (+{remainder} more)"
+            logger.info(
+                "DM 23-21 crosswalk auto-enabled for project pay items: %s%s",
+                preview,
+                suffix,
+            )
+
+    if dm2321_enabled and dm2321_crosswalk and "ITEM_CODE" in bid.columns:
+        log_stage("Applying DM 23-21 HMA crosswalk data")
+        log_detail(f"dm2321_crosswalk_rows={len(dm2321_crosswalk):,}")
+        deleted_rows = 0
+        keep_indices: list[int] = []
+        mapped_codes: list[str] = []
+        mapped_rules: list[str | None] = []
+        mapped_sources: list[str | None] = []
+        mapped_courses: list[str | None] = []
+        mapped_esals: list[str | None] = []
+        mapped_binders: list[str | None] = []
+
+        codes = bid["ITEM_CODE"].astype(str)
+        for idx, item_code in enumerate(codes):
+            new_code, meta = remap_item(item_code, dm2321_crosswalk)
+            if meta.get("deleted") and new_code is None:
+                deleted_rows += 1
+                continue
+            mapped = new_code or item_code
+            reverse_meta = dm2321_reverse_meta.get(mapped, {})
+            keep_indices.append(idx)
+            mapped_codes.append(mapped)
+            mapped_rules.append(meta.get("mapping_rule") or ("DM 23-21" if reverse_meta else None))
+            mapped_sources.append(meta.get("source_item") if meta.get("mapping_rule") else None)
+            mapped_courses.append(meta.get("course") or reverse_meta.get("course"))
+            mapped_esals.append(meta.get("esal_cat") or reverse_meta.get("esal_cat"))
+            mapped_binders.append(meta.get("binder_class") or reverse_meta.get("binder_class"))
+
+        if keep_indices:
+            bid = bid.iloc[keep_indices].copy()
+            bid.reset_index(drop=True, inplace=True)
+            bid["ITEM_CODE"] = mapped_codes
+            bid["DM2321_MAPPING_RULE"] = mapped_rules
+            bid["DM2321_SOURCE_ITEM"] = mapped_sources
+            bid["DM2321_COURSE"] = mapped_courses
+            bid["DM2321_ESAL_CAT"] = mapped_esals
+            bid["DM2321_BINDER_CLASS"] = mapped_binders
+        else:
+            bid = bid.iloc[0:0].copy()
+        if deleted_rows:
+            log_detail(f"dm2321_deleted_bidtab_rows={deleted_rows:,}")
+    elif dm2321_enabled and not dm2321_crosswalk:
+        logger.warning("DM 23-21 crosswalk enabled but no mapping data available at %s", dm2321_path)
 
     contract_filter_pct = max(0.0, min(contract_filter_pct, 500.0))
 
@@ -1434,7 +1469,9 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
         meta = {
             "timestamp": pd.Timestamp.utcnow().isoformat(),
             "python": sys.version.split()[0],
-            "apply_dm23_21": bool(runtime_cfg.apply_dm23_21),
+            "apply_dm23_21": bool(dm2321_enabled),
+            "dm23_21_auto_enabled": bool(dm2321_auto_enabled),
+            "dm23_21_auto_matches": dm2321_auto_matches[:20],
             "disable_ai": bool(runtime_cfg.disable_ai),
             "disable_alt_seek": bool(runtime_cfg.disable_alt_seek),
             "min_sample_target": int(runtime_cfg.min_sample_target),

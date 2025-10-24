@@ -1,7 +1,9 @@
+import json
 from pathlib import Path
 
 import pandas as pd
 
+from costest.api import EstimateOptions, estimate
 from costest.bidtabs_io import load_bidtabs_files
 from costest.hma_dm2321 import (
     DM2321_ADDERS_PER_TON,
@@ -13,6 +15,8 @@ from costest.price_logic import category_breakdown
 
 DATA = Path(__file__).resolve().parents[1] / "data_reference"
 BIDTABS = Path(__file__).resolve().parents[1] / "data_sample" / "BidTabsData"
+PROJECT_ATTRS = Path(__file__).resolve().parents[1] / "data_sample" / "project_attributes.xlsx"
+QUANTITIES = Path(__file__).resolve().parents[1] / "data_sample" / "2000030_project_quantities.xlsx"
 
 
 def test_remap_active_item():
@@ -104,3 +108,26 @@ def test_dm2321_quantity_band_is_disabled_for_history():
 
     assert cat_without_band["TOTAL_USED_COUNT"] >= 30
     assert cat_without_band["TOTAL_USED_COUNT"] > cat_with_band["TOTAL_USED_COUNT"]
+
+
+def test_cli_auto_enables_dm2321(tmp_path: Path) -> None:
+    options = EstimateOptions(
+        bidtabs_dir=BIDTABS,
+        quantities_xlsx=QUANTITIES,
+        project_attributes=PROJECT_ATTRS,
+        output_dir=tmp_path,
+        apply_dm23_21=False,
+        disable_ai=True,
+    )
+    artifacts = estimate(options)
+
+    meta_path = artifacts["run_metadata"]
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    assert meta["apply_dm23_21"] is True
+    assert meta["dm23_21_auto_enabled"] is True
+    auto_codes = meta.get("dm23_21_auto_matches", [])
+    assert any(code in {"401-000041", "401-07398"} for code in auto_codes)
+
+    audit_path = artifacts["payitems_workbook"]
+    sheet = pd.read_excel(audit_path, sheet_name="401-000041")
+    assert len(sheet) > 1
