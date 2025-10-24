@@ -5,6 +5,7 @@ import pandas as pd
 
 from costest import design_memo_prices, reference_data
 from costest.cli import CATEGORY_LABELS, apply_non_geometry_fallbacks
+import costest.cli as cli
 from costest.estimate_writer import write_outputs
 
 
@@ -60,7 +61,11 @@ def test_summary_fallback_applies(monkeypatch):
     assert row["DATA_POINTS_USED"] == 12
     assert "UNIT_PRICE_SUMMARY CY2024" in row["NOTES"]
     assert "recency" in row["NOTES"]
-    assert payitem_details == {}
+    assert "123-45678" in payitem_details
+    detail = payitem_details["123-45678"]
+    assert detail["CATEGORY"].eq("UNIT_PRICE_SUMMARY").all()
+    assert set(detail["SUMMARY_SOURCE_ITEM_CODE"]) == {"123-45678"}
+    assert detail["SUMMARY_WEIGHTED_AVERAGE"].iloc[-1] == 150.0
 
 
 def test_design_memo_rollup_applies(monkeypatch):
@@ -99,6 +104,114 @@ def test_design_memo_rollup_applies(monkeypatch):
     detail = payitem_details["401-11526"]
     assert "CATEGORY" in detail.columns
     assert detail["CATEGORY"].eq("DESIGN_MEMO_ROLLUP").all()
+
+
+def test_design_memo_rollup_relaxes_quantity_filter(monkeypatch):
+    rows = [_blank_row("401-11526", 5000.0)]
+
+    summary_stub = {
+        "401-11526": {
+            "year": 2024,
+            "weighted_average": 0.0,
+            "contracts": 1.0,
+            "total_value": 0.0,
+            "lowest": 0.0,
+            "highest": 0.0,
+        }
+    }
+    monkeypatch.setattr(reference_data, "load_unit_price_summary", lambda: summary_stub)
+
+    data = [
+        {"ITEM_CODE": "401-10258", "UNIT_PRICE": 90.0, "QUANTITY": 40.0, "WEIGHT": 1.0, "REGION": 3, "LETTING_DATE": "2024-01-15"},
+        {"ITEM_CODE": "401-10259", "UNIT_PRICE": 92.0, "QUANTITY": 55.0, "WEIGHT": 1.0, "REGION": 3, "LETTING_DATE": "2023-09-20"},
+        {"ITEM_CODE": "401-10258", "UNIT_PRICE": 88.0, "QUANTITY": 60.0, "WEIGHT": 1.0, "REGION": 3, "LETTING_DATE": "2023-06-10"},
+    ]
+    bidtabs = pd.DataFrame(data)
+    payitem_details: dict[str, pd.DataFrame] = {}
+
+    apply_non_geometry_fallbacks(rows, bidtabs, project_region=3, payitem_details=payitem_details)
+    row = rows[0]
+
+    assert row["SOURCE"] == "DESIGN_MEMO_ROLLUP"
+    assert row["UNIT_PRICE_EST"] > 0
+    assert "quantity filter relaxed" in row["NOTES"]
+
+    detail = payitem_details["401-11526"]
+    assert detail["CATEGORY"].eq("DESIGN_MEMO_ROLLUP").all()
+    assert detail["QUANTITY_FILTER_RELAXED"].all()
+
+
+def test_design_memo_summary_average_fallback(monkeypatch):
+    rows = [_blank_row("401-11526", 500.0)]
+
+    summary_stub = {
+        "401-10258": {
+            "year": 2024,
+            "weighted_average": 120.0,
+            "contracts": 10.0,
+            "total_value": 240000.0,
+            "lowest": 90.0,
+            "highest": 140.0,
+        },
+        "401-10259": {
+            "year": 2024,
+            "weighted_average": 80.0,
+            "contracts": 8.0,
+            "total_value": 160000.0,
+            "lowest": 70.0,
+            "highest": 110.0,
+        },
+        "401-11526": {
+            "year": 2024,
+            "weighted_average": 0.0,
+            "contracts": 0.0,
+            "total_value": 0.0,
+            "lowest": 0.0,
+            "highest": 0.0,
+        },
+    }
+    monkeypatch.setattr(reference_data, "load_unit_price_summary", lambda: summary_stub)
+
+    def _recency_stub(df: pd.DataFrame) -> float:
+        _recency_stub.last_meta = {"used_default": True}
+        return 1.0
+
+    _recency_stub.last_meta = {"used_default": True}
+    monkeypatch.setattr(cli, "compute_recency_factor", _recency_stub)
+
+    def _region_stub(df: pd.DataFrame, project_region=None) -> float:
+        _region_stub.last_meta = {"used_default": True}
+        return 1.0
+
+    _region_stub.last_meta = {"used_default": True}
+    monkeypatch.setattr(cli, "compute_region_factor", _region_stub)
+
+    bidtabs = pd.DataFrame(columns=["ITEM_CODE", "UNIT_PRICE", "QUANTITY", "REGION"])
+    payitem_details: dict[str, pd.DataFrame] = {}
+
+    apply_non_geometry_fallbacks(rows, bidtabs, project_region=3, payitem_details=payitem_details)
+    row = rows[0]
+
+    assert row["SOURCE"] == "DESIGN_MEMO_SUMMARY"
+    assert math.isclose(float(row["UNIT_PRICE_EST"]), 100.0, rel_tol=1e-6)
+    assert row["DATA_POINTS_USED"] == 18
+    assert "DESIGN_MEMO_SUMMARY DM 25-10" in row["NOTES"]
+    assert "401-10258 WGT_AVG=120.00" in row["NOTES"]
+    assert "401-10259 WGT_AVG=80.00" in row["NOTES"]
+
+    detail = payitem_details["401-11526"]
+    assert detail["CATEGORY"].eq("DESIGN_MEMO_SUMMARY").all()
+    assert set(detail["SUMMARY_SOURCE_ITEM_CODE"]) == {"401-10258", "401-10259"}
+    assert math.isclose(
+        detail.loc[detail["SUMMARY_SOURCE_ITEM_CODE"] == "401-10258", "SUMMARY_WEIGHTED_AVERAGE"].iloc[0],
+        120.0,
+        rel_tol=1e-6,
+    )
+    assert math.isclose(
+        detail.loc[detail["SUMMARY_SOURCE_ITEM_CODE"] == "401-10259", "SUMMARY_WEIGHTED_AVERAGE"].iloc[0],
+        80.0,
+        rel_tol=1e-6,
+    )
 
 
 def test_design_memo_price_guidance_applies(monkeypatch):

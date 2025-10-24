@@ -113,9 +113,16 @@ def prepare_memo_rollup_pool(
 
     pool = get_pool_for_codes(bidtabs, codes)
     if pool.empty:
+        pool.attrs["quantity_filter_attempted_bounds"] = None
+        pool.attrs["quantity_filter_applied"] = False
+        pool.attrs["quantity_filter_relaxed"] = False
         return pool
 
     out = pool.copy()
+    quantity_bounds: Optional[Tuple[float, float]] = None
+    quantity_filter_applied = False
+    quantity_filter_relaxed = False
+
     if project_region is not None and 'REGION' in out.columns:
         region_series = pd.to_numeric(out['REGION'], errors='coerce')
         out = out.loc[region_series == project_region].copy()
@@ -123,10 +130,28 @@ def prepare_memo_rollup_pool(
     if target_quantity is not None and target_quantity > 0 and 'QUANTITY' in out.columns:
         lower = ROLLUP_QUANTITY_LOWER * float(target_quantity)
         upper = ROLLUP_QUANTITY_UPPER * float(target_quantity)
+        quantity_bounds = (lower, upper)
         qty_series = pd.to_numeric(out['QUANTITY'], errors='coerce')
         mask = qty_series.between(lower, upper, inclusive='both')
-        out = out.loc[mask].copy()
-        out['QUANTITY'] = qty_series.loc[out.index]
+        filtered = out.loc[mask].copy()
+        if not filtered.empty:
+            filtered['QUANTITY'] = qty_series.loc[filtered.index]
+            out = filtered
+            quantity_filter_applied = True
+        elif len(out) > 0:
+            out = out.copy()
+            out['QUANTITY'] = qty_series.loc[out.index]
+            quantity_filter_relaxed = True
+        else:
+            out = filtered
+    elif 'QUANTITY' in out.columns:
+        out['QUANTITY'] = pd.to_numeric(out['QUANTITY'], errors='coerce')
+
+    out.attrs["quantity_filter_attempted_bounds"] = quantity_bounds
+    out.attrs["quantity_filter_applied"] = quantity_filter_applied
+    out.attrs["quantity_filter_relaxed"] = quantity_filter_relaxed
+    if 'QUANTITY' in out.columns:
+        out['QUANTITY_FILTER_RELAXED'] = quantity_filter_relaxed
 
     if 'UNIT_PRICE' not in out.columns:
         return out.iloc[0:0]
@@ -192,10 +217,11 @@ def memo_rollup_price(
         price = float(prices.mean())
     count = int(len(prices))
     codes = "+".join(str(code) for code in obsolete_codes)
+    suffix = "|qty_relaxed" if pool.attrs.get("quantity_filter_relaxed") else ""
     if weight_source is not None:
-        source_label = f"DESIGN_MEMO_ROLLUP:{replacement_code}[w={weight_source}]<-{codes}"
+        source_label = f"DESIGN_MEMO_ROLLUP:{replacement_code}[w={weight_source}]<-{codes}{suffix}"
     else:
-        source_label = f"DESIGN_MEMO_ROLLUP:{replacement_code}<-{codes}"
+        source_label = f"DESIGN_MEMO_ROLLUP:{replacement_code}<-{codes}{suffix}"
     return price, count, source_label
 
 

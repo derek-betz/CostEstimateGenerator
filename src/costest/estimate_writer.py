@@ -343,7 +343,7 @@ def _write_payitem_audit(payitem_details: dict[str, pd.DataFrame], audit_path: s
                 ws.column_dimensions[get_column_letter(col_idx)].width = min(max_len + 2, 60)
             return
 
-        for item_code, detail in details.items():
+        for item_code, detail in sorted(details.items(), key=lambda kv: str(kv[0])):
             sheet_name = _safe_sheet_name(item_code, used_names)
             data = detail.copy()
 

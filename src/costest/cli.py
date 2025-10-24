@@ -230,6 +230,86 @@ def apply_non_geometry_fallbacks(
             ]
         )
 
+    bidtabs_normalized_codes = (
+        bidtabs["ITEM_CODE"].astype(str).map(normalize_item_code) if "ITEM_CODE" in bidtabs.columns else pd.Series(dtype=str)
+    )
+    bid_history_cache: Dict[str, pd.DataFrame] = {}
+
+    def _get_bid_history(source_code: str) -> pd.DataFrame:
+        norm = normalize_item_code(source_code)
+        if norm in bid_history_cache:
+            return bid_history_cache[norm]
+        if bidtabs_normalized_codes.empty:
+            result = pd.DataFrame(columns=bidtabs.columns)
+        else:
+            mask = bidtabs_normalized_codes == norm
+            result = bidtabs.loc[mask].copy()
+        bid_history_cache[norm] = result
+        return result
+
+    def _record_summary_details(
+        target_code: str,
+        category_label: str,
+        summary_entries: Sequence[Dict[str, object]],
+    ) -> None:
+        """Attach summary-driven detail rows, including BidTabs history, to payitem_details."""
+
+        replacement = normalize_item_code(target_code)
+        frames: List[pd.DataFrame] = []
+        meta_rows: List[Dict[str, object]] = []
+
+        for entry in summary_entries:
+            source_code = entry.get("SOURCE_ITEM_CODE") or entry.get("source_code") or replacement
+            source_code = normalize_item_code(str(source_code))
+            summary_fields = {
+                key: value
+                for key, value in entry.items()
+                if key not in {"SOURCE_ITEM_CODE", "source_code"}
+            }
+            history = _get_bid_history(source_code)
+            if not history.empty:
+                history = history.copy()
+                history["CATEGORY"] = category_label
+                history["USED_FOR_PRICING"] = True
+                history["REPLACEMENT_ITEM_CODE"] = replacement
+                history["SUMMARY_SOURCE_ITEM_CODE"] = source_code
+                for key, value in summary_fields.items():
+                    history[key] = value
+                frames.append(history)
+
+            meta = {
+                "ITEM_CODE": replacement,
+                "REPLACEMENT_ITEM_CODE": replacement,
+                "SUMMARY_SOURCE_ITEM_CODE": source_code,
+                "CATEGORY": category_label,
+                "USED_FOR_PRICING": True,
+            }
+            meta.update(summary_fields)
+            meta_rows.append(meta)
+
+        detail_df = pd.DataFrame(meta_rows) if meta_rows else pd.DataFrame()
+        if frames:
+            if not detail_df.empty:
+                frames.append(detail_df)
+            detail_df = pd.concat(frames, ignore_index=True, sort=False)
+        elif detail_df.empty:
+            detail_df = pd.DataFrame(
+                [
+                    {
+                        "ITEM_CODE": replacement,
+                        "REPLACEMENT_ITEM_CODE": replacement,
+                        "SUMMARY_SOURCE_ITEM_CODE": replacement,
+                        "CATEGORY": category_label,
+                        "USED_FOR_PRICING": True,
+                    }
+                ]
+            )
+
+        existing = payitem_details.get(target_code)
+        if existing is not None and not existing.empty:
+            detail_df = pd.concat([existing, detail_df], ignore_index=True, sort=False)
+        payitem_details[target_code] = detail_df
+
     for row in rows:
         if row.get("ALTERNATE_USED"):
             continue
@@ -346,6 +426,16 @@ def apply_non_geometry_fallbacks(
                     notes_parts.append("clamped to summary range")
                 fallback_note = "; ".join(part for part in notes_parts if part)
                 row["NOTES"] = " | ".join(part for part in (existing_note, fallback_note) if part)
+                summary_entry = {
+                    "SOURCE_ITEM_CODE": norm_code,
+                    "SUMMARY_YEAR": summary_info.get("year"),
+                    "SUMMARY_WEIGHTED_AVERAGE": base_price,
+                    "SUMMARY_CONTRACTS": float(summary_info.get("contracts", 0) or 0),
+                    "SUMMARY_TOTAL_VALUE": float(summary_info.get("total_value", 0) or 0),
+                    "SUMMARY_LOWEST": float(summary_info.get("lowest", 0) or 0),
+                    "SUMMARY_HIGHEST": float(summary_info.get("highest", 0) or 0),
+                }
+                _record_summary_details(code, "UNIT_PRICE_SUMMARY", [summary_entry])
                 continue
             if memo_guidance is not None:
                 _apply_memo_price(row, memo_guidance, existing_note)
@@ -374,7 +464,70 @@ def apply_non_geometry_fallbacks(
             project_region=project_region,
             target_quantity=target_quantity,
         )
+        memo_codes = "+".join(mapping["obsolete_codes"])
         if obs_count == 0 or memo_pool.empty or not math.isfinite(base_price) or base_price <= 0:
+            # DM insufficient: first try to average legacy summary values, then fall back to standard summary logic
+            legacy_summary_inputs: List[dict[str, object]] = []
+            legacy_vals: List[float] = []
+            legacy_contracts_total = 0.0
+            for legacy_code in mapping["obsolete_codes"]:
+                legacy_summary = summary_lookup.get(legacy_code)
+                if not legacy_summary:
+                    continue
+                try:
+                    legacy_avg = float(legacy_summary.get("weighted_average", 0) or 0)
+                except Exception:
+                    legacy_avg = 0.0
+                if legacy_avg <= 0:
+                    continue
+                legacy_vals.append(legacy_avg)
+                try:
+                    legacy_contracts_total += float(legacy_summary.get("contracts", 0) or 0)
+                except Exception:
+                    pass
+                legacy_summary_inputs.append(
+                    {
+                        "SOURCE_ITEM_CODE": legacy_code,
+                        "SUMMARY_WEIGHTED_AVERAGE": legacy_avg,
+                        "SUMMARY_CONTRACTS": float(legacy_summary.get("contracts", 0) or 0),
+                        "SUMMARY_TOTAL_VALUE": float(legacy_summary.get("total_value", 0) or 0),
+                        "SUMMARY_LOWEST": float(legacy_summary.get("lowest", 0) or 0),
+                        "SUMMARY_HIGHEST": float(legacy_summary.get("highest", 0) or 0),
+                        "SUMMARY_YEAR": legacy_summary.get("year"),
+                    }
+                )
+
+            if legacy_vals:
+                legacy_base = sum(legacy_vals) / len(legacy_vals)
+                legacy_contracts = int(round(legacy_contracts_total))
+                combined_raw = recency_factor * region_factor
+                combined_factor, capped = _clamp_factor(combined_raw)
+                adjusted_price = legacy_base * combined_factor
+                row["UNIT_PRICE_EST"] = _round_unit_price(adjusted_price)
+                row["SOURCE"] = "DESIGN_MEMO_SUMMARY"
+                row["DATA_POINTS_USED"] = legacy_contracts
+                row["STD_DEV"] = float("nan")
+                row["COEF_VAR"] = float("nan")
+
+                inputs_note = ", ".join(
+                    f"{entry['SOURCE_ITEM_CODE']} WGT_AVG={entry['SUMMARY_WEIGHTED_AVERAGE']:.2f}"
+                    for entry in legacy_summary_inputs
+                )
+                notes_parts = [
+                    f"DESIGN_MEMO_SUMMARY DM {mapping['memo_id']} ({mapping['effective_date']}): {memo_codes} -> {norm_code}",
+                    f"WGT_AVG inputs: {inputs_note}",
+                    _format_factor("recency", recency_factor, recency_meta),
+                    _format_factor("region", region_factor, region_meta),
+                ]
+                if capped:
+                    notes_parts.append("combined adj capped at +/-25%")
+                if summary_reason:
+                    notes_parts.append(f"summary insufficient ({summary_reason})")
+                row["NOTES"] = " | ".join(part for part in (existing_note, "; ".join(notes_parts)) if part)
+
+                _record_summary_details(code, "DESIGN_MEMO_SUMMARY", legacy_summary_inputs)
+                continue
+
             # DM insufficient: attempt Unit Price Summary if eligible; otherwise record insufficiency and NO_DATA
             if summary_eligible and summary_info:
                 try:
@@ -438,6 +591,16 @@ def apply_non_geometry_fallbacks(
                 if clamp_applied:
                     notes_parts.append("clamped to summary range")
                 row["NOTES"] = " | ".join(part for part in (existing_note, "; ".join(notes_parts)) if part)
+                summary_entry = {
+                    "SOURCE_ITEM_CODE": norm_code,
+                    "SUMMARY_YEAR": summary_info.get("year"),
+                    "SUMMARY_WEIGHTED_AVERAGE": sum_base,
+                    "SUMMARY_CONTRACTS": float(summary_info.get("contracts", 0) or 0),
+                    "SUMMARY_TOTAL_VALUE": float(summary_info.get("total_value", 0) or 0),
+                    "SUMMARY_LOWEST": float(summary_info.get("lowest", 0) or 0),
+                    "SUMMARY_HIGHEST": float(summary_info.get("highest", 0) or 0),
+                }
+                _record_summary_details(code, "UNIT_PRICE_SUMMARY", [summary_entry])
                 continue
             if memo_guidance is not None:
                 _apply_memo_price(row, memo_guidance, existing_note)
@@ -499,7 +662,6 @@ def apply_non_geometry_fallbacks(
         row["STD_DEV"] = std_dev
         row["COEF_VAR"] = coef_var if math.isfinite(coef_var) else float("inf")
 
-        memo_codes = "+".join(mapping["obsolete_codes"])
         notes_parts = [
             f"DESIGN_MEMO_ROLLUP DM {mapping['memo_id']} ({mapping['effective_date']}): {memo_codes} -> {norm_code}",
             f"pooled obs={obs_count}",
@@ -509,6 +671,14 @@ def apply_non_geometry_fallbacks(
         ]
         if quantity_note:
             notes_parts.append(quantity_note)
+        if memo_pool.attrs.get("quantity_filter_relaxed"):
+            attempted = memo_pool.attrs.get("quantity_filter_attempted_bounds")
+            if attempted is not None:
+                lower, upper = attempted
+                filter_note = f"quantity filter relaxed (no matches within {lower:,.0f}-{upper:,.0f})"
+            else:
+                filter_note = "quantity filter relaxed (no matches within configured band)"
+            notes_parts.append(filter_note)
         if capped:
             notes_parts.append("combined adj capped at +/-25%")
         if bounded_note:
