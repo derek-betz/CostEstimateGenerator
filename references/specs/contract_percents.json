@@ -1,0 +1,7 @@
+{
+  "spec_edition": "2026",
+  "rules": [
+    { "code": "105-06845", "percent": 0.02, "note": "Per IDM Chapter 20:" },
+    { "code": "110-01001", "percent": 0.05, "note": "Per IDM Chapter 20:" }
+  ]
+}

@@ -7,16 +7,27 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MODE = 'WGT_AVG'
+# Aggregation method for category pricing. Supported:
+#  - WGT_AVG (default)
+#  - MEAN / AVG
+#  - MEDIAN / P50
+#  - P40_P60 (average of 40th and 60th percentiles)
+#  - TRIMMED_MEAN_P10_P90 (mean of prices between 10th and 90th percentiles)
+#  - ROBUST_MEDIAN (alias of MEDIAN; kept for readability)
+MODE = os.getenv('AGGREGATE_METHOD', 'WGT_AVG').upper().strip()
 PROJECT_REGION = os.getenv('PROJECT_REGION', '').strip()
 PROJECT_REGION = int(PROJECT_REGION) if PROJECT_REGION else None
 MIN_SAMPLE_TARGET = int(os.getenv('MIN_SAMPLE_TARGET', '50'))
 ROLLUP_QUANTITY_LOWER = float(os.getenv('MEMO_ROLLUP_QUANTITY_LOWER', '0.5'))
 ROLLUP_QUANTITY_UPPER = float(os.getenv('MEMO_ROLLUP_QUANTITY_UPPER', '1.5'))
 ROLLUP_SIGMA_THRESHOLD = float(os.getenv('MEMO_ROLLUP_SIGMA_THRESHOLD', '2.0'))
+CATEGORY_SIGMA_THRESHOLD = float(os.getenv('CATEGORY_SIGMA_THRESHOLD', '2.0'))
 QUANTITY_FILTER_MIN_POINTS = int(os.getenv('QUANTITY_FILTER_MIN_POINTS', '10'))
 PRIMARY_QUANTITY_BAND = (0.5, 1.5)
 EXPANDED_QUANTITY_BAND = (PRIMARY_QUANTITY_BAND[0], 2.0)
+
+# Optional experimental quantity elasticity adjustment
+ENABLE_QUANTITY_ELASTICITY = os.getenv('ENABLE_QUANTITY_ELASTICITY', '0').strip() in {'1', 'true', 'on', 'yes'}
 
 CATEGORY_DEFS = [
     ('DIST_12M', 'REGION', 0, 12),
@@ -239,6 +250,13 @@ def _aggregate_price(df: pd.DataFrame) -> tuple[float, int]:
         p40 = df['UNIT_PRICE'].quantile(0.40)
         p60 = df['UNIT_PRICE'].quantile(0.60)
         price = float((p40 + p60) / 2)
+    elif MODE == 'TRIMMED_MEAN_P10_P90':
+        lower = df['UNIT_PRICE'].quantile(0.10)
+        upper = df['UNIT_PRICE'].quantile(0.90)
+        trimmed = df.loc[df['UNIT_PRICE'].between(lower, upper, inclusive='both')]
+        price = float(trimmed['UNIT_PRICE'].mean()) if not trimmed.empty else float(df['UNIT_PRICE'].mean())
+    elif MODE == 'ROBUST_MEDIAN':
+        price = float(df['UNIT_PRICE'].median())
     else:
         price = float(df['UNIT_PRICE'].median())
 
@@ -290,12 +308,17 @@ def _compute_categories(
             continue
 
         cleaned = subset.copy()
-        if 'UNIT_PRICE' in cleaned.columns and cleaned['UNIT_PRICE'].notna().sum() >= 3:
+        if (
+            'UNIT_PRICE' in cleaned.columns
+            and cleaned['UNIT_PRICE'].notna().sum() >= 3
+            and CATEGORY_SIGMA_THRESHOLD > 0
+        ):
             prices = cleaned['UNIT_PRICE'].astype(float)
             mean = prices.mean()
             std = prices.std(ddof=0)
             if std > 0:
-                mask = (prices >= mean - 2 * std) & (prices <= mean + 2 * std)
+                t = float(CATEGORY_SIGMA_THRESHOLD)
+                mask = (prices >= mean - t * std) & (prices <= mean + t * std)
                 cleaned = cleaned.loc[mask]
 
         if cleaned.empty:
@@ -411,6 +434,28 @@ def category_breakdown(
             if "QUANTITY_FILTER_LOWER_MULTIPLIER" not in cat_data:
                 cat_data["QUANTITY_FILTER_LOWER_MULTIPLIER"] = np.nan
                 cat_data["QUANTITY_FILTER_UPPER_MULTIPLIER"] = np.nan
+
+    # Optional quantity elasticity adjustment (experimental; disabled by default)
+    if ENABLE_QUANTITY_ELASTICITY and target_quantity and target_quantity > 0 and not combined_detail.empty:
+        try:
+            sub = combined_detail.copy()
+            q = pd.to_numeric(sub.get('QUANTITY'), errors='coerce').dropna()
+            p = pd.to_numeric(sub.get('UNIT_PRICE'), errors='coerce').dropna()
+            joined = pd.DataFrame({'Q': q, 'P': p}).dropna()
+            if len(joined) >= 15 and joined['Q'].gt(0).all() and joined['P'].gt(0).all():
+                # log-log slope (elasticity)
+                x = np.log(joined['Q'].to_numpy())
+                y = np.log(joined['P'].to_numpy())
+                slope, intercept = np.polyfit(x, y, 1)
+                slope = float(np.clip(slope, -0.2, 0.2))
+                median_q = float(np.median(joined['Q']))
+                if median_q > 0 and np.isfinite(slope):
+                    factor = (float(target_quantity) / median_q) ** slope
+                    price = float(price) * float(np.clip(factor, 0.8, 1.2))
+                    cat_data['QUANTITY_ELASTICITY_SLOPE'] = slope
+                    cat_data['QUANTITY_ELASTICITY_APPLIED'] = True
+        except Exception:
+            cat_data['QUANTITY_ELASTICITY_APPLIED'] = False
 
     if include_details:
         return price, source, cat_data, detail_map, used_categories, combined_detail

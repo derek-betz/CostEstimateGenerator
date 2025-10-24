@@ -16,10 +16,12 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache
+from . import reference_data
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
 from .bidtabs_io import normalize_item_code
+from . import reference_data
 
 DEFAULT_PROCESSED_DIRECTORY = Path("references/memos/processed")
 
@@ -71,6 +73,7 @@ class MemoPriceGuidance:
     effective_date: Optional[str]
     extracted_at: Optional[str]
     source_path: Optional[Path]
+    confidence: Optional[float] = 1.0
 
 MANUAL_GUIDANCE_OVERRIDES: Dict[str, MemoPriceGuidance] = {
     "629-000149": MemoPriceGuidance(
@@ -143,7 +146,28 @@ def lookup_memo_price(item_code: str, processed_dir: Path | None = None) -> Opti
     if override is not None:
         return override
     guidance = _load_guidance_cache(processed_dir)
-    return guidance.get(normalized)
+    entry = guidance.get(normalized)
+    # If unit mismatches catalog, reduce confidence or drop (leave caller to decide)
+    if entry is not None:
+        try:
+            catalog = reference_data.load_payitem_catalog()
+            expected_unit = str((catalog.get(normalized, {}) or {}).get("unit", "")).strip().upper()
+            if expected_unit and entry.unit and expected_unit != entry.unit.upper():
+                # degrade confidence but keep guidance for caller to evaluate
+                conf = 0.6 if (entry.confidence or 1.0) > 0.6 else (entry.confidence or 0.6)
+                return MemoPriceGuidance(
+                    memo_id=entry.memo_id,
+                    price=entry.price,
+                    unit=entry.unit,
+                    context=entry.context,
+                    effective_date=entry.effective_date,
+                    extracted_at=entry.extracted_at,
+                    source_path=entry.source_path,
+                    confidence=conf,
+                )
+        except Exception:
+            pass
+    return entry
 
 
 @lru_cache(maxsize=None)
@@ -458,6 +482,17 @@ def _try_parse_date(value: str) -> Optional[datetime]:
             return datetime.strptime(value, fmt)
         except ValueError:
             continue
+
+
+    def _score_confidence(*, distance: int, unit_match: bool, keyword_pre: int, keyword_post: int, desc_pre: bool, desc_post: bool) -> float:
+        """Heuristic confidence score in [0,1] for memo price extraction."""
+        # Base from proximity (closer is better)
+        prox = max(0.0, min(1.0, 1.0 - (distance / float(WINDOW_RADIUS or 1))))
+        unit = 1.0 if unit_match else 0.7
+        kw = min(1.0, 0.2 * (keyword_pre + keyword_post))
+        desc = 0.2 if (desc_pre or desc_post) else 0.0
+        conf = 0.4 * prox + 0.3 * unit + 0.2 * kw + 0.1 * desc
+        return float(max(0.0, min(1.0, conf)))
     return None
 
 

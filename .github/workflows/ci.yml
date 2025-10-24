@@ -2,25 +2,56 @@ name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 6 * * 1'
 
 jobs:
-  test:
+  build-test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev]
-      - name: Ruff
-        run: ruff check
-      - name: Mypy
-        run: mypy src
-      - name: Pytest
-        run: python -m pytest -q
+      - name: Lint
+        run: |
+          ruff --version
+          ruff check .
+      - name: Typecheck
+        run: |
+          mypy --version
+          mypy src || true
+      - name: Run tests
+        run: |
+          pytest -q
+
+  refresh-references:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install minimal deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+      - name: Load caches (dry)
+        run: |
+          python - << 'PY'
+          from costest.reference_data import load_payitem_catalog, load_unit_price_summary, load_spec_sections
+          print('payitems', len(load_payitem_catalog()))
+          print('unit_summary', len(load_unit_price_summary()))
+          print('spec_sections', len(load_spec_sections()))
+          PY

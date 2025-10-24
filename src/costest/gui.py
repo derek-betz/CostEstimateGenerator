@@ -304,6 +304,10 @@ class EstimatorApp:
         self.district_var = tk.StringVar()
         self.contract_filter_var = tk.StringVar(value="50")
         self.alt_seek_var = tk.BooleanVar(value=True)
+        # Advanced pricing controls
+        self.aggregate_method_var = tk.StringVar(value="WGT_AVG")
+        self.enable_elasticity_var = tk.BooleanVar(value=False)
+        self.memo_confidence_var = tk.DoubleVar(value=0.70)
         self._last_valid_contract_filter = 50.0
         self._snapshot_tag_var = tk.StringVar(value="Idle")
         self._snapshot_status_var = tk.StringVar(value="Waiting for workbook selection.")
@@ -337,6 +341,9 @@ class EstimatorApp:
         self.district_var.trace_add("write", self._on_inputs_changed)
         self.contract_filter_var.trace_add("write", self._on_inputs_changed)
         self.alt_seek_var.trace_add("write", self._on_inputs_changed)
+        self.aggregate_method_var.trace_add("write", self._on_inputs_changed)
+        self.enable_elasticity_var.trace_add("write", self._on_inputs_changed)
+        self.memo_confidence_var.trace_add("write", self._on_inputs_changed)
 
         self._initial_status = "Drop a *_project_quantities.xlsx workbook to begin."
         self.status_title_var = tk.StringVar(value="Ready to Start")
@@ -1100,7 +1107,82 @@ class EstimatorApp:
         )
         alt_seek_toggle.grid(row=2, column=0, columnspan=3, sticky=tk.W)
 
-        
+        # Advanced pricing settings
+        adv_frame = ttk.Frame(input_frame, style="Glass.TFrame", padding=(12, 12))
+        adv_frame.grid(row=3, column=0, columnspan=3, sticky=tk.EW, pady=(12, 0))
+        adv_frame.columnconfigure(0, weight=1)
+        adv_frame.columnconfigure(1, weight=1)
+        adv_frame.columnconfigure(2, weight=1)
+
+        # Aggregation method selector
+        ttk.Label(adv_frame, text="Aggregation Method", style="Subheading.TLabel").grid(row=0, column=0, sticky=tk.W)
+        self._agg_display_to_key = {
+            "Weighted Average": "WGT_AVG",
+            "Trimmed Mean (P10–P90)": "TRIMMED_MEAN_P10_P90",
+            "Robust Median": "ROBUST_MEDIAN",
+        }
+        agg_values = list(self._agg_display_to_key.keys())
+        current_key = (self.aggregate_method_var.get() or "WGT_AVG").strip()
+        current_display = next((d for d, k in self._agg_display_to_key.items() if k == current_key), agg_values[0])
+        self.aggregate_method_display = tk.StringVar(value=current_display)
+        agg_combo = ttk.Combobox(
+            adv_frame,
+            state="readonly",
+            textvariable=self.aggregate_method_display,
+            values=agg_values,
+            style="Filled.TCombobox",
+        )
+        agg_combo.grid(row=1, column=0, sticky=tk.EW, padx=(0, 12))
+
+        def _on_agg_changed(_evt: Optional[tk.Event] = None) -> None:
+            display = self.aggregate_method_display.get()
+            self.aggregate_method_var.set(self._agg_display_to_key.get(display, "WGT_AVG"))
+        agg_combo.bind("<<ComboboxSelected>>", _on_agg_changed)
+
+        # Memo minimum confidence slider
+        ttk.Label(adv_frame, text="Memo Min Confidence", style="Subheading.TLabel").grid(row=0, column=1, sticky=tk.W)
+        memo_frame = ttk.Frame(adv_frame, style="Glass.TFrame")
+        memo_frame.grid(row=1, column=1, sticky=tk.EW, padx=(0, 12))
+        memo_frame.columnconfigure(0, weight=1)
+        memo_scale = tk.Scale(
+            memo_frame,
+            from_=0.0,
+            to=1.0,
+            resolution=0.05,
+            orient=tk.HORIZONTAL,
+            showvalue=False,
+            variable=self.memo_confidence_var,
+            troughcolor=self._palette.get("surface_alt", "#2b2b2b"),
+            highlightthickness=0,
+            bd=0,
+            bg=self._palette.get("surface", "#1e1e1e"),
+            fg=self._palette.get("text", "#e0e0e0"),
+            length=160,
+        )
+        memo_scale.grid(row=0, column=0, sticky=tk.EW)
+        self._memo_conf_label = ttk.Label(
+            memo_frame,
+            text=f">= {self.memo_confidence_var.get():.2f}",
+            style="StatusDetail.TLabel",
+        )
+        self._memo_conf_label.grid(row=0, column=1, sticky=tk.E, padx=(8, 0))
+        def _sync_memo_label(_evt: Optional[tk.Event] = None) -> None:
+            try:
+                self._memo_conf_label.configure(text=f">= {float(self.memo_confidence_var.get()):.2f}")
+            except Exception:
+                pass
+        memo_scale.bind("<ButtonRelease-1>", _sync_memo_label)
+        memo_scale.bind("<B1-Motion>", _sync_memo_label)
+
+        # Quantity elasticity toggle
+        elasticity_chk = ttk.Checkbutton(
+            adv_frame,
+            text="Enable quantity elasticity adjustment (experimental)",
+            variable=self.enable_elasticity_var,
+            style="Toggle.TCheckbutton",
+            takefocus=0,
+        )
+        elasticity_chk.grid(row=1, column=2, sticky=tk.W)
 
         button_row = ttk.Frame(input_frame, style="Glass.TFrame")
         button_row.grid(row=4, column=0, columnspan=3, sticky=tk.EW, pady=(16, 0))
@@ -2459,6 +2541,22 @@ class EstimatorApp:
                 display_value = f"+/-{display_value}"
             filter_display = f"{display_value}%"
             input_parts.append(f"Filter {filter_display}")
+        # Advanced inputs
+        try:
+            agg_display = None
+            if hasattr(self, "_agg_display_to_key"):
+                agg_display = next((d for d, k in self._agg_display_to_key.items() if k == (self.aggregate_method_var.get() or "").strip()), None)
+            if not agg_display:
+                agg_display = (self.aggregate_method_var.get() or "WGT_AVG").strip()
+            input_parts.append(f"Agg {agg_display}")
+        except Exception:
+            pass
+        if self.enable_elasticity_var.get():
+            input_parts.append("Elasticity On")
+        try:
+            input_parts.append(f"Memo conf ≥ {float(self.memo_confidence_var.get()):.2f}")
+        except Exception:
+            pass
         self._snapshot_inputs_var.set(" | ".join(input_parts) if input_parts else "No project inputs captured yet.")
 
         if self._log_entry_count == 0:
@@ -2864,6 +2962,16 @@ class EstimatorApp:
             env_overrides.pop("DISABLE_ALT_SEEK", None)
         else:
             env_overrides["DISABLE_ALT_SEEK"] = "1"
+
+        # Advanced pricing environment knobs
+        agg_key = (self.aggregate_method_var.get() or "WGT_AVG").strip()
+        if agg_key:
+            env_overrides["AGGREGATE_METHOD"] = agg_key
+        env_overrides["ENABLE_QUANTITY_ELASTICITY"] = "1" if self.enable_elasticity_var.get() else "0"
+        try:
+            env_overrides["MEMO_PRICE_MIN_CONFIDENCE"] = f"{float(self.memo_confidence_var.get()):.2f}"
+        except Exception:
+            env_overrides["MEMO_PRICE_MIN_CONFIDENCE"] = "0.70"
 
         runtime_cfg = load_runtime_config(env_overrides, None)
 

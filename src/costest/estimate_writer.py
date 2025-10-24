@@ -27,6 +27,7 @@ from openpyxl.formatting.rule import CellIsRule, FormulaRule
 from openpyxl.styles import PatternFill, Font, Alignment
 from openpyxl.worksheet.table import Table, TableStyleInfo
 from .stats import compute_summary
+import datetime
 
 ZERO_FILL = PatternFill(start_color="FFF9C4", end_color="FFF9C4", fill_type="solid")  # pale yellow
 PRICING_FILL = PatternFill(start_color="C8E6C9", end_color="C8E6C9", fill_type="solid")  # pale green
@@ -123,6 +124,16 @@ def _format_and_save_excel(df: pd.DataFrame, xlsx_path: str):
         out.to_excel(xlw, sheet_name="Estimate", index=False)
         if not alt_seek_df.empty:
             alt_seek_df.to_excel(xlw, sheet_name="Alt-Seek", index=False)
+        # Add a Metadata sheet for provenance and schema hints
+        try:
+            meta_rows = [
+                {"Key": "PIPELINE_VERSION", "Value": "0.1.0"},
+                {"Key": "GENERATED_AT_UTC", "Value": datetime.datetime.utcnow().isoformat()},
+                {"Key": "SPEC_EDITION", "Value": os.environ.get("SPEC_EDITION", "2026")},
+            ]
+            pd.DataFrame(meta_rows).to_excel(xlw, sheet_name="Metadata", index=False)
+        except Exception:
+            pass
         ws = xlw.sheets["Estimate"]
         ws.freeze_panes = "A2"
 
@@ -727,6 +738,7 @@ def write_outputs(
             insert_at = cols.index('DATA_POINTS_USED') + 1
             cols[insert_at:insert_at] = ['STD_DEV', 'COEF_VAR']
         prev = prev[cols]
+        # Use default NaN serialization to preserve numeric NaN on readback
         prev.to_csv(audit_csv_path, index=False)
 
         out_dir = os.path.dirname(audit_csv_path) or '.'
@@ -748,6 +760,7 @@ def write_outputs(
             csv_df['STD_DEV'] = pd.to_numeric(csv_df['STD_DEV'], errors='coerce')
         if 'COEF_VAR' in csv_df.columns:
             csv_df['COEF_VAR'] = pd.to_numeric(csv_df['COEF_VAR'], errors='coerce')
+        # Keep NaN as empty for numeric columns so pandas reads NaN
         csv_df.to_csv(audit_csv_path, index=False)
         out_dir = os.path.dirname(audit_csv_path) or '.'
         _emit_dm2321_mapping_debug(df, os.path.join(out_dir, 'payitem_mapping_debug.csv'))

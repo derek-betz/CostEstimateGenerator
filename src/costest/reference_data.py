@@ -1,10 +1,18 @@
-﻿"""Load and cache reference datasets for alternate-seek enrichment."""
+﻿"""Load and cache reference datasets for alternate-seek enrichment.
+
+This module is designed to degrade gracefully when optional assets
+are unavailable (e.g., the Standard Specifications PDF or the pypdf
+library). When dependencies are missing, spec-section features are
+disabled and an informational log is emitted once, rather than
+raising a hard error.
+"""
 
 from __future__ import annotations
 
 import json
 import re
 from functools import lru_cache
+import logging
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Mapping
 
@@ -12,10 +20,13 @@ import pandas as pd
 
 try:
     from pypdf import PdfReader  # type: ignore
-except ImportError as exc:  # pragma: no cover - runtime guard
-    raise RuntimeError(
-        "pypdf must be installed to parse the Standard Specifications PDF"
-    ) from exc
+    _PYPDF_AVAILABLE = True
+except Exception:  # pragma: no cover - runtime guard
+    PdfReader = None  # type: ignore
+    _PYPDF_AVAILABLE = False
+
+_logger = logging.getLogger(__name__)
+_warned_pypdf_missing = False
 
 from .bidtabs_io import normalize_item_code
 
@@ -124,7 +135,14 @@ def load_unit_price_summary() -> Dict[str, Dict[str, object]]:
 
 @lru_cache()
 def load_spec_sections() -> Dict[str, Dict[str, object]]:
-    if not SPEC_PDF.exists():
+    if not SPEC_PDF.exists() or not _PYPDF_AVAILABLE:
+        global _warned_pypdf_missing
+        if not _warned_pypdf_missing:
+            if not SPEC_PDF.exists():
+                _logger.info("Standard Specifications PDF not found at %s; spec section enrichment disabled.", SPEC_PDF)
+            elif not _PYPDF_AVAILABLE:
+                _logger.info("pypdf not available; spec section enrichment disabled.")
+            _warned_pypdf_missing = True
         return {}
     if _needs_refresh(SPEC_PDF, SPEC_CACHE):
         reader = PdfReader(str(SPEC_PDF))

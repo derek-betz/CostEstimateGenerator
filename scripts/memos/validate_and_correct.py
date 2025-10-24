@@ -81,6 +81,18 @@ def main() -> None:
     }
     print(json.dumps(summary, indent=2))
 
+    # Persist a compact run report for CI/ops visibility
+    try:
+        report_path = Path("references/memos/run_report.json")
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            **summary,
+            "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        }
+        report_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    except Exception:
+        logging.getLogger(__name__).debug("Unable to write memo run report", exc_info=True)
+
     # Optional CSV audit export
     if args.audit_csv:
         out_path = Path(args.audit_csv)

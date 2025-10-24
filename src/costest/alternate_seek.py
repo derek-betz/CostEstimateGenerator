@@ -32,6 +32,7 @@ SIMILARITY_WEIGHTS = {
 
 _MIN_TARGET = max(10, MIN_SAMPLE_TARGET)
 _MAX_STABLE_ALTERNATES = 3
+_MAX_CANDIDATES = 50
 
 
 @dataclass
@@ -351,9 +352,11 @@ def _fallback_selection(
             cand.similarity.get("overall_score", 0.0),
             cand.data_points,
             -abs(cand.area_sqft - target_area) if math.isfinite(cand.area_sqft) else 0.0,
+            str(cand.item_code),
         ),
         reverse=True,
     )
+    ranked = ranked[:_MAX_CANDIDATES]
     chosen = [cand for cand in ranked if cand.similarity.get("overall_score", 0.0) > 0][:limit]
     if not chosen:
         chosen = ranked[:1]

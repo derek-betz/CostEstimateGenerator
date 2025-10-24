@@ -3,6 +3,7 @@ import logging
 import math
 import os
 import sys
+import json
 from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Sequence
@@ -35,6 +36,8 @@ from .price_logic import (
 )
 from .project_meta import DISTRICT_CHOICES, DISTRICT_REGION_MAP, normalize_district
 from .reporting import make_summary_text
+from . import reference_data as _refdata
+from .policy import apply_policy_defaults
 
 if TYPE_CHECKING:
     from .config import CLIConfig, Config
@@ -240,8 +243,14 @@ def apply_non_geometry_fallbacks(
 
         memo_guidance = design_memo_prices.lookup_memo_price(norm_code)
         if memo_guidance is not None:
-            _apply_memo_price(row, memo_guidance, existing_note)
-            continue
+            min_conf = float(os.getenv('MEMO_PRICE_MIN_CONFIDENCE', '0.7'))
+            if (memo_guidance.confidence or 1.0) >= min_conf:
+                _apply_memo_price(row, memo_guidance, existing_note)
+                continue
+            else:
+                # Low confidence: keep as advisory note; continue with other fallbacks
+                advisory = f"Memo guidance found (DM {memo_guidance.memo_id}) at low confidence={memo_guidance.confidence:.2f}; not applied."
+                row["NOTES"] = " | ".join(part for part in (existing_note, advisory) if part)
 
         current_price = float(row.get("UNIT_PRICE_EST", 0) or 0.0)
         counts_zero = all(int(row.get(f"{label}_COUNT", 0) or 0) == 0 for label in CATEGORY_LABELS)
@@ -676,6 +685,12 @@ def load_project_attributes(
 def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] = None) -> int:
     runtime_cfg = runtime_config or DEFAULT_CONFIG
 
+    # Apply repository policy defaults (non-invasive; env can override)
+    try:
+        apply_policy_defaults(runtime_cfg.base_dir / "references" / "policy" / "policy.json")
+    except Exception:
+        logger.debug("Policy defaults not applied", exc_info=True)
+
     if config is not None:
         try:
             from .config import CLIConfig as _CLI
@@ -1045,6 +1060,17 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
             "SOURCE": source_label,
         }
 
+        # Consistency: UNIT normalization and mismatch flag vs. catalog
+        try:
+            catalog = reference_data.load_payitem_catalog()
+            expected_unit = str((catalog.get(code, {}) or {}).get("unit", "")).strip().upper()
+            given_unit = str(unit or "").strip().upper()
+            if expected_unit:
+                row["UNIT_NORMALIZED"] = expected_unit
+                row["UNIT_MISMATCH_FLAG"] = (expected_unit != given_unit and given_unit != "")
+        except Exception:
+            pass
+
         if dm_mapping_rule:
             if mapped_from_old:
                 row["MappedFromOldItem"] = mapped_from_old
@@ -1332,9 +1358,37 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
             )
         )
 
-    log_stage("Applying contract percent adjustments per IDM Chapter 20 guidance")
-    _apply_contract_percent("105-06845", 0.02, {"105-06845", "110-01001"}, "Per IDM Chapter 20:")
-    _apply_contract_percent("110-01001", 0.05, {"105-06845", "110-01001"}, "Per IDM Chapter 20:")
+    # Load contract-percent rules from external config for consistency with IDM Chapter 20/Spec edition
+    def _load_contract_rules() -> tuple[list[dict], str | None]:
+        try:
+            cfg_path = runtime_cfg.base_dir / "references" / "specs" / "contract_percents.json"
+            if cfg_path.exists():
+                payload = json.loads(cfg_path.read_text(encoding="utf-8"))
+                edition = payload.get("spec_edition")
+                rules = payload.get("rules") or []
+                return [dict(r) for r in rules], str(edition) if edition else None
+        except Exception:
+            logger.debug("Unable to read contract percent rules", exc_info=True)
+        return [], None
+
+    rules, spec_edition = _load_contract_rules()
+    if rules:
+        log_stage(f"Applying contract percent adjustments per IDM Chapter 20 guidance ({spec_edition or 'unspecified'})")
+        exclude = {str(r.get("code")) for r in rules}
+        for rule in rules:
+            try:
+                code = str(rule.get("code"))
+                pct = float(rule.get("percent"))
+                note_label = str(rule.get("note") or "Per IDM Chapter 20:")
+                if spec_edition:
+                    note_label = f"{note_label} ({spec_edition})"
+                _apply_contract_percent(code, pct, exclude, note_label)
+            except Exception:
+                logger.debug("Skipping invalid contract rule: %s", rule, exc_info=True)
+    else:
+        log_stage("Applying contract percent adjustments per IDM Chapter 20 guidance (built-in defaults)")
+        _apply_contract_percent("105-06845", 0.02, {"105-06845", "110-01001"}, "Per IDM Chapter 20:")
+        _apply_contract_percent("110-01001", 0.05, {"105-06845", "110-01001"}, "Per IDM Chapter 20:")
 
     if dm2321_deleted_items:
         log_detail(f"dm2321_deleted_items_skipped={len(dm2321_deleted_items):,}")
@@ -1366,6 +1420,47 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
     log_stage("Persisting estimator outputs to disk")
     write_outputs(df, str(out_xlsx), str(out_audit), payitem_details, str(out_pay_audit))
     log_detail(f"outputs_written => {out_xlsx}, {out_audit}, {out_pay_audit}")
+
+    # Emit run provenance/metadata for reliability and auditability
+    try:
+        # Avoid expensive spec PDF parsing; read spec cache if present
+        try:
+            spec_sections_count = 0
+            if hasattr(_refdata, 'SPEC_CACHE') and _refdata.SPEC_CACHE.exists():
+                spec_sections_count = len(json.loads(_refdata.SPEC_CACHE.read_text(encoding='utf-8')))
+        except Exception:
+            spec_sections_count = 0
+
+        meta = {
+            "timestamp": pd.Timestamp.utcnow().isoformat(),
+            "python": sys.version.split()[0],
+            "apply_dm23_21": bool(runtime_cfg.apply_dm23_21),
+            "disable_ai": bool(runtime_cfg.disable_ai),
+            "disable_alt_seek": bool(runtime_cfg.disable_alt_seek),
+            "min_sample_target": int(runtime_cfg.min_sample_target),
+            "aggregate_method": os.getenv('AGGREGATE_METHOD', 'WGT_AVG'),
+            "category_sigma_threshold": float(os.getenv('CATEGORY_SIGMA_THRESHOLD', '2.0')),
+            "memo_rollup_sigma_threshold": float(os.getenv('MEMO_ROLLUP_SIGMA_THRESHOLD', '2.0')),
+            "quantity_elasticity_enabled": os.getenv('ENABLE_QUANTITY_ELASTICITY', '0') in {'1','true','on','yes'},
+            "spec_edition": spec_edition,
+            "inputs": {
+                "bidtabs_dir": str(bidtabs_dir),
+                "quantities_path": str(qty_path),
+                "project_attributes": str(project_attrs_display),
+            },
+            "reference_cache_sizes": {
+                "payitems": len(_refdata.load_payitem_catalog()),
+                "unit_price_summary": len(_refdata.load_unit_price_summary()),
+                "spec_sections": spec_sections_count,
+            },
+        }
+        out_meta = (output_dir / "run_metadata.json").resolve()
+        out_meta.parent.mkdir(parents=True, exist_ok=True)
+        with open(out_meta, "w", encoding="utf-8") as fh:
+            json.dump(meta, fh, indent=2)
+        log_detail(f"run_metadata_emitted => {out_meta}")
+    except Exception:  # pragma: no cover - defensive
+        logger.debug("Unable to emit run metadata", exc_info=True)
 
     mapping_debug_path = None
     if config is not None:

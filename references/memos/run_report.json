@@ -1,0 +1,791 @@
+{
+  "validated": 85,
+  "changed": 85,
+  "changed_memos": [
+    "0114ta",
+    "0307-pc",
+    "0534-attach",
+    "0534-ta",
+    "1109-ta",
+    "13-09-20ta-20attachment-20rdg-202011",
+    "13-09-20ta-20small-20structure-20replacement-2c-20guardrail-20runout-20length",
+    "13-12-20ta-20lighting-20attach-20fig78-5b-20-5c",
+    "13-15-20ta-20hma",
+    "15-16-20ta-20erms-20naming-20convention-20attach1",
+    "16-01-20ta-20bridge-20structure-20number",
+    "16-01-20ta-20bridge-20structure-20number-20attach",
+    "16-10-20ta-20bundled-20projects",
+    "16-10-20ta-20bundled-20projects-20attach",
+    "16-35-20ta-20undistributed-20quantities",
+    "17-02-20pc-20rural-20interstate-20shoulder-20width",
+    "17-04-20rev-20ta-20culvert-20asset-20id",
+    "17-04-20rev-20ta-20culvert-20asset-20id-20attachments",
+    "17-10-20mash-20implementation-20and-20guardrail",
+    "17-10-20mash-20implementation-20and-20guardrail-20-20attach-202",
+    "17-10-20mash-20implementation-20and-20guardrail-20attach-201",
+    "17-17-20ta-20mgs-20pay-20items-20attachment",
+    "17-17-20ta-20mgs-20w-beam",
+    "17-20-20ta-20complex-20bridge-20design-20requirements",
+    "18-05-20ta-20plan-20note-20for-20tac-20approved-20ada-20inquiry",
+    "18-20-20ta-20bridge-20aesthetics-20policy",
+    "18-26-20ta-20pushbutton-20and-20ada-20details",
+    "20-14-20preventative-20maintenance-20and-203r-20design-20criteria",
+    "21-18-20updating-20scour-20analysis-20requirements",
+    "627-r-546",
+    "627-r-546d",
+    "design-memo-qa-aug-2020",
+    "dm-2021-04",
+    "dm-2022-01-20stage-202-20document-20publication",
+    "dm-2022-05-20concrete-20median-20barriers",
+    "dm-2022-17-20aashto-20lrfd-20bridge-20design-20specifications",
+    "dm-2022-22-20post-construction-20stormwater-20management",
+    "dm-2023-02-20void-20reducing-20asphalt-20membrane-20for-20asphalt-20paving",
+    "dm-2023-03-20stormwater-20revisions",
+    "dm-2023-07-20guardrail-20end-20treatments",
+    "dm-2023-08-20railroad-20flagging",
+    "dm-2023-10-20bridge-20painting",
+    "dm-2023-11-20payment-20for-20elastomeric-20bearing-20assemblies",
+    "dm-2023-16-20public-20rights-of-way-20accessibility-20guidelines-20-28prowag-29",
+    "dm-2023-17-20placing-20and-20terminating-20temporary-20traffic-20barrier",
+    "dm-2023-18-20survey-20requirements",
+    "dm-2023-19-20joint-20probability-20analysis",
+    "dm-2023-20-20extended-20pile-20bents-20and-20wall-20pier-20on-20single-20row-20of-20piles",
+    "dm-2023-21-20mscr-20pg-20binder",
+    "dm-2024-01-20subgrade-20treatment",
+    "dm-2024-02-20lightweight-20concrete-2c-20threaded-20tie-20bar-20assemblies-2c-20and-20concrete-20cover",
+    "dm-2024-03-20waterproofing-20membrane-20and-20partial-20coating-20limits",
+    "dm-2024-04-20pavement-20design-20process",
+    "dm-2024-05-20prowag-20elements-20phased-20implementation",
+    "dm-2024-06-20ihcp-20contract-20documents",
+    "dm-2024-07-202024-20indot-20standard-20drawings",
+    "dm-2024-08-20mot-20on-20high-volume-20interstate-20highways",
+    "dm-2024-09-20buy-20america-20certification-20procedures-20for-20utilities-20and-20railroads",
+    "dm-2024-10-20pavement-20patching-20tables",
+    "dm-2024-11-20preliminary-20geometrics-20review-20for-20non-conventional-20intersections",
+    "dm-2024-12-20semi-integral-20end-20bent-20details",
+    "dm-2024-13-20integral-20end-20bent-20details",
+    "dm-2024-14-20pavement-20ledge-20width",
+    "dm-2024-15-20fhwa-indiana-20ps-26e-20checklist",
+    "dm-2024-16-20mse-20wall-20shop-20drawing-20checklist",
+    "dm-2024-17-20liquid-20asphalt-20sealant",
+    "dm-2025-01-20ihcp-20exception-20requests",
+    "dm-2025-02-20various-20traffic-20design-20updates",
+    "dm-2025-03-20maintenance-20of-20traffic-20updates",
+    "dm-2025-04-20next-20beams",
+    "dm-2025-05-20reinforcing-20bar-20support-20devices",
+    "dm-2025-06-20prestressing-20strands",
+    "dm-2025-07-20topsoil-20management",
+    "dm-2025-08-20life-cycle-20pavement-20cost-20analysis-20update",
+    "dm-2025-09-20horizontal-20alignment",
+    "dm-2025-10-20vram",
+    "dm-2025-11-20lean-20concrete-20base",
+    "dm-2025-12-20plan-20revisions-20after-20rfc",
+    "dm-2025-13-20indot-20standard-20drawings",
+    "dm-2025-14-20cad-20workspace-20updates",
+    "dm-2025-15-20bridge-20deck-20overlay",
+    "dm-2025-16-20pavement-20type-20selection-20process",
+    "dm-2025-17-20permanent-20seeding-20fertilizer-20rate",
+    "dm-2025-18-20update-20to-20ihcp-20templates",
+    "dm-2025-19-20traffic-20signal-20preemption-light-20trespass"
+  ],
+  "fields_changed": {
+    "0114ta": [
+      "metadata",
+      "highlights"
+    ],
+    "0307-pc": [
+      "metadata",
+      "highlights"
+    ],
+    "0534-attach": [
+      "metadata",
+      "highlights"
+    ],
+    "0534-ta": [
+      "metadata"
+    ],
+    "1109-ta": [
+      "metadata"
+    ],
+    "13-09-20ta-20attachment-20rdg-202011": [
+      "metadata"
+    ],
+    "13-09-20ta-20small-20structure-20replacement-2c-20guardrail-20runout-20length": [
+      "metadata"
+    ],
+    "13-12-20ta-20lighting-20attach-20fig78-5b-20-5c": [
+      "metadata"
+    ],
+    "13-15-20ta-20hma": [
+      "metadata",
+      "highlights"
+    ],
+    "15-16-20ta-20erms-20naming-20convention-20attach1": [
+      "metadata"
+    ],
+    "16-01-20ta-20bridge-20structure-20number": [
+      "metadata"
+    ],
+    "16-01-20ta-20bridge-20structure-20number-20attach": [
+      "metadata"
+    ],
+    "16-10-20ta-20bundled-20projects": [
+      "metadata"
+    ],
+    "16-10-20ta-20bundled-20projects-20attach": [
+      "metadata",
+      "highlights"
+    ],
+    "16-35-20ta-20undistributed-20quantities": [
+      "metadata"
+    ],
+    "17-02-20pc-20rural-20interstate-20shoulder-20width": [
+      "metadata"
+    ],
+    "17-04-20rev-20ta-20culvert-20asset-20id": [
+      "metadata"
+    ],
+    "17-04-20rev-20ta-20culvert-20asset-20id-20attachments": [
+      "metadata"
+    ],
+    "17-10-20mash-20implementation-20and-20guardrail": [
+      "metadata",
+      "highlights"
+    ],
+    "17-10-20mash-20implementation-20and-20guardrail-20-20attach-202": [
+      "metadata"
+    ],
+    "17-10-20mash-20implementation-20and-20guardrail-20attach-201": [
+      "metadata",
+      "highlights"
+    ],
+    "17-17-20ta-20mgs-20pay-20items-20attachment": [
+      "metadata",
+      "highlights"
+    ],
+    "17-17-20ta-20mgs-20w-beam": [
+      "metadata",
+      "highlights"
+    ],
+    "17-20-20ta-20complex-20bridge-20design-20requirements": [
+      "metadata"
+    ],
+    "18-05-20ta-20plan-20note-20for-20tac-20approved-20ada-20inquiry": [
+      "metadata"
+    ],
+    "18-20-20ta-20bridge-20aesthetics-20policy": [
+      "metadata"
+    ],
+    "18-26-20ta-20pushbutton-20and-20ada-20details": [
+      "metadata"
+    ],
+    "20-14-20preventative-20maintenance-20and-203r-20design-20criteria": [
+      "metadata"
+    ],
+    "21-18-20updating-20scour-20analysis-20requirements": [
+      "metadata"
+    ],
+    "627-r-546": [
+      "metadata",
+      "highlights"
+    ],
+    "627-r-546d": [
+      "metadata"
+    ],
+    "design-memo-qa-aug-2020": [
+      "metadata"
+    ],
+    "dm-2021-04": [
+      "metadata"
+    ],
+    "dm-2022-01-20stage-202-20document-20publication": [
+      "metadata"
+    ],
+    "dm-2022-05-20concrete-20median-20barriers": [
+      "metadata"
+    ],
+    "dm-2022-17-20aashto-20lrfd-20bridge-20design-20specifications": [
+      "metadata"
+    ],
+    "dm-2022-22-20post-construction-20stormwater-20management": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2023-02-20void-20reducing-20asphalt-20membrane-20for-20asphalt-20paving": [
+      "metadata"
+    ],
+    "dm-2023-03-20stormwater-20revisions": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2023-07-20guardrail-20end-20treatments": [
+      "metadata"
+    ],
+    "dm-2023-08-20railroad-20flagging": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2023-10-20bridge-20painting": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2023-11-20payment-20for-20elastomeric-20bearing-20assemblies": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2023-16-20public-20rights-of-way-20accessibility-20guidelines-20-28prowag-29": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2023-17-20placing-20and-20terminating-20temporary-20traffic-20barrier": [
+      "metadata"
+    ],
+    "dm-2023-18-20survey-20requirements": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2023-19-20joint-20probability-20analysis": [
+      "metadata"
+    ],
+    "dm-2023-20-20extended-20pile-20bents-20and-20wall-20pier-20on-20single-20row-20of-20piles": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2023-21-20mscr-20pg-20binder": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2024-01-20subgrade-20treatment": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2024-02-20lightweight-20concrete-2c-20threaded-20tie-20bar-20assemblies-2c-20and-20concrete-20cover": [
+      "metadata"
+    ],
+    "dm-2024-03-20waterproofing-20membrane-20and-20partial-20coating-20limits": [
+      "metadata"
+    ],
+    "dm-2024-04-20pavement-20design-20process": [
+      "metadata"
+    ],
+    "dm-2024-05-20prowag-20elements-20phased-20implementation": [
+      "metadata"
+    ],
+    "dm-2024-06-20ihcp-20contract-20documents": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2024-07-202024-20indot-20standard-20drawings": [
+      "metadata"
+    ],
+    "dm-2024-08-20mot-20on-20high-volume-20interstate-20highways": [
+      "metadata"
+    ],
+    "dm-2024-09-20buy-20america-20certification-20procedures-20for-20utilities-20and-20railroads": [
+      "metadata"
+    ],
+    "dm-2024-10-20pavement-20patching-20tables": [
+      "metadata"
+    ],
+    "dm-2024-11-20preliminary-20geometrics-20review-20for-20non-conventional-20intersections": [
+      "metadata"
+    ],
+    "dm-2024-12-20semi-integral-20end-20bent-20details": [
+      "metadata"
+    ],
+    "dm-2024-13-20integral-20end-20bent-20details": [
+      "metadata"
+    ],
+    "dm-2024-14-20pavement-20ledge-20width": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2024-15-20fhwa-indiana-20ps-26e-20checklist": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2024-16-20mse-20wall-20shop-20drawing-20checklist": [
+      "metadata"
+    ],
+    "dm-2024-17-20liquid-20asphalt-20sealant": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2025-01-20ihcp-20exception-20requests": [
+      "metadata"
+    ],
+    "dm-2025-02-20various-20traffic-20design-20updates": [
+      "metadata"
+    ],
+    "dm-2025-03-20maintenance-20of-20traffic-20updates": [
+      "metadata"
+    ],
+    "dm-2025-04-20next-20beams": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2025-05-20reinforcing-20bar-20support-20devices": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2025-06-20prestressing-20strands": [
+      "metadata"
+    ],
+    "dm-2025-07-20topsoil-20management": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2025-08-20life-cycle-20pavement-20cost-20analysis-20update": [
+      "metadata"
+    ],
+    "dm-2025-09-20horizontal-20alignment": [
+      "metadata"
+    ],
+    "dm-2025-10-20vram": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2025-11-20lean-20concrete-20base": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2025-12-20plan-20revisions-20after-20rfc": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2025-13-20indot-20standard-20drawings": [
+      "metadata"
+    ],
+    "dm-2025-14-20cad-20workspace-20updates": [
+      "metadata"
+    ],
+    "dm-2025-15-20bridge-20deck-20overlay": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2025-16-20pavement-20type-20selection-20process": [
+      "metadata"
+    ],
+    "dm-2025-17-20permanent-20seeding-20fertilizer-20rate": [
+      "metadata",
+      "highlights"
+    ],
+    "dm-2025-18-20update-20to-20ihcp-20templates": [
+      "metadata"
+    ],
+    "dm-2025-19-20traffic-20signal-20preemption-light-20trespass": [
+      "metadata"
+    ]
+  },
+  "pay_items_delta": {
+    "0534-attach": {
+      "added": [],
+      "removed": [
+        "602-06000",
+        "703-08496",
+        "706-08496",
+        "904-00000"
+      ]
+    },
+    "17-17-20ta-20mgs-20pay-20items-20attachment": {
+      "added": [],
+      "removed": [
+        "601-12281",
+        "601-12282",
+        "601-12283",
+        "601-12284",
+        "601-12286",
+        "601-12287",
+        "601-12288",
+        "601-12289",
+        "601-12291",
+        "601-12292",
+        "601-12293",
+        "601-12294",
+        "601-94689",
+        "601-94690"
+      ]
+    },
+    "dm-2023-03-20stormwater-20revisions": {
+      "added": [
+        "205-12616"
+      ],
+      "removed": []
+    },
+    "dm-2023-21-20mscr-20pg-20binder": {
+      "added": [],
+      "removed": [
+        "401-07321",
+        "401-07322",
+        "401-07323",
+        "401-07327",
+        "401-07328",
+        "401-07329",
+        "401-07333",
+        "401-07334",
+        "401-07335",
+        "401-07339",
+        "401-07340",
+        "401-07342",
+        "401-07345",
+        "401-07347",
+        "401-07348",
+        "401-07351",
+        "401-07352",
+        "401-07353",
+        "401-07356",
+        "401-07357",
+        "401-07358",
+        "401-07361",
+        "401-07362",
+        "401-07363",
+        "401-07366",
+        "401-07367",
+        "401-07368",
+        "401-07371",
+        "401-07372",
+        "401-07373",
+        "401-07378",
+        "401-07379",
+        "401-07380",
+        "401-07384",
+        "401-07385",
+        "401-07387",
+        "401-07390",
+        "401-07392",
+        "401-07393",
+        "401-07397",
+        "401-07398",
+        "401-07399",
+        "401-07402",
+        "401-07403",
+        "401-07407",
+        "401-07408",
+        "401-07409",
+        "401-07412",
+        "401-07413",
+        "401-07414",
+        "401-07423",
+        "401-07424",
+        "401-07427",
+        "401-07428",
+        "401-08364",
+        "401-08366",
+        "401-09717",
+        "401-09941",
+        "401-09949",
+        "401-09970",
+        "401-11787",
+        "401-11897",
+        "401-11915",
+        "401-11966",
+        "401-11971",
+        "401-12137",
+        "401-12138",
+        "401-12139",
+        "401-12141",
+        "401-12143",
+        "401-12267",
+        "401-12495",
+        "410-09530",
+        "410-09877",
+        "410-10128",
+        "410-11777",
+        "410-11935",
+        "410-12320",
+        "410-12333",
+        "410-12485",
+        "410-12672"
+      ]
+    },
+    "dm-2024-01-20subgrade-20treatment": {
+      "added": [
+        "207-08268",
+        "207-12151",
+        "207-12498"
+      ],
+      "removed": []
+    },
+    "dm-2024-06-20ihcp-20contract-20documents": {
+      "added": [],
+      "removed": [
+        "801-11642",
+        "801-12324",
+        "801-12421",
+        "801-12652",
+        "801-12832",
+        "801-97643"
+      ]
+    },
+    "dm-2025-04-20next-20beams": {
+      "added": [],
+      "removed": [
+        "707-08496"
+      ]
+    },
+    "dm-2025-05-20reinforcing-20bar-20support-20devices": {
+      "added": [],
+      "removed": [
+        "703-08496"
+      ]
+    }
+  },
+  "notes": {
+    "0114ta": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "0307-pc": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "0534-attach": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "0534-ta": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "1109-ta": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "13-09-20ta-20attachment-20rdg-202011": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "13-09-20ta-20small-20structure-20replacement-2c-20guardrail-20runout-20length": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "13-12-20ta-20lighting-20attach-20fig78-5b-20-5c": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "13-15-20ta-20hma": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "15-16-20ta-20erms-20naming-20convention-20attach1": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "16-01-20ta-20bridge-20structure-20number": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "16-01-20ta-20bridge-20structure-20number-20attach": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "16-10-20ta-20bundled-20projects": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "16-10-20ta-20bundled-20projects-20attach": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "16-35-20ta-20undistributed-20quantities": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "17-02-20pc-20rural-20interstate-20shoulder-20width": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "17-04-20rev-20ta-20culvert-20asset-20id": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "17-04-20rev-20ta-20culvert-20asset-20id-20attachments": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "17-10-20mash-20implementation-20and-20guardrail": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "17-10-20mash-20implementation-20and-20guardrail-20-20attach-202": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "17-10-20mash-20implementation-20and-20guardrail-20attach-201": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "17-17-20ta-20mgs-20pay-20items-20attachment": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "17-17-20ta-20mgs-20w-beam": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "17-20-20ta-20complex-20bridge-20design-20requirements": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "18-05-20ta-20plan-20note-20for-20tac-20approved-20ada-20inquiry": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "18-20-20ta-20bridge-20aesthetics-20policy": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "18-26-20ta-20pushbutton-20and-20ada-20details": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "20-14-20preventative-20maintenance-20and-203r-20design-20criteria": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "21-18-20updating-20scour-20analysis-20requirements": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "627-r-546": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "627-r-546d": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "design-memo-qa-aug-2020": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2021-04": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2022-01-20stage-202-20document-20publication": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2022-05-20concrete-20median-20barriers": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2022-17-20aashto-20lrfd-20bridge-20design-20specifications": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2022-22-20post-construction-20stormwater-20management": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2023-02-20void-20reducing-20asphalt-20membrane-20for-20asphalt-20paving": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2023-03-20stormwater-20revisions": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2023-07-20guardrail-20end-20treatments": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2023-08-20railroad-20flagging": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2023-10-20bridge-20painting": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2023-11-20payment-20for-20elastomeric-20bearing-20assemblies": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2023-16-20public-20rights-of-way-20accessibility-20guidelines-20-28prowag-29": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2023-17-20placing-20and-20terminating-20temporary-20traffic-20barrier": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2023-18-20survey-20requirements": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2023-19-20joint-20probability-20analysis": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2023-20-20extended-20pile-20bents-20and-20wall-20pier-20on-20single-20row-20of-20piles": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2023-21-20mscr-20pg-20binder": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2024-01-20subgrade-20treatment": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2024-02-20lightweight-20concrete-2c-20threaded-20tie-20bar-20assemblies-2c-20and-20concrete-20cover": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2024-03-20waterproofing-20membrane-20and-20partial-20coating-20limits": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2024-04-20pavement-20design-20process": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2024-05-20prowag-20elements-20phased-20implementation": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2024-06-20ihcp-20contract-20documents": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2024-07-202024-20indot-20standard-20drawings": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2024-08-20mot-20on-20high-volume-20interstate-20highways": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2024-09-20buy-20america-20certification-20procedures-20for-20utilities-20and-20railroads": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2024-10-20pavement-20patching-20tables": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2024-11-20preliminary-20geometrics-20review-20for-20non-conventional-20intersections": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2024-12-20semi-integral-20end-20bent-20details": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2024-13-20integral-20end-20bent-20details": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2024-14-20pavement-20ledge-20width": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2024-15-20fhwa-indiana-20ps-26e-20checklist": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2024-16-20mse-20wall-20shop-20drawing-20checklist": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2024-17-20liquid-20asphalt-20sealant": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2025-01-20ihcp-20exception-20requests": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2025-02-20various-20traffic-20design-20updates": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2025-03-20maintenance-20of-20traffic-20updates": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2025-04-20next-20beams": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2025-05-20reinforcing-20bar-20support-20devices": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2025-06-20prestressing-20strands": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2025-07-20topsoil-20management": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2025-08-20life-cycle-20pavement-20cost-20analysis-20update": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2025-09-20horizontal-20alignment": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2025-10-20vram": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2025-11-20lean-20concrete-20base": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2025-12-20plan-20revisions-20after-20rfc": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2025-13-20indot-20standard-20drawings": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2025-14-20cad-20workspace-20updates": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2025-15-20bridge-20deck-20overlay": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2025-16-20pavement-20type-20selection-20process": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2025-17-20permanent-20seeding-20fertilizer-20rate": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2025-18-20update-20to-20ihcp-20templates": [
+      "Deterministic recompute differs from stored summary"
+    ],
+    "dm-2025-19-20traffic-20signal-20preemption-light-20trespass": [
+      "Deterministic recompute differs from stored summary"
+    ]
+  },
+  "generated_at": "2025-10-24T03:10:23Z"
+}
