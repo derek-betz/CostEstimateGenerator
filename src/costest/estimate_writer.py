@@ -62,6 +62,30 @@ CATEGORY_INCLUDED_COLS = [
 
 
 
+def _ensure_extended_formula(ws, headers=None, data_start_row=2):
+    """Replace EXTENDED column values with Excel formulas quantity * unit price."""
+    if ws is None:
+        return
+    headers = headers or [cell.value for cell in ws[1]]
+    try:
+        qty_idx = headers.index("QUANTITY") + 1
+        price_idx = headers.index("UNIT_PRICE_EST") + 1
+        extended_idx = headers.index("EXTENDED") + 1
+    except ValueError:
+        return
+    data_end_row = ws.max_row
+    if data_end_row < data_start_row:
+        return
+    qty_letter = get_column_letter(qty_idx)
+    price_letter = get_column_letter(price_idx)
+    for row_idx in range(data_start_row, data_end_row + 1):
+        qty_val = ws.cell(row=row_idx, column=qty_idx).value
+        price_val = ws.cell(row=row_idx, column=price_idx).value
+        if qty_val is None and price_val is None:
+            continue
+        ws.cell(row=row_idx, column=extended_idx).value = f"={qty_letter}{row_idx}*{price_letter}{row_idx}"
+
+
 def _format_and_save_excel(df: pd.DataFrame, xlsx_path: str):
     out = df.copy()
     # Keep CONFIDENCE for Excel; drop internal helper columns only
@@ -140,6 +164,8 @@ def _format_and_save_excel(df: pd.DataFrame, xlsx_path: str):
         headers = [cell.value for cell in ws[1]]
         data_start_row = 2
         data_end_row = ws.max_row
+
+        _ensure_extended_formula(ws, headers=headers, data_start_row=data_start_row)
 
         header_fill = PatternFill(start_color="1E3A5F", end_color="1E3A5F", fill_type="solid")
         header_font = Font(color="FFFFFF", bold=True)
@@ -243,6 +269,7 @@ def _format_and_save_excel(df: pd.DataFrame, xlsx_path: str):
         if not alt_seek_df.empty:
             ws_alt = xlw.sheets["Alt-Seek"]
             ws_alt.freeze_panes = "A2"
+            _ensure_extended_formula(ws_alt)
 
             header_fill_alt = PatternFill(start_color="1E3A5F", end_color="1E3A5F", fill_type="solid")
             header_font_alt = Font(color="FFFFFF", bold=True)
