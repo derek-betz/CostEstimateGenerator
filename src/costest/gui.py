@@ -323,6 +323,10 @@ class EstimatorApp:
         self._snapshot_timer_job: Optional[str] = None
         self._log_entry_count = 0
         self._last_log_message: Optional[str] = None
+        self._log_history: List[Tuple[str, Tuple[str, ...]]] = []
+        self._log_views: List[tk.Text] = []
+        self._detached_log_window: Optional[tk.Toplevel] = None
+        self._detached_log_widget: Optional[tk.Text] = None
         self._run_log_rotation_messages: List[str] = []
         self._run_log_rotation_index = 0
         self._run_log_animation_job: Optional[str] = None
@@ -1230,12 +1234,20 @@ class EstimatorApp:
 
         log_header = ttk.Frame(log_column, style="CardBody.TFrame")
         log_header.grid(row=0, column=0, sticky="ew", pady=(0, 12))
-        ttk.Label(log_header, text="Run Log", style="SectionHeading.TLabel").pack(anchor=tk.W)
+        log_header.columnconfigure(0, weight=1)
+        ttk.Label(log_header, text="Run Log", style="SectionHeading.TLabel").grid(row=0, column=0, sticky="w")
+        popout_button = ttk.Button(
+            log_header,
+            text="Open Window",
+            command=self._open_run_log_window,
+            style="Secondary.TButton",
+        )
+        popout_button.grid(row=0, column=1, sticky="e", padx=(12, 0))
         ttk.Label(
             log_header,
             text="A complete transcript of estimator activity for auditing and troubleshooting.",
             style="Status.TLabel",
-        ).pack(anchor=tk.W, pady=(4, 0))
+        ).grid(row=1, column=0, columnspan=2, sticky="w", pady=(4, 0))
 
         log_container = ttk.Frame(log_column, style="Log.TFrame")
         log_container.grid(row=1, column=0, sticky="nsew")
@@ -1264,6 +1276,7 @@ class EstimatorApp:
         )
         scrollbar.grid(row=0, column=1, sticky="ns")
         self.log_widget.configure(yscrollcommand=scrollbar.set)
+        self._register_log_view(self.log_widget)
 
         sidebar = ttk.Frame(right_column, style="CardBody.TFrame")
         sidebar.grid(row=1, column=0, sticky="nsew")
@@ -1355,19 +1368,6 @@ class EstimatorApp:
         tips_link.bind("<Button-1>", lambda _event: self._show_workflow_tips())
         tips_link.bind("<Enter>", lambda _event: tips_link.configure(foreground=self._palette["accent"]))
         tips_link.bind("<Leave>", lambda _event: tips_link.configure(foreground=self._palette["accent_active"]))
-
-        self.log_widget.tag_configure(
-            "base",
-            lmargin1=12,
-            lmargin2=12,
-            spacing1=2,
-            spacing3=4,
-            foreground=self._palette["matrix_green"],
-        )
-        self.log_widget.tag_configure("accent", foreground=self._palette["matrix_green"])
-        self.log_widget.tag_configure("success", foreground=self._palette["matrix_green"])
-        self.log_widget.tag_configure("error", foreground=self._palette["matrix_green"])
-        self.log_widget.tag_configure("animation", foreground=self._palette["matrix_green"])
 
         self._update_drop_target(None)
         self._set_status("Ready to Start", self._initial_status, "success")
@@ -1463,7 +1463,6 @@ class EstimatorApp:
         )
         close_button.grid(row=row_index, column=0, sticky="e", pady=(18, 0))
 
-        self._tips_window = tips_window
         tips_window.update_idletasks()
         required_width = tips_window.winfo_reqwidth() + 12
         required_height = tips_window.winfo_reqheight() + 12
@@ -1471,6 +1470,83 @@ class EstimatorApp:
         tips_window.geometry(f"{required_width}x{required_height}")
         tips_window.grab_set()
         tips_window.focus_force()
+
+        self._tips_window = tips_window
+
+    def _open_run_log_window(self) -> None:
+        if self._detached_log_window is not None:
+            try:
+                if self._detached_log_window.winfo_exists():
+                    self._detached_log_window.deiconify()
+                    self._detached_log_window.lift()
+                    self._detached_log_window.focus_force()
+                    return
+            except tk.TclError:
+                self._teardown_detached_log_window()
+
+        log_window = tk.Toplevel(self.root)
+        log_window.title("Run Log")
+        log_window.configure(bg=self._palette["card"])
+        log_window.geometry("900x600")
+        log_window.minsize(560, 360)
+        log_window.columnconfigure(0, weight=1)
+        log_window.rowconfigure(0, weight=1)
+
+        container = ttk.Frame(log_window, style="CardBody.TFrame", padding=(24, 24, 24, 24))
+        container.grid(row=0, column=0, sticky="nsew")
+        container.columnconfigure(0, weight=1)
+        container.rowconfigure(2, weight=1)
+
+        ttk.Label(container, text="Run Log", style="Heading.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(
+            container,
+            text="Open-ended window for deep dives into estimator activity and pipeline messaging.",
+            style="Status.TLabel",
+            wraplength=640,
+        ).grid(row=1, column=0, sticky="w", pady=(8, 16))
+
+        text_container = ttk.Frame(container, style="CardBody.TFrame")
+        text_container.grid(row=2, column=0, sticky="nsew")
+        text_container.columnconfigure(0, weight=1)
+        text_container.rowconfigure(0, weight=1)
+
+        detached_log = tk.Text(
+            text_container,
+            height=20,
+            state=tk.DISABLED,
+            wrap=tk.WORD,
+            bg=self._palette["code_bg"],
+            fg=self._palette["matrix_green"],
+            insertbackground=self._palette["matrix_green"],
+            relief=tk.FLAT,
+            bd=0,
+            highlightthickness=0,
+            padx=18,
+            pady=16,
+            font=("Cascadia Code", 11),
+        )
+        detached_log.grid(row=0, column=0, sticky="nsew")
+
+        scrollbar = ttk.Scrollbar(
+            text_container, orient=tk.VERTICAL, command=detached_log.yview, style="Modern.Vertical.TScrollbar"
+        )
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        detached_log.configure(yscrollcommand=scrollbar.set)
+
+        self._detached_log_window = log_window
+        self._detached_log_widget = detached_log
+        self._register_log_view(detached_log)
+
+        def _handle_close() -> None:
+            self._teardown_detached_log_window()
+            try:
+                log_window.destroy()
+            except tk.TclError:
+                pass
+
+        log_window.protocol("WM_DELETE_WINDOW", _handle_close)
+        log_window.bind("<Destroy>", lambda _event: self._teardown_detached_log_window())
+        log_window.focus_force()
 
     def _show_estimator_explanations(self) -> None:
         if self._explanation_window and self._explanation_window.winfo_exists():
@@ -2734,9 +2810,7 @@ class EstimatorApp:
         self._update_drop_target(None)
         self._update_run_button_state()
         self._stop_run_log_animation()
-        self.log_widget.configure(state=tk.NORMAL)
-        self.log_widget.delete("1.0", tk.END)
-        self.log_widget.configure(state=tk.DISABLED)
+        self._clear_log_history()
         self._stop_snapshot_timer()
         self._pipeline_started_at = None
         self._last_run_completed_at = None
@@ -2746,6 +2820,90 @@ class EstimatorApp:
         self._log_entry_count = 0
         self._last_log_message = None
         self._refresh_workflow_snapshot()
+
+    def _register_log_view(self, widget: tk.Text) -> None:
+        if widget not in self._log_views:
+            self._log_views.append(widget)
+        self._apply_log_tag_styles(widget)
+        self._replay_log_history(widget)
+
+    def _unregister_log_view(self, widget: tk.Text) -> None:
+        try:
+            self._log_views.remove(widget)
+        except ValueError:
+            return
+
+    def _apply_log_tag_styles(self, widget: tk.Text) -> None:
+        try:
+            widget.tag_configure(
+                "base",
+                lmargin1=12,
+                lmargin2=12,
+                spacing1=2,
+                spacing3=4,
+                foreground=self._palette["matrix_green"],
+            )
+            widget.tag_configure("accent", foreground=self._palette["matrix_green"])
+            widget.tag_configure("success", foreground=self._palette["matrix_green"])
+            widget.tag_configure("error", foreground=self._palette["matrix_green"])
+            widget.tag_configure("animation", foreground=self._palette["matrix_green"])
+        except tk.TclError:
+            self._unregister_log_view(widget)
+
+    def _replay_log_history(self, widget: tk.Text) -> None:
+        try:
+            widget.configure(state=tk.NORMAL)
+            widget.delete("1.0", tk.END)
+            for text, tags in self._log_history:
+                widget.insert(tk.END, text, tags)
+            widget.see(tk.END)
+            widget.configure(state=tk.DISABLED)
+        except tk.TclError:
+            self._unregister_log_view(widget)
+
+    def _refresh_log_views(self) -> None:
+        for widget in list(self._log_views):
+            self._replay_log_history(widget)
+
+    @staticmethod
+    def _ensure_log_text(text: str) -> str:
+        return text if text.endswith("\n") else f"{text}\n"
+
+    def _record_log_entry(self, text: str, tags: Tuple[str, ...]) -> None:
+        entry = (self._ensure_log_text(text), tags)
+        self._log_history.append(entry)
+        self._write_entry_to_widgets(entry)
+
+    def _write_entry_to_widgets(self, entry: Tuple[str, Tuple[str, ...]]) -> None:
+        stale: List[tk.Text] = []
+        for widget in self._log_views:
+            try:
+                widget.configure(state=tk.NORMAL)
+                widget.insert(tk.END, entry[0], entry[1])
+                widget.see(tk.END)
+                widget.configure(state=tk.DISABLED)
+            except tk.TclError:
+                stale.append(widget)
+        for widget in stale:
+            self._unregister_log_view(widget)
+
+    def _clear_log_history(self) -> None:
+        self._log_history.clear()
+        self._refresh_log_views()
+
+    def _remove_animation_entries(self) -> None:
+        if not self._log_history:
+            return
+        filtered = [entry for entry in self._log_history if "animation" not in entry[1]]
+        if len(filtered) != len(self._log_history):
+            self._log_history = filtered
+            self._refresh_log_views()
+
+    def _teardown_detached_log_window(self) -> None:
+        if self._detached_log_widget is not None:
+            self._unregister_log_view(self._detached_log_widget)
+            self._detached_log_widget = None
+        self._detached_log_window = None
 
     def _append_log(self, text: str) -> None:
         normalized = text.lower()
@@ -2757,10 +2915,7 @@ class EstimatorApp:
         elif any(keyword in normalized for keyword in ("start", "running", "launch", "processing")):
             tags.append("accent")
 
-        self.log_widget.configure(state=tk.NORMAL)
-        self.log_widget.insert(tk.END, text + "\n", tuple(tags))
-        self.log_widget.see(tk.END)
-        self.log_widget.configure(state=tk.DISABLED)
+        self._record_log_entry(text, tuple(tags))
         self._log_entry_count += 1
         stripped = text.strip()
         if stripped:
@@ -2829,18 +2984,8 @@ class EstimatorApp:
     def _show_rotating_log_message(self, message: str) -> None:
         if not hasattr(self, "log_widget"):
             return
-        self.log_widget.configure(state=tk.NORMAL)
-        try:
-            ranges = self.log_widget.tag_ranges("animation")
-            # Remove previous animated message (if any) before inserting the next one.
-            while ranges:
-                start, end = ranges[0], ranges[1]
-                self.log_widget.delete(start, end)
-                ranges = self.log_widget.tag_ranges("animation")
-            self.log_widget.insert(tk.END, message + "\n", ("base", "animation"))
-            self.log_widget.see(tk.END)
-        finally:
-            self.log_widget.configure(state=tk.DISABLED)
+        self._remove_animation_entries()
+        self._record_log_entry(message, ("base", "animation"))
         self._last_log_message = message
         self._refresh_workflow_snapshot()
 
@@ -2853,15 +2998,7 @@ class EstimatorApp:
             self._run_log_animation_job = None
         if not hasattr(self, "log_widget"):
             return
-        self.log_widget.configure(state=tk.NORMAL)
-        try:
-            ranges = self.log_widget.tag_ranges("animation")
-            while ranges:
-                start, end = ranges[0], ranges[1]
-                self.log_widget.delete(start, end)
-                ranges = self.log_widget.tag_ranges("animation")
-        finally:
-            self.log_widget.configure(state=tk.DISABLED)
+        self._remove_animation_entries()
         self._refresh_workflow_snapshot()
 
     def _handle_drop(self, event: tk.Event) -> None:  # pragma: no cover - UI event
