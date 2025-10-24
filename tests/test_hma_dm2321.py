@@ -5,6 +5,7 @@ import pandas as pd
 
 from costest.api import EstimateOptions, estimate
 from costest.bidtabs_io import load_bidtabs_files
+from costest.cli import CATEGORY_LABELS
 from costest.hma_dm2321 import (
     DM2321_ADDERS_PER_TON,
     load_crosswalk,
@@ -131,3 +132,16 @@ def test_cli_auto_enables_dm2321(tmp_path: Path) -> None:
     audit_path = artifacts["payitems_workbook"]
     sheet = pd.read_excel(audit_path, sheet_name="401-000041")
     assert len(sheet) > 1
+
+    audit_csv = artifacts["audit_csv"]
+    audit_df = pd.read_csv(audit_csv)
+    audit_df["DESCRIPTION"] = audit_df["DESCRIPTION"].astype(str)
+    hma_base_rows = audit_df.loc[
+        audit_df["DESCRIPTION"].str.contains("QC/QA-HMA", na=False)
+        & audit_df["DESCRIPTION"].str.contains("BASE", na=False)
+        & audit_df["SOURCE"].eq("UNIT_PRICE_SUMMARY")
+    ]
+    assert not hma_base_rows.empty
+    base_row = hma_base_rows.iloc[0]
+    assert base_row["UNIT_PRICE_EST"] > 0
+    assert all(base_row[f"{label}_COUNT"] == 0 for label in CATEGORY_LABELS)

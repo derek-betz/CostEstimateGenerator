@@ -1060,21 +1060,23 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
         geometry = parse_geometry(desc)
         reference_bundle = reference_data.build_reference_bundle(code)
         if dm2321_enabled and dm_mapping_rule == "DM 23-21" and not pd.isna(price):
-            history_sufficient = data_points_used >= min_sample_target
-            adjusted_price, adder_flag = maybe_apply_dm2321_adder(
-                dm_course,
-                float(price),
-                enabled=True,
-                sufficient_history=history_sufficient,
-            )
-            if adder_flag:
-                logger.info(
-                    "        dm2321_adder_applied => course=%s | +$%.2f/ton",
-                    dm_course or "(unknown)",
-                    adjusted_price - float(price),
+            price_val = float(price)
+            if price_val > 0 and data_points_used > 0:
+                history_sufficient = data_points_used >= min_sample_target
+                adjusted_price, adder_flag = maybe_apply_dm2321_adder(
+                    dm_course,
+                    price_val,
+                    enabled=True,
+                    sufficient_history=history_sufficient,
                 )
-            price = adjusted_price
-            dm_adder_applied = adder_flag
+                if adder_flag:
+                    logger.info(
+                        "        dm2321_adder_applied => course=%s | +$%.2f/ton",
+                        dm_course or "(unknown)",
+                        adjusted_price - price_val,
+                    )
+                price = adjusted_price
+                dm_adder_applied = adder_flag
 
         unit_price_est = _round_unit_price(price)
         source_label = source_label or ("NO_DATA" if data_points_used == 0 else "")
