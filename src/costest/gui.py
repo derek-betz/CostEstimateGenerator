@@ -1506,59 +1506,66 @@ class EstimatorApp:
 
         explanation_sections: List[tuple[str, str, str]] = [
             (
-                "lehman",
-                "Plain Language",
+                "quickstart",
+                "Quick Start Guide",
                 textwrap.dedent(
                     """
-                    The estimator helps you turn a quantity spreadsheet into a bid-ready cost summary.
+                    The estimator pairs a drag-and-drop launcher with the full CLI pipeline.
 
-                    1. Start by dropping the *_project_quantities workbook into the large drop area or click it to browse for the file. The app reads each pay item and quantity so you do not have to re-type them.
-                    2. Choose the district and enter the Estimated Total Contract Cost range. That lets the estimator look up similar historical jobs.
-                    3. Click Run Estimate. The run log shows what the tool is doing. When it finishes you will get a polished Excel report with pricing guidance.
-
-                    In short, you load the workbook, confirm a couple of settings, and the estimator builds the pricing picture for you.
+                    1. Drop a *_project_quantities workbook on the main card or click to browse; the status banner confirms the file is staged.
+                    2. Enter the Expected Total Contract Cost, pick the project district, and review the +/- BidTabs contract filter. District selection automatically maps to the correct INDOT region.
+                    3. Adjust any advanced toggles before launch: alternate seek backfill, aggregation method, memo confidence floor, or the quantity elasticity experiment.
+                    4. Press Run Estimate. The log streams each step while the Workflow Snapshot keeps status, inputs, and recent activity in view.
+                    5. When the run completes, review the summary for metrics, top cost drivers, and methodology notes. Updated Estimate_Draft.xlsx, Estimate_Audit.csv, and PayItems_Audit.xlsx files are written to outputs/.
                     """
                 ).strip(),
             ),
             (
-                "intermediate",
-                "Estimator Playbook",
+                "interface",
+                "Interface Highlights",
                 textwrap.dedent(
                     """
-                    The workflow blends automated quantity parsing with curated pricing intelligence.
+                    The window is built to keep you oriented from staging through delivery.
 
-                    • Workbook ingestion maps pay items, units, and quantities directly from the *_project_quantities sheet.
-                    • District selection routes the request to the right regional pricing curves while the Estimated Total Contract Cost filter narrows the BidTabs history to comparable jobs.
-                    • During the run the pipeline enriches the items with alternate descriptions, generates AI commentary, and computes pricing bands using historical averages and machine learning adjustments.
-                    • The Excel export packages everything with highlights, callouts, and an executive-ready summary so the team can review and share immediately.
-
-                    Use this mode when you need to explain the estimator to project managers or estimators who know the basics of cost analysis.
+                    - Status banner: shows friendly titles and detail text as you select files, run the estimator, or resolve errors.
+                    - Run log: streams the full CLI transcript with emphasis on start, success, and error lines so you can audit the pipeline.
+                    - Workflow Snapshot: continually reflects the workbook name, captured inputs, latest log activity, and the timing of the last run without leaving the main screen.
+                    - Workflow Tips link: opens practical guidance for preparing inputs, watching the log, and interpreting deliverables.
+                    - Clear Last Result resets the drop zone, inputs, log, and snapshot so you can stage another workbook without restarting the app.
                     """
                 ).strip(),
             ),
             (
-                "quantity_filter",
-                "Quantity Filtering",
+                "pricing_controls",
+                "Pricing & Data Controls",
                 textwrap.dedent(
                     """
-                    Quantity comparisons begin with a +/-50% window around each pay item's project quantity so the estimator focuses on similar construction scales. If that first pass produces fewer than 10 BidTabs data points, the tool widens only the upper bound out to +100% while keeping the lower side pinned at -50%. That rerun collects larger (but still comparable) jobs without letting undersized quantities dilute the analysis. Pay items that already meet the 10-sample bar stay with the tighter band.
+                    Data controls let you tune how the estimator builds pricing intelligence.
+
+                    - BidTabs total contract cost filter bounds comparable jobs around the ETCC target; the default +/-50% feeds BIDTABS_CONTRACT_FILTER_PCT and you can widen it when needed.
+                    - Alternate seek backfill toggles the geometry-driven search that synthesizes prices when BidTabs history is thin; leaving it off keeps NO DATA placeholders.
+                    - Aggregation method exposes the AGGREGATE_METHOD options so you can steer how BidTabs prices roll up:
+                      - Weighted Average (default) keeps INDOT bid weights so high-volume contracts influence the result.
+                      - Trimmed Mean (P10-90) discards the lowest and highest deciles before averaging to soften outliers.
+                      - Robust Median locks onto the 50th percentile for the most stable estimate when history is noisy.
+                    - Memo minimum confidence sets MEMO_PRICE_MIN_CONFIDENCE so only sufficiently certain design memo rollups substitute prices.
+                    - Quantity elasticity applies an experimental adjustment when project quantities diverge from the sample median; disable it to keep strict historical pricing.
+                    - Quantity filtering starts with a +/-50% band around each pay item. If fewer than 10 BidTabs samples clear that bar, only the upper bound expands to +100% while the lower bound stays at -50%.
                     """
                 ).strip(),
             ),
             (
                 "technical",
-                "Deep Technical Dive",
+                "Under the Hood",
                 textwrap.dedent(
                     """
-                    Under the hood the GUI orchestrates the same pipeline exposed by costest.cli.run.
+                    The GUI orchestrates the same pipeline exposed by costest.cli.run.
 
-                    • File intake triggers the IO layer to normalize workbook structure, convert units, and validate required sheets.
-                    • The pipeline stages fetch BidTabs pricing samples, apply district-specific weighting, and run alternate seek heuristics to backfill sparse items.
-                    • AI summaries are generated through ai_reporter and ai_process_report modules, while stats.py calculates contract-level metrics such as weighted averages and variance envelopes.
-                    • estimate_writer assembles the Excel deliverable with styling, pivot summaries, and narrative commentary.
-                    • Run telemetry recorded in the Workflow Snapshot (status, inputs, and activity) mirrors the log entries emitted from each stage.
-
-                    This view is ideal for technical stakeholders who want to understand how data flows through the estimator stack.
+                    - _run_pipeline assembles a runtime config via config.load_runtime_config, wiring in workbook path, ETCC, district, region, contract filter, aggregation method, memo threshold, quantity elasticity, and alternate seek flags.
+                    - price_logic pools BidTabs history, applies district and region weights, enforces the quantity bands above, and computes statistics with the requested aggregation method.
+                    - alternate_seek and design_memo_prices add geometry-based alternates and memo rollups whenever the BidTabs pool misses the sample target; memo usage honors the confidence slider in the UI.
+                    - ai_reporter and ai_process_report craft the narrative commentary, while estimate_writer packages the Excel and CSV deliverables with highlights and cost-driver tables.
+                    - CLI output is captured verbatim, fed to the run log, and used to keep the Workflow Snapshot and completion dialog in sync with actual pipeline progress.
                     """
                 ).strip(),
             ),
