@@ -18,8 +18,8 @@ import pandas as pd
 # ------------ Header normalization map ------------
 # Add common variants here so we can rename them to our internal names.
 HEADER_MAP = {
-    "item_code": ["ITEM_CODE", "ITEM NO", "ITEMID", "ITEM ID", "PAY ITEM", "ITEM"],
-    "desc":      ["ITEM_DESCRIPTION", "DESCRIPTION", "ITEM DESC", "ITEM DESCRIPTION"],
+    "item_code": ["ITEM_CODE", "ITEM NO", "ITEMID", "ITEM ID", "PAY ITEM", "PAY ITEM NUMBER", "ITEM"],
+    "desc":      ["ITEM_DESCRIPTION", "DESCRIPTION", "ITEM DESC", "ITEM DESCRIPTION", "PAY ITEM NAME"],
     "unit":      ["UNIT", "UOM"],
     "qty":       ["QUANTITY", "QTY"],
     "price":     ["UNIT_PRICE", "UNIT PRICE", "PRICE"],
@@ -214,8 +214,8 @@ def load_quantities(xlsx_path: str | Path) -> pd.DataFrame:
 
     df = df.rename(columns={
         # Accept PAY ITEM as the item-code header
-        pick("ITEM_CODE", "ITEM", "ITEM NO", "PAY ITEM", "PAY_ITEM", "PAYITEM"): "ITEM_CODE",
-        pick("DESCRIPTION", "ITEM_DESCRIPTION", "ITEM DESC"): "DESCRIPTION",
+        pick("ITEM_CODE", "ITEM", "ITEM NO", "PAY ITEM", "PAY ITEM NUMBER", "PAY_ITEM", "PAYITEM"): "ITEM_CODE",
+        pick("DESCRIPTION", "ITEM_DESCRIPTION", "ITEM DESC", "PAY ITEM NAME"): "DESCRIPTION",
         pick("UNIT", "UOM"): "UNIT",
         pick("QUANTITY", "QTY"): "QUANTITY",
     })
