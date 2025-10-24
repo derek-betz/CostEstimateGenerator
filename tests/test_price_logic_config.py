@@ -42,3 +42,41 @@ def test_rollup_env_override(monkeypatch):
     monkeypatch.delenv("MEMO_ROLLUP_QUANTITY_UPPER", raising=False)
     monkeypatch.delenv("MEMO_ROLLUP_SIGMA_THRESHOLD", raising=False)
     importlib.reload(price_logic)
+
+
+def test_quantity_filter_expands_when_pool_sparse():
+    df = pd.DataFrame(
+        {
+            "ITEM_CODE": ["Q"] * 18,
+            "UNIT_PRICE": np.linspace(10, 27, 18),
+            "QUANTITY": [60.0] * 9 + [190.0] * 5 + [20.0] * 4,
+        }
+    )
+    price, source, cat_data, detail_map, used_categories, combined_detail = price_logic.category_breakdown(
+        df, "Q", project_region=None, include_details=True, target_quantity=100.0
+    )
+    assert cat_data["TOTAL_USED_COUNT"] == 14
+    assert cat_data["QUANTITY_FILTER_BASE_COUNT"] == 9.0
+    assert cat_data["QUANTITY_FILTER_WAS_EXPANDED"] is True
+    assert cat_data["QUANTITY_FILTER_LOWER_MULTIPLIER"] == 0.5
+    assert cat_data["QUANTITY_FILTER_UPPER_MULTIPLIER"] == 2.0
+    assert len(combined_detail) == 14
+    assert (combined_detail["QUANTITY"] >= 50.0).all()
+
+
+def test_quantity_filter_stays_tight_when_enough_points():
+    df = pd.DataFrame(
+        {
+            "ITEM_CODE": ["R"] * 15,
+            "UNIT_PRICE": np.linspace(15, 29, 15),
+            "QUANTITY": [70.0] * 12 + [220.0] * 3,
+        }
+    )
+    price, source, cat_data = price_logic.category_breakdown(
+        df, "R", project_region=None, include_details=False, target_quantity=100.0
+    )
+    assert cat_data["TOTAL_USED_COUNT"] == 12
+    assert cat_data["QUANTITY_FILTER_BASE_COUNT"] == 12.0
+    assert cat_data["QUANTITY_FILTER_WAS_EXPANDED"] is False
+    assert cat_data["QUANTITY_FILTER_LOWER_MULTIPLIER"] == 0.5
+    assert cat_data["QUANTITY_FILTER_UPPER_MULTIPLIER"] == 1.5

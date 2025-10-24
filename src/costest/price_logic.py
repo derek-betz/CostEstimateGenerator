@@ -14,6 +14,9 @@ MIN_SAMPLE_TARGET = int(os.getenv('MIN_SAMPLE_TARGET', '50'))
 ROLLUP_QUANTITY_LOWER = float(os.getenv('MEMO_ROLLUP_QUANTITY_LOWER', '0.5'))
 ROLLUP_QUANTITY_UPPER = float(os.getenv('MEMO_ROLLUP_QUANTITY_UPPER', '1.5'))
 ROLLUP_SIGMA_THRESHOLD = float(os.getenv('MEMO_ROLLUP_SIGMA_THRESHOLD', '2.0'))
+QUANTITY_FILTER_MIN_POINTS = int(os.getenv('QUANTITY_FILTER_MIN_POINTS', '10'))
+PRIMARY_QUANTITY_BAND = (0.5, 1.5)
+EXPANDED_QUANTITY_BAND = (PRIMARY_QUANTITY_BAND[0], 2.0)
 
 CATEGORY_DEFS = [
     ('DIST_12M', 'REGION', 0, 12),
@@ -248,13 +251,22 @@ def _compute_categories(
     project_region: int | None,
     collect_details: bool = False,
     target_quantity: float | None = None,
+    quantity_band: tuple[float, float] | None = PRIMARY_QUANTITY_BAND,
 ):
     pool = _prepare_pool(bidtabs, item_code)
 
-    if target_quantity is not None and target_quantity > 0 and 'QUANTITY' in pool.columns:
-        lower_q = 0.5 * float(target_quantity)
-        upper_q = 1.5 * float(target_quantity)
+    applied_quantity_band: tuple[float, float] | None = None
+    if (
+        target_quantity is not None
+        and target_quantity > 0
+        and 'QUANTITY' in pool.columns
+        and quantity_band is not None
+    ):
+        lower_multiplier, upper_multiplier = quantity_band
+        lower_q = lower_multiplier * float(target_quantity)
+        upper_q = upper_multiplier * float(target_quantity)
         pool = pool.loc[pool['QUANTITY'].between(lower_q, upper_q, inclusive='both')].copy()
+        applied_quantity_band = (lower_multiplier, upper_multiplier)
 
     results: dict[str, float] = {}
     subsets: dict[str, pd.DataFrame] = {}
@@ -330,6 +342,13 @@ def _compute_categories(
         total_used = 0
 
     results['TOTAL_USED_COUNT'] = total_used
+    if applied_quantity_band is not None:
+        lower_mult, upper_mult = applied_quantity_band
+        results['QUANTITY_FILTER_LOWER_MULTIPLIER'] = float(lower_mult)
+        results['QUANTITY_FILTER_UPPER_MULTIPLIER'] = float(upper_mult)
+    elif target_quantity is not None:
+        results['QUANTITY_FILTER_LOWER_MULTIPLIER'] = np.nan
+        results['QUANTITY_FILTER_UPPER_MULTIPLIER'] = np.nan
     detail_map = subsets if collect_details else {}
 
     return final_price, source, results, detail_map, used_categories, combined_detail
@@ -356,8 +375,43 @@ def category_breakdown(
     """
     region = PROJECT_REGION if project_region is None else project_region
     price, source, cat_data, detail_map, used_categories, combined_detail = _compute_categories(
-        bidtabs, item_code, region, collect_details=include_details, target_quantity=target_quantity
+        bidtabs,
+        item_code,
+        region,
+        collect_details=include_details,
+        target_quantity=target_quantity,
+        quantity_band=PRIMARY_QUANTITY_BAND,
     )
+
+    total_used_primary = int(cat_data.get("TOTAL_USED_COUNT", len(combined_detail)))
+    lower_primary = cat_data.get("QUANTITY_FILTER_LOWER_MULTIPLIER")
+    upper_primary = cat_data.get("QUANTITY_FILTER_UPPER_MULTIPLIER")
+    has_primary_band = (
+        lower_primary is not None
+        and upper_primary is not None
+        and np.isfinite(lower_primary)
+        and np.isfinite(upper_primary)
+    )
+
+    if target_quantity is not None and target_quantity > 0:
+        if total_used_primary < QUANTITY_FILTER_MIN_POINTS and has_primary_band:
+            price, source, cat_data, detail_map, used_categories, combined_detail = _compute_categories(
+                bidtabs,
+                item_code,
+                region,
+                collect_details=include_details,
+                target_quantity=target_quantity,
+                quantity_band=EXPANDED_QUANTITY_BAND,
+            )
+            cat_data["QUANTITY_FILTER_BASE_COUNT"] = float(total_used_primary)
+            cat_data["QUANTITY_FILTER_WAS_EXPANDED"] = True
+        else:
+            cat_data["QUANTITY_FILTER_BASE_COUNT"] = float(total_used_primary)
+            cat_data["QUANTITY_FILTER_WAS_EXPANDED"] = False
+            if "QUANTITY_FILTER_LOWER_MULTIPLIER" not in cat_data:
+                cat_data["QUANTITY_FILTER_LOWER_MULTIPLIER"] = np.nan
+                cat_data["QUANTITY_FILTER_UPPER_MULTIPLIER"] = np.nan
+
     if include_details:
         return price, source, cat_data, detail_map, used_categories, combined_detail
     return price, source, cat_data

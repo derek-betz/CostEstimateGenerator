@@ -41,8 +41,9 @@ The following packages are installed via `requirements.txt` or `pyproject.toml`:
   after `DATA_POINTS_USED` within the `Estimate` sheet.
 - Updates `Estimate_Audit.csv` by inserting `STD_DEV` and `COEF_VAR` columns
   after `DATA_POINTS_USED` and populating them for every row.
-- Produces a debug mapping report at `outputs/payitem_mapping_debug.csv` showing
-  how item codes were matched to historical sources.
+- Produces a debug mapping report at `outputs/payitem_mapping_debug.csv` listing
+  any DM 23-21 remappings (`source_item`, `mapped_item`, `mapping_rule`,
+  `adder_applied`, `evidence`).
 - Supports `--dry-run` mode and optional AI assistance that can be disabled
   via CLI flags or the `DISABLE_OPENAI=1` environment variable.
 - Automates retrieval of INDOT Active Design Memos, producing structured
@@ -166,6 +167,31 @@ A convenience wrapper is available:
 ```bash
 python scripts/run_pipeline.py --help
 ```
+
+## Handling HMA Pay Item Transition (DM 23-21)
+
+INDOT Design Memo 23-21 introduces new HMA pay item numbers that supersede the
+legacy PG binder-based codes. The estimator supports this transition by:
+
+- Loading the memo crosswalk from `data_reference/hma_crosswalk_dm23_21.csv`
+  (excludes SMA entries marked as deleted). Each row records the legacy pay
+  item, its new MSCR counterpart, the mix course (Surface/Intermediate/Base),
+  ESAL category, and binder class.
+- Remapping historical BidTabs records and project quantities to the new item
+  numbers whenever `--apply-dm23-21` (or `APPLY_DM23_21=1`) is provided. SMA
+  items flagged as deleted are skipped automatically and listed in the logs.
+- Annotating estimate rows with `MappedFromOldItem`, mix metadata, and a
+  transitional adder flag. The mapping debug report (`payitem_mapping_debug.csv`)
+  captures `source_item`, `mapped_item`, `mapping_rule`, `adder_applied`, and an
+  `evidence` column fixed to "DM 23-21" for traceability.
+- Applying transitional adders of $3.00/ton (Surface), $2.50/ton
+  (Intermediate), or $2.00/ton (Base) whenever DM 23-21 logic is enabled but the
+  new item lacks sufficient history. Adders are automatically removed once the
+  minimum sample target is satisfied.
+
+To enable the new behaviour in CLI runs, pass `--apply-dm23-21` (or export the
+environment variable `APPLY_DM23_21=1`). The graphical launcher respects the
+same environment variable.
 
 ## Testing
 
