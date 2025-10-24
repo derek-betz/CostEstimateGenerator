@@ -6,7 +6,7 @@ import sys
 import json
 from dataclasses import replace
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Sequence
+from typing import TYPE_CHECKING, Dict, List, Mapping, Optional, Sequence
 
 import pandas as pd
 from dotenv import load_dotenv
@@ -146,6 +146,84 @@ def _round_unit_price(value: float) -> float:
     rounded = round(numeric / step) * step
     return round(rounded, 2)
 
+
+def _table_friendly_meta_value(value: object) -> object:
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    try:
+        return json.dumps(value, separators=(",", ":"), ensure_ascii=False)
+    except TypeError:
+        return str(value)
+
+
+def _apply_geometry_summary_price(
+    row: Dict[str, object],
+    item_code: str,
+    geometry: object | None,
+    data_points_used: int,
+    summary_lookup: Mapping[str, Mapping[str, object]],
+) -> tuple[bool, int, float]:
+    """
+    Apply Unit Price Summary pricing for geometry-based items before alt-seek.
+
+    Returns a tuple ``(applied, data_points_used, unit_price_est)`` where
+    ``applied`` indicates whether Unit Price Summary data was used.
+    """
+    current_price = float(row.get("UNIT_PRICE_EST", 0) or 0.0)
+    if geometry is None or data_points_used != 0 or not summary_lookup:
+        return False, data_points_used, current_price
+
+    info = summary_lookup.get(normalize_item_code(item_code))
+    if not info:
+        return False, data_points_used, current_price
+
+    try:
+        weighted_avg = float(info.get("weighted_average", 0) or 0)
+    except Exception:
+        weighted_avg = 0.0
+    try:
+        contracts = int(float(info.get("contracts", 0) or 0))
+    except Exception:
+        contracts = 0
+
+    if weighted_avg <= 0 or contracts < 2:
+        return False, data_points_used, current_price
+
+    unit_price_est = _round_unit_price(weighted_avg)
+    row["UNIT_PRICE_EST"] = unit_price_est
+    row["SOURCE"] = "UNIT_PRICE_SUMMARY"
+    row["DATA_POINTS_USED"] = contracts
+    row["ALTERNATE_USED"] = False
+
+    previous_note = str(row.get("NOTES") or "").strip()
+    if previous_note.upper().startswith("NO DATA"):
+        previous_note = ""
+    summary_note = f"Unit Price Summary weighted average used ({contracts} contracts)."
+    row["NOTES"] = " | ".join(part for part in (summary_note, previous_note) if part)
+
+    for key in (
+        "ALTERNATE_SOURCE_ITEM",
+        "ALTERNATE_RATIO",
+        "ALTERNATE_BASE_PRICE",
+        "ALTERNATE_SOURCE_AREA",
+        "ALTERNATE_CANDIDATE_COUNT",
+        "ALT_TOTAL_CANDIDATES",
+        "ALT_SELECTED_COUNT",
+        "ALT_SIMILARITY_NOTES",
+        "ALT_SCORE_OVERALL",
+        "ALT_SHOW_WORK_METHOD",
+        "ALTERNATE_AI_NOTES",
+        "ALTERNATE_METHOD",
+    ):
+        row.pop(key, None)
+
+    logger.info(
+        "        unit_price_summary applied => contracts=%s | weighted_avg=$%s",
+        contracts,
+        f"{weighted_avg:,.2f}",
+    )
+
+    return True, contracts, unit_price_est
 
 def apply_non_geometry_fallbacks(
     rows: List[Dict[str, object]],
@@ -1156,6 +1234,7 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
     dm2321_deleted_items: list[str] = []
     payitem_details: Dict[str, pd.DataFrame] = {}
     alternate_reports: Dict[str, Dict[str, object]] = {}
+    summary_lookup = reference_data.load_unit_price_summary()
 
     log_stage(f"Running item pricing analytics for {qty_rows:,} project rows")
     for _, r in qty.iterrows():
@@ -1298,13 +1377,25 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
             row.setdefault("DM2321_BINDER_CLASS", None)
             row.setdefault("DM2321_ADDER_APPLIED", False)
 
+        summary_applied = False
         if geometry is not None:
             row["GEOM_SHAPE"] = geometry.shape
             row["GEOM_AREA_SQFT"] = round(geometry.area_sqft, 4)
             if geometry.dimensions:
                 row["GEOM_DIMENSIONS"] = geometry.dimensions
 
-        if alt_seek_enabled and data_points_used == 0 and geometry is not None:
+        summary_applied, data_points_used, unit_price_est = _apply_geometry_summary_price(
+            row,
+            code,
+            geometry,
+            data_points_used,
+            summary_lookup,
+        )
+        if summary_applied:
+            source_label = str(row.get("SOURCE") or "")
+            note = str(row.get("NOTES") or "")
+
+        if not summary_applied and alt_seek_enabled and data_points_used == 0 and geometry is not None:
             area_display = getattr(geometry, "area_sqft", float("nan"))
             logger.info("        alternate_seek activating => geometry_area=%s sqft", f"{area_display:.2f}")
             alt_result = find_alternate_price(
@@ -1664,10 +1755,15 @@ def run(config: Optional["CLIConfig"] = None, runtime_config: Optional[Config] =
             },
         }
         out_meta = (output_dir / "run_metadata.json").resolve()
+        out_meta_table = (output_dir / "run_metadata_table.json").resolve()
         out_meta.parent.mkdir(parents=True, exist_ok=True)
+
         with open(out_meta, "w", encoding="utf-8") as fh:
             json.dump(meta, fh, indent=2)
-        log_detail(f"run_metadata_emitted => {out_meta}")
+        table_meta = {key: _table_friendly_meta_value(value) for key, value in meta.items()}
+        with open(out_meta_table, "w", encoding="utf-8") as fh:
+            json.dump([table_meta], fh, indent=2)
+        log_detail(f"run_metadata_emitted => {out_meta} (full) & {out_meta_table} (table)")
     except Exception:  # pragma: no cover - defensive
         logger.debug("Unable to emit run metadata", exc_info=True)
 

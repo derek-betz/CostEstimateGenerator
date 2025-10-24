@@ -37,7 +37,7 @@ def test_contract_percents_externalized(tmp_path: Path) -> None:
     assert rc == 0
 
     # Verify run metadata was written and contains spec edition
-    meta_path = outputs / "run_metadata.json"
+    meta_path = outputs / "run_metadata_table.json"
     assert meta_path.exists()
     meta = pd.read_json(meta_path)
     assert "spec_edition" in meta.columns
